@@ -128,7 +128,7 @@ label{font-size:13px;color:var(--mut)}
 </head>
 <body>
 <div class="toast" id="toast"></div>
-<div id="app"></div>
+<div id="app"><div style="position:fixed;inset:0;background:#000;display:grid;place-items:center;z-index:30"><img src="/app/img2014/icon.png" width="170" height="170" alt="Scan &amp; Pro" onerror="this.src='/app/icon-192.png'"></div></div>
 <div id="overlay"></div>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -268,7 +268,7 @@ function openUrl(u) {
 async function loadAll() {
   const [c, ch, f, ev] = await Promise.all([
     sb.from('codes').select('*').order('created_at'),
-    sb.from('chats').select('id,code_id,name,created_at').order('created_at', { ascending: false }),
+    sb.from('chats').select('id,code_id,name,created_at,blocked').order('created_at', { ascending: false }),
     sb.from('chat_favorites').select('chat_id'),
     sb.from('events').select('*').order('created_at', { ascending: false }).limit(100)
   ]);
@@ -278,6 +278,7 @@ async function loadAll() {
     S.msgs = {}; (data || []).forEach(m => (S.msgs[m.chat_id] ||= []).push(m));
   }
 }
+const face = (blocked, s) => `<img src="/app/img2014/${blocked ? 'chat_blocked' : 'chat_ok'}.png" width="${s}" height="${s}" alt="" style="display:block">`;
 const codeOf = id => S.codes.find(c => c.id === id);
 const lastMsg = cid => (S.msgs[cid] || []).at(-1);
 const chatOff = ch => { const c = codeOf(ch.code_id); return c && !c.is_on && !S.favs.has(ch.id); };
@@ -289,7 +290,7 @@ function subscribe() {
   channel?.unsubscribe();
   channel = sb.channel('owner')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async ({ new: m }) => {
-      if (!S.chats.find(c => c.id === m.chat_id)) { const { data } = await sb.from('chats').select('id,code_id,name,created_at').eq('id', m.chat_id).single(); if (data) S.chats.unshift(data); }
+      if (!S.chats.find(c => c.id === m.chat_id)) { const { data } = await sb.from('chats').select('id,code_id,name,created_at,blocked').eq('id', m.chat_id).single(); if (data) S.chats.unshift(data); }
       const list = (S.msgs[m.chat_id] ||= []); if (!list.find(x => x.id === m.id)) list.push(m);
       if (m.from_visitor) {
         const viewing = S.view?.t === 'chat' && S.view.id === m.chat_id && !document.hidden;
@@ -402,7 +403,7 @@ function renderHome() {
   } else if (S.tab === 'chats') {
     const list = S.chats.filter(c => match(c.name, codeOf(c.code_id)?.name, lastMsg(c.id)?.body)).sort((a, b) => new Date(lastMsg(b.id)?.created_at || b.created_at) - new Date(lastMsg(a.id)?.created_at || a.created_at));
     const favs = list.filter(c => S.favs.has(c.id)), rest = list.filter(c => !S.favs.has(c.id));
-    const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div style="flex:none">${chatOff(c) ? IC.zipped(50) : IC.smile(50)}</div>
+    const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div style="flex:none">${face(c.blocked, 50)}</div>
       <div class="grow"><div class="t">${esc(c.name)}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + lm.body : (code?.name || ''))}</div></div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;display:flex;flex-direction:column;align-items:flex-end;gap:6px"><button class="star" data-fav="${c.id}" title="Favorito" style="padding:2px">${IC.star(30, S.favs.has(c.id))}</button><div style="white-space:nowrap">${ago(lm?.created_at || c.created_at)}</div></div></div>`; };
     body = list.length ? (favs.length ? `<div class="pad section" style="padding-bottom:0">FAVORITOS</div>${favs.map(row).join('')}` : '') + (rest.length ? `${favs.length ? '<div class="pad section" style="padding-bottom:0">TODOS</div>' : ''}${rest.map(row).join('')}` : '')
@@ -417,7 +418,7 @@ function renderHome() {
     if (S.events.length) { S.seenEv = S.events[0].id; ls.set('sa_seen_ev', S.seenEv); }
     const unreadEv = S.events.filter(e => !e.read_at).map(e => e.id); if (unreadEv.length) setTimeout(() => markRead(unreadEv), 800);
   }
-  app.innerHTML = `<div class="bar">${LOGO(38)}${S.searching ? `<input id="sq" class="searchin" placeholder="Buscar…" value="${esc(S.q || '')}">` : '<span class="name">Scan & Pro</span>'}<button class="ib dark" id="bSearch" title="Buscar">${IC.search(26)}</button><button class="ib dark" id="bScan" title="Escanear">${IC.camera(28)}</button><button class="ib dark" id="bMenu" title="Menú">${IC.dots(24)}</button></div>
+  app.innerHTML = `<div class="bar">${LOGO(38)}${S.searching ? `<input id="sq" class="searchin" placeholder="Buscar…" value="${esc(S.q || '')}">` : '<span class="name">Scan & Pro</span>'}<button class="ib dark" id="bSearch" title="Buscar">${IC.search(26)}</button><button class="ib dark" id="bScan" title="Escanear"><img src="/app/img2014/camera.png" width="32" height="32" alt="Escanear" style="display:block" onerror="this.style.display='none'"></button><button class="ib dark" id="bMenu" title="Menú">${IC.dots(24)}</button></div>
     <div class="tabs">${tabs.map(([k, l, n]) => `<button class="${S.tab === k ? 'on' : ''}" data-tab="${k}">${l}${n && S.tab !== k ? `<span class="badge">${n}</span>` : ''}</button>`).join('')}</div>
     <div class="body">${body}</div>${S.tab === 'codes' ? `<button class="fab" id="fab" style="display:grid;place-items:center">${IC.plus(28)}</button>` : ''}`;
   app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; render(); });
@@ -568,8 +569,8 @@ function renderChat() {
   const code = codeOf(ch.code_id), list = S.msgs[ch.id] || [], fav = S.favs.has(ch.id), off = chatOff(ch);
   if (S.unread[ch.id]) { delete S.unread[ch.id]; ls.set('sa_unread', S.unread); }
   app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button>${LOGO(36)}<div class="grow"><div style="font-size:20px" id="nm">${esc(ch.name)}</div><div style="font-size:12px;color:#aaa">${esc(code?.name || '')}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
-    <button class="star" id="fv" title="Favorito">${IC.star(28, fav)}</button><button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="dc" title="Borrar chat">${IC.trash(22)}</button></div>
-    ${off ? '<div class="notice">Este código está apagado: el chat está cerrado. Márcalo como favorito ★ para mantenerlo activo.</div>' : ''}
+    <button class="star" id="fv" title="Favorito">${IC.star(28, fav)}</button><button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
+    ${ch.blocked ? '<div class="notice" style="background:#eee">Has bloqueado a este contacto: no puede escribirte. Desbloquéalo desde ⋮.</div>' : ''}${off ? '<div class="notice">Este código está apagado: el chat está cerrado. Márcalo como favorito ★ para mantenerlo activo.</div>' : ''}
     <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${list.map(m => `<div class="m ${m.from_visitor ? 'them' : 'me'}">${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${esc(m.body)}<div class="tm">${ago(m.created_at)}${m.from_visitor ? '' : IC.check(16)}</div></div>`).join('') || '<div class="empty">Sin mensajes todavía.</div>'}</div></div>
     <div class="compose"><input id="oi" placeholder="Escribe y envía" maxlength="2000" enterkeyhint="send"><button class="sendb" id="os" title="Enviar">${IC.send(34)}</button></div>`;
   app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight;
@@ -592,7 +593,15 @@ function renderChat() {
     i.onblur = () => setTimeout(() => { if (document.activeElement?.id !== 'rnok') save(); }, 150);
   };
   $('#fv').onclick = () => toggleFav(ch.id);
-  $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { await sb.from('chats').delete().eq('id', ch.id); S.chats = S.chats.filter(x => x.id !== ch.id); S.view = null; S.tab = 'chats'; toast('Chat borrado'); render(); } else { $('#dc').dataset.sure = 1; toast('Pulsa la papelera otra vez para borrar el chat'); } };
+  $('#cm').onclick = () => {
+    $('#overlay').innerHTML = `<div class="sheet keep" id="cms"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">${face(ch.blocked, 44)}<div><b>${esc(ch.name)}</b><div style="font-size:13px;color:#777">${ch.blocked ? 'Contacto bloqueado: no puede escribirte' : 'Contacto activo'}</div></div></div>
+      <button class="btn light" id="bl" style="margin-bottom:8px">${ch.blocked ? 'Desbloquear contacto' : 'Bloquear contacto'}</button>
+      <button class="btn light" id="dc" style="color:var(--red)">${IC.trash(18)} Borrar chat</button></div></div>`;
+    $('#cms').onclick = () => { $('#overlay').innerHTML = ''; };
+    $('#bl').onclick = async () => { const v = !ch.blocked; $('#overlay').innerHTML = ''; ch.blocked = v; render(); const { error } = await sb.from('chats').update({ blocked: v }).eq('id', ch.id); if (error) { ch.blocked = !v; render(); toast('No se ha podido cambiar.'); } else toast(v ? 'Contacto bloqueado: ya no puede escribirte' : 'Contacto desbloqueado'); };
+    $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { $('#overlay').innerHTML = ''; await sb.from('chats').delete().eq('id', ch.id); S.chats = S.chats.filter(x => x.id !== ch.id); S.view = null; S.tab = 'chats'; toast('Chat borrado'); render(); } else { $('#dc').dataset.sure = 1; $('#dc').textContent = 'Pulsa otra vez para borrar el chat'; } };
+  };
   const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; i.value = ''; const { data, error } = await sb.from('messages').insert({ chat_id: ch.id, from_visitor: false, sender_id: S.user.id, body: t }).select().single(); if (error) return toast('No se ha podido enviar.'); const l = (S.msgs[ch.id] ||= []); if (!l.find(x => x.id === data.id)) l.push(data); render(); $('#oi')?.focus(); };
   $('#os').onclick = send; $('#oi').onkeydown = e => { if (e.key === 'Enter') send(); };
 }
@@ -664,11 +673,13 @@ function highlight(k) {
   if (el) { el.classList.add('hl'); el.scrollIntoView({ block: 'nearest' }); }
 }
 function playTour() {
-  const tts = 'speechSynthesis' in window; if (tts) speechSynthesis.cancel(); S.touring = true; let i = 0; const voice = tts ? pickVoice() : null;
+  const NT = NATIVE && window.Capacitor.Plugins.TextToSpeech;
+  const tts = !NT && 'speechSynthesis' in window; if (tts) speechSynthesis.cancel(); S.touring = true; let i = 0; const voice = tts ? pickVoice() : null;
   const next = () => {
     if (!S.touring) return;
     if (i >= TOUR.length) { S.touring = false; highlight(null); ls.set(tourKey(), 1); S.tourDone = true; render(); return; }
     const [k, t] = TOUR[i++]; S.tourKeyNow = k; S.tourCap = t; const cap = $('#tcap'); if (cap) cap.textContent = t; highlight(k);
+    if (NT) { NT.speak({ text: t, lang: 'es-ES', rate: 1.0, volume: 1.0 }).then(() => setTimeout(next, 250)).catch(() => setTimeout(next, 3500)); return; }
     if (!tts) return setTimeout(next, 3500);
     const u = new SpeechSynthesisUtterance(t); u.lang = 'es-ES'; if (voice) u.voice = voice; u.rate = 1.02;
     u.onend = () => setTimeout(next, 250); u.onerror = () => setTimeout(next, 1500); speechSynthesis.speak(u);
@@ -676,7 +687,7 @@ function playTour() {
   const pb = $('#tplay'); if (pb) pb.innerHTML = IC.stop(30);
   next();
 }
-function stopTour() { S.touring = false; try { speechSynthesis.cancel(); } catch (e) {} highlight(null); const pb = $('#tplay'); if (pb) pb.innerHTML = IC.play(30); }
+function stopTour() { S.touring = false; try { speechSynthesis.cancel(); } catch (e) {} try { NATIVE && window.Capacitor.Plugins.TextToSpeech?.stop(); } catch (e) {} highlight(null); const pb = $('#tplay'); if (pb) pb.innerHTML = IC.play(30); }
 function tourHTML() {
   if (S.tab !== 'codes' || S.view || (ls.get(tourKey(), 0) && !S.tourForce)) return '';
   return `<div class="tour"><button class="play" id="tplay" title="Escuchar">${S.touring ? IC.stop(30) : IC.play(30)}</button>
@@ -725,7 +736,7 @@ async function markRead(ids) { ids = ids.filter(Boolean); if (!ids.length) retur
 async function start(session) {
   S.user = session?.user || null;
   if (!S.user) { channel?.unsubscribe(); return render(); }
-  app.innerHTML = `<div class="empty" style="margin:auto">${LOGO(60)}<br>Cargando…</div>`;
+  app.innerHTML = `<div style="position:fixed;inset:0;background:#000;display:grid;place-items:center;z-index:30"><img src="/app/img2014/icon.png" width="170" height="170" alt="Scan &amp; Pro" onerror="this.src='/app/icon-192.png'"></div>`;
   await loadAll(); await ensureStarter(); subscribe(); render();
   if (location.search) { openUrl(location.href); history.replaceState(null, '', '/app/'); }
   if (NATIVE) enableNativePush(false); else if (pushOK() && Notification.permission === 'granted') enablePush(false);

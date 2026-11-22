@@ -32,7 +32,7 @@ jobs:
           cp android/android/app/build/outputs/apk/debug/app-debug.apk app/scanandpro.apk
           git config user.name "scanand-bot"
           git config user.email "scanand-bot@users.noreply.github.com"
-          git add app/scanandpro.apk
+          git add app/scanandpro.apk app/img2014
           git commit -m "APK Android actualizado" || echo "sin cambios"
           git pull --rebase && git push
       - uses: actions/upload-artifact@v4

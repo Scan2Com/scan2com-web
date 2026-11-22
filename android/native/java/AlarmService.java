@@ -56,7 +56,7 @@ public class AlarmService extends MessagingService {
         int flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
         PendingIntent pi = PendingIntent.getActivity(c, 1001, full, flags);
         NotificationCompat.Builder b = new NotificationCompat.Builder(c, CH_ALARM)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notif)
             .setContentTitle(title).setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -74,7 +74,7 @@ public class AlarmService extends MessagingService {
         Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("url", url);
         PendingIntent pi = PendingIntent.getActivity(c, (tag == null ? 0 : tag.hashCode()), open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         NotificationCompat.Builder b = new NotificationCompat.Builder(c, CH_MSG)
-            .setSmallIcon(R.mipmap.ic_launcher).setContentTitle(title).setContentText(body)
+            .setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).setContentIntent(pi);
         ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(tag == null ? 2 : tag.hashCode(), b.build());

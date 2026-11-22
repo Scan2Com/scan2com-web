@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#dedfe1">
+<link rel="icon" href="/app/logo.png">
 <title>Scan &</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Comfortaa:wght@700&display=swap" rel="stylesheet">
@@ -44,6 +45,12 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 .send{border:0;background:var(--green);color:#fff;border-radius:22px;padding:11px 16px;font:inherit;font-weight:600;cursor:pointer}
 .mailbox{display:flex;flex-direction:column;gap:8px}
 .mailbox input,.mailbox textarea{font:inherit;font-size:16px;border:0;border-radius:14px;padding:12px}
+.tick{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;margin:auto;text-align:center;animation:pop .5s ease-out}
+.tick svg{width:min(55vw,200px);height:auto;filter:drop-shadow(0 6px 14px rgba(26,156,22,.35))}
+.tick h2{margin:0;color:#1a7a1a;font-size:26px}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.wait{display:inline-block;width:8px;height:8px;border-radius:50%;background:#9a9ea4;margin-left:6px;animation:wp 1s infinite}
+@keyframes wp{50%{opacity:.2}}
 .center{margin:auto;text-align:center;color:#555;padding:30px}
 .foot{text-align:center;font-size:12px;color:#888}
 .foot a{color:#666}
@@ -55,7 +62,7 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const sb = createClient('https://kbkyosyenotqjcgujbmn.supabase.co', 'sb_publishable_Ac2fFMZTIWXMGfEURbVc8Q_Z2gcpujt', { auth: { persistSession: false } });
 
-const LOGO = `<svg width="26" height="26" viewBox="0 0 100 100"><g fill="none" stroke-width="11" stroke-linecap="round"><path d="M8 44V22Q8 8 22 8h22" stroke="#2f8fe0"/><path d="M56 8h22q14 0 14 14v22" stroke="#2fc23a"/><path d="M8 56v22q0 14 14 14h22" stroke="#e8352b"/><path d="M92 56v22q0 14-14 14H56" stroke="#e6c62a"/></g><text x="50" y="68" text-anchor="middle" font-family="Comfortaa" font-weight="700" font-size="52" fill="#555">S</text></svg>`;
+const LOGO = `<img src="/app/logo.png" width="28" height="28" alt="Scan &">`;
 const I = {
   mail: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z" opacity=".25"/><path d="M3 5h18v2l-9 6-9-6zM3 9l9 6 9-6v10H3z"/></svg>',
   alert: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 4V5L7 9z"/><path d="M15 8.5a4 4 0 0 1 0 7M17.5 6a7.5 7.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
@@ -73,7 +80,7 @@ const id = (location.pathname.match(/\/s\/([A-Za-z0-9]+)/) || [])[1] || new URLS
 let code = null, status = '', statusErr = false, busy = false, view = 'home';
 const chatKey = () => 'scanand_chat_' + id;
 let chat = null; try { chat = JSON.parse(localStorage.getItem(chatKey())); } catch (e) {}
-let lastMsg = 0, msgs = [], poll = null, alive = true;
+let lastMsg = 0, msgs = [], poll = null, alive = true, pending = null, readPoll = null, readKind = '';
 
 async function rpc(fn, args) {
   const { data, error } = await sb.rpc(fn, args);
@@ -86,6 +93,7 @@ async function load() {
   code = await rpc('public_code', { p_id: id });
   if (!code || code.status === 'not_found' || code.ok === false) { app.innerHTML = `<div class="center">${LOGO}<h2>Código no encontrado</h2><p>Revisa que el QR se haya leído bien.</p></div>`; return; }
   if (code.status === 'unclaimed') { app.innerHTML = `<div class="center">${LOGO}<h2>Pegatina sin activar</h2><p>Esta pegatina Scan & aún no tiene dueño. Si es tuya, vincúlala desde la app escaneando el QR maestro de tu pack.</p></div>`; return; }
+  if (code.status === 'redirect' && /^https?:\/\//i.test(code.url)) { app.innerHTML = `<div class="center">${LOGO}<p>Abriendo <a href="${esc(code.url)}" rel="noopener">${esc(code.url.replace(/^https?:\/\//, ''))}</a>…</p></div>`; location.replace(code.url); return; }
   if (chat && code.status === 'on') view = 'home';
   render();
   if (code.status === 'on' && code.auto_alert && !sessionStorage.getItem('auto_' + id)) {
@@ -95,6 +103,7 @@ async function load() {
 }
 
 function render() {
+  if (view === 'read') return renderRead();
   if (view === 'chat') return renderChat();
   if (view === 'mail') return renderMail();
   const off = code.status === 'off', ch = code.channels || {};
@@ -103,7 +112,7 @@ function render() {
     <div class="brand">${LOGO} Scan &</div>
     <div class="card"><h1>${esc(code.public_name || 'Scan &')}</h1><p>${off ? 'El dueño ha desactivado este código temporalmente.' : esc(code.public_desc || '')}</p></div>
     ${any ? `<div class="ws"><input id="ws" placeholder="Write & Send" maxlength="1000"></div>` : ''}
-    <div class="status ${statusErr ? 'err' : ''}">${esc(status)}</div>
+    <div class="status ${statusErr ? 'err' : ''}">${esc(status)}${pending && !statusErr ? '<div style="font-size:14px;margin-top:4px">Esperando a que el dueño lo lea<span class="wait"></span></div>' : ''}</div>
     ${!off && ch.call && code.phone ? `<div class="callrow"><a class="act call" href="tel:${esc(code.phone)}">${I.call}${esc(code.phone)}</a></div>` : ''}
     <div class="acts">
       <button class="act mail ${off || !ch.mail ? 'hidden' : ''}" id="bMail">${I.mail}Mail</button>
@@ -123,9 +132,26 @@ async function sendEvent(kind, auto = false, body = null, reply = null) {
   busy = kind === 'alert'; status = ''; statusErr = false; const t = body ?? (auto ? '' : wsText()); render();
   const r = await rpc('send_event', { p_id: id, p_kind: kind, p_body: t || null, p_reply_email: reply, p_auto: auto });
   busy = false;
-  if (r.ok) { status = kind === 'alert' ? (auto ? 'Aviso enviado al abrir 🔊' : 'Alert sended 🔊') : 'Mensaje enviado ✉️'; statusErr = false; try { navigator.vibrate && navigator.vibrate(120); } catch (e) {} }
+  if (r.ok) { status = kind === 'alert' ? (auto ? 'Aviso enviado al abrir 🔊' : 'Alert sended 🔊') : 'Mensaje enviado ✉️'; statusErr = false; try { navigator.vibrate && navigator.vibrate(120); } catch (e) {} if (r.event_id) watchRead(r.event_id, r.token, kind); }
   else { status = ERR[r.error] || 'No se ha podido enviar. Revisa tu conexión.'; statusErr = true; }
   view = 'home'; render();
+}
+
+function watchRead(eventId, token, kind) {
+  pending = { eventId, token }; readKind = kind; clearInterval(readPoll); const t0 = Date.now();
+  readPoll = setInterval(async () => {
+    if (Date.now() - t0 > 30 * 60 * 1000) { clearInterval(readPoll); pending = null; return; }
+    const r = await rpc('event_status', { p_event: pending.eventId, p_token: pending.token });
+    if (r.ok && r.read) { clearInterval(readPoll); pending = null; view = 'read'; render(); try { navigator.vibrate && navigator.vibrate([80, 60, 80]); } catch (e) {} }
+  }, 4000);
+}
+function renderRead() {
+  app.innerHTML = `<div class="brand">${LOGO} Scan &</div>
+    <div class="tick"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="56" fill="#2fc23a"/><path d="M34 62l17 17 36-38" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h2>${readKind === 'alert' ? 'Alerta recibida' : 'Mensaje leído'}</h2>
+      <p style="margin:0;color:#555">El dueño de “${esc(code.public_name)}” ya lo ha visto. ¡Gracias por avisar!</p></div>
+    <button class="act chat" style="height:56px;flex-direction:row;margin-top:auto" id="bk">Volver</button>`;
+  $('#bk').onclick = () => { view = 'home'; status = ''; render(); };
 }
 
 function renderMail() {

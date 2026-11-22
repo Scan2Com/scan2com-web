@@ -59,7 +59,13 @@ if 'AlarmActivity' not in m: m = m.replace('</application>', comp + '    </appli
 m = re.sub(r'android:launchMode="[^"]*"', 'android:launchMode="singleTask"', m, count=1)
 open(mf, 'w', encoding='utf-8').write(m)
 
-# 6) configuración de Firebase
+# 6) dependencia de Firebase visible para nuestro código (el plugin la declara como interna)
+bg = os.path.join(HERE, 'android', 'app', 'build.gradle'); g = open(bg, encoding='utf-8').read()
+if 'firebase-messaging' not in g:
+    g = g.replace('dependencies {', 'dependencies {\n    implementation "com.google.firebase:firebase-messaging:25.0.1"', 1)
+    open(bg, 'w', encoding='utf-8').write(g)
+
+# 7) configuración de Firebase
 gs = os.path.join(HERE, 'google-services.json')
 if os.path.exists(gs): shutil.copy(gs, os.path.join(HERE, 'android', 'app', 'google-services.json'))
 else: print('AVISO: falta google-services.json: la app no recibirá avisos')

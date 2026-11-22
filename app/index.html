@@ -29,8 +29,8 @@ body{font-family:Inter,system-ui,sans-serif;color:var(--ink);max-width:560px;mar
 .item .t{font-weight:600}.item .s{font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item.off .t,.item.off .s{color:#b5b9bf}
 .grow{flex:1;min-width:0}
-.pw{width:40px;height:40px;border-radius:50%;border:2px solid #444;display:grid;place-items:center;font-size:17px;cursor:pointer;background:#f2f2f2;flex:none}
-.pw.on{background:radial-gradient(circle at 40% 35%,#7dff7d,#1db31d);border-color:#1a7a1a;color:#063}
+.pw{width:42px;height:42px;border-radius:50%;border:2.5px solid #444;display:grid;place-items:center;cursor:pointer;background:radial-gradient(circle at 40% 35%,#ffffff,#d6d8db);color:#555;flex:none;box-shadow:inset 0 -2px 3px rgba(0,0,0,.15)}
+.pw.on{background:radial-gradient(circle at 40% 35%,#8cff8c,#14b814);border-color:#555;color:#0b4d0b}
 .av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:18px;flex:none;background:#d9dde2}
 .star{font-size:22px;color:#c5c9ce;background:none;border:0;cursor:pointer;padding:4px}
 .star.on{color:#f5b301}
@@ -79,6 +79,12 @@ label{font-size:13px;color:var(--mut)}
 .req::after{content:' *';color:#e8352b;font-weight:700}
 .bad{border-color:#e8352b!important;background:#fff6f5}
 .hint{font-size:12px;color:var(--mut);margin:-4px 0 10px}
+.ic{display:block}
+.ib{color:#33b5e5}
+.ib.dark{color:#555}
+.feat .fi{color:#8d9298;display:flex;justify-content:center;margin-bottom:4px}
+.pill .ic{display:inline-block;vertical-align:-3px}
+.btn .ic{display:inline-block;vertical-align:-4px;margin-right:6px}
 .pill{font-size:12px;background:#eef0f2;border-radius:8px;padding:3px 8px;display:inline-flex;gap:6px;align-items:center;margin:2px 4px 2px 0}
 </style>
 </head>
@@ -92,7 +98,36 @@ const SITE = 'https://scan.originalbim.com';
 const sb = createClient('https://kbkyosyenotqjcgujbmn.supabase.co', 'sb_publishable_Ac2fFMZTIWXMGfEURbVc8Q_Z2gcpujt');
 
 const LOGO = (s = 40) => `<svg width="${s}" height="${s}" viewBox="0 0 100 100"><g fill="none" stroke-width="11" stroke-linecap="round"><path d="M8 44V22Q8 8 22 8h22" stroke="#2f8fe0"/><path d="M56 8h22q14 0 14 14v22" stroke="#2fc23a"/><path d="M8 56v22q0 14 14 14h22" stroke="#e8352b"/><path d="M92 56v22q0 14-14 14H56" stroke="#e6c62a"/></g><text x="50" y="68" text-anchor="middle" font-family="Comfortaa" font-weight="700" font-size="52" fill="#333">S</text></svg>`;
-const TYPES = { alert: ['🚗', 'Alert'], chat: ['💬', 'Chat'], contact: ['📇', 'Contact'], link: ['🏷️', 'Link'] };
+
+const SV = (p, s = 24, extra = '') => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${p}</svg>`;
+const IC = {
+  power: s => SV('<path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/>', s),
+  sliders: s => SV('<path d="M3 6h18M3 12h18M3 18h18"/><circle cx="8" cy="6" r="2.2" fill="currentColor"/><circle cx="16" cy="12" r="2.2" fill="currentColor"/><circle cx="10" cy="18" r="2.2" fill="currentColor"/>', s),
+  expand: s => SV('<path d="M4 4l6 6M4 4h5M4 4v5M20 4l-6 6M20 4h-5M20 4v5M4 20l6-6M4 20h5M4 20v-5M20 20l-6-6M20 20h-5M20 20v-5"/>', s),
+  contract: s => SV('<path d="M10 10L4 4M10 10H5M10 10V5M14 10l6-6M14 10h5M14 10V5M10 14l-6 6M10 14H5M10 14v5M14 14l6 6M14 14h5M14 14v5"/>', s),
+  share: s => SV('<circle cx="18" cy="5" r="3" fill="currentColor"/><circle cx="6" cy="12" r="3" fill="currentColor"/><circle cx="18" cy="19" r="3" fill="currentColor"/><path d="M8.6 10.6l6.8-4M8.6 13.4l6.8 4"/>', s),
+  mail: s => SV('<rect x="2.5" y="5" width="19" height="14" rx="1.5" fill="currentColor" stroke="none"/><path d="M3 6.5l9 6.5 9-6.5" stroke="#fff"/>', s),
+  grid: s => SV('<rect x="3" y="3" width="8" height="8" fill="currentColor"/><rect x="13" y="3" width="8" height="8" fill="currentColor"/><rect x="3" y="13" width="8" height="8" fill="currentColor"/><rect x="13" y="13" width="8" height="8" fill="currentColor"/>', s),
+  save: s => SV('<path d="M4 3h13l3 3v15H4z" fill="currentColor" stroke="none"/><rect x="7" y="4" width="9" height="5" fill="#fff" stroke="none"/><rect x="7" y="13" width="10" height="6" fill="#fff" stroke="none"/>', s),
+  camera: s => SV('<path d="M3 8h4l2-3h6l2 3h4v12H3z" fill="currentColor" stroke="none"/><circle cx="12" cy="13.5" r="4" fill="#fff" stroke="none"/><circle cx="12" cy="13.5" r="2.4" fill="currentColor" stroke="none"/>', s),
+  search: s => SV('<circle cx="10" cy="10" r="6.5"/><path d="M15 15l6 6" stroke-width="2.6"/>', s),
+  user: s => SV('<circle cx="12" cy="8" r="4.5" fill="currentColor" stroke="none"/><path d="M3.5 21c.6-4.6 4.2-7 8.5-7s7.9 2.4 8.5 7z" fill="currentColor" stroke="none"/>', s),
+  avatar: (s, on) => `<svg width="${s}" height="${s}" viewBox="0 0 40 40"><circle cx="20" cy="14" r="10" fill="${on ? '#33b5e5' : '#a9adb3'}"/>${on ? '<path d="M14.5 15.5q5.5 5 11 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>' : ''}<path d="M4 38c1-8 7.5-12 16-12s15 4 16 12z" fill="${on ? '#33b5e5' : '#a9adb3'}"/></svg>`,
+  star: (s, on) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.6.7-5 4.5 1.4 6.6L12 17.2 6.1 20.5l1.4-6.6-5-4.5 6.6-.7z" fill="${on ? '#f5b301' : 'none'}" stroke="${on ? '#f5b301' : '#b5b9bf'}" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
+  alert: s => SV('<path d="M3 9.5v5h4l5 4.5v-14L7 9.5z" fill="currentColor" stroke="none"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>', s),
+  chat: s => SV('<path d="M7 4h14v9h-3v3l-3-3H7z" fill="currentColor" stroke="none"/><path d="M3 9h3v6h7v3H8l-3 3v-3H3z" fill="currentColor" stroke="none"/><path d="M10 7.5h8M10 10h6" stroke="#fff" stroke-width="1.5"/>', s),
+  info: s => SV('<circle cx="12" cy="12" r="9.5"/><path d="M12 11v6" stroke-width="2.6"/><circle cx="12" cy="7.5" r="1.4" fill="currentColor" stroke="none"/>', s),
+  vibrate: s => SV('<rect x="7.5" y="3" width="9" height="18" rx="2" fill="currentColor" stroke="none"/><rect x="9" y="5" width="6" height="12" fill="#fff" stroke="none"/><path d="M4 8v8M2 10v4M20 8v8M22 10v4" stroke-width="1.6"/>', s),
+  phone: s => SV('<path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z" fill="currentColor" stroke="none"/>', s),
+  trash: s => SV('<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>', s),
+  link: s => SV('<path d="M9.5 14.5l5-5"/><path d="M11 6.5l1.5-1.5a4 4 0 0 1 5.6 5.6L16.6 12M13 17.5L11.5 19a4 4 0 0 1-5.6-5.6L7.4 12"/>', s),
+  eye: s => SV('<path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/>', s),
+  plus: s => SV('<path d="M12 5v14M5 12h14" stroke-width="2.6"/>', s),
+  back: s => SV('<path d="M15 5l-7 7 7 7" stroke-width="2.6"/>', s),
+  lock: s => SV('<rect x="5" y="11" width="14" height="10" rx="1.5" fill="currentColor" stroke="none"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', s),
+  bell: s => SV('<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z" fill="currentColor" stroke="none"/><path d="M10 20a2 2 0 0 0 4 0"/>', s)
+};
+const TYPES = { alert: ['', 'Alert (rojo)'], chat: ['', 'Chat (amarillo)'], contact: ['', 'Contact (azul)'], link: ['', 'Link (gris)'] };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const $ = s => document.querySelector(s);
 const ago = d => { const s = (Date.now() - new Date(d)) / 1000; if (s < 60) return 'ahora'; if (s < 3600) return Math.floor(s / 60) + ' min'; if (s < 86400) return Math.floor(s / 3600) + ' h'; return new Date(d).toLocaleDateString('es-ES'); };
@@ -166,7 +201,7 @@ function render(soft) {
 function renderAuth() {
   if (S.screen === 'welcome') {
     app.innerHTML = `<div class="welcome"><div style="margin-top:20px">${LOGO(190)}</div>
-      <div class="feat"><span><div>📳</div>Alert</span><span><div>💬</div>Chat</span><span><div>ℹ️</div>Info</span><span><div>✉️</div>E-mail</span></div>
+      <div class="feat"><span><div class="fi">${IC.vibrate(34)}</div><i>Alert</i></span><span><div class="fi">${IC.chat(34)}</div><i>Chat</i></span><span><div class="fi">${IC.info(34)}</div><i>Info</i></span><span><div class="fi">${IC.mail(34)}</div><i>E-mail</i></span></div>
       <p style="text-align:center;color:#666;margin:0">Conecta tus objetos con quien los encuentre, sin dar tu teléfono.</p>
       <div class="row2" style="margin-top:auto"><button class="btn light" id="gL">Entrar</button><button class="btn" id="gR">Crear cuenta</button></div></div>`;
     $('#gL').onclick = () => { S.screen = 'login'; S.err = S.info = ''; render(); };
@@ -229,31 +264,31 @@ function renderHome() {
   let body = '';
   if (S.tab === 'codes') {
     body = S.codes.length ? S.codes.map(c => `<div class="item ${c.is_on ? '' : 'off'}" data-code="${c.id}">
-        <div class="pw ${c.is_on ? 'on' : ''}" data-pw="${c.id}" title="Encender / apagar">⏻</div>
+        <div class="pw ${c.is_on ? 'on' : ''}" data-pw="${c.id}" title="Encender / apagar">${IC.power(20)}</div>
         <div class="grow"><div class="t">${esc(c.name || c.public_name || 'Sin nombre')}</div><div class="s">${esc(c.private_info || c.public_name || TYPES[c.type][1])}${c.owner_id !== S.user.id ? ' · compartido contigo' : ''}</div></div>
-        ${c.owner_id === S.user.id ? `<button class="ib" data-edit="${c.id}" title="Ajustes">🎚️</button>` : ''}<button class="ib" data-qr="${c.id}" title="Ver código">⤢</button></div>`).join('')
+        ${c.owner_id === S.user.id ? `<button class="ib" data-edit="${c.id}" title="Ajustes">${IC.sliders(24)}</button>` : ''}<button class="ib" data-qr="${c.id}" title="Ver código">${IC.expand(24)}</button></div>`).join('')
       : `<div class="empty">Aún no tienes códigos.<br>Pulsa <b>+</b> para crear uno o para vincular un pack de pegatinas.</div>`;
     body += `<div class="empty" style="padding:18px">Para comprar etiquetas y códigos impresos pulsa <b>aquí</b></div>`;
   } else if (S.tab === 'chats') {
     const list = S.chats.slice().sort((a, b) => new Date(lastMsg(b.id)?.created_at || b.created_at) - new Date(lastMsg(a.id)?.created_at || a.created_at));
     const favs = list.filter(c => S.favs.has(c.id)), rest = list.filter(c => !S.favs.has(c.id));
-    const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div class="av">${S.favs.has(c.id) ? '⭐' : '🙂'}</div>
+    const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div style="flex:none">${IC.avatar(40, S.favs.has(c.id) || !!lastMsg(c.id))}</div>
       <div class="grow"><div class="t" style="color:#16707f">${esc(c.name)}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(code?.name || '')} · ${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + lm.body : 'sin mensajes')}</div></div>
-      <div style="font-size:11px;color:var(--mut)">${ago(lm?.created_at || c.created_at)}</div></div>`; };
+      <div style="text-align:right;font-size:11px;color:var(--mut)">${IC.star(24, S.favs.has(c.id))}<div>${ago(lm?.created_at || c.created_at)}</div></div></div>`; };
     body = list.length ? (favs.length ? `<div class="pad section" style="padding-bottom:0">FAVORITOS</div>${favs.map(row).join('')}` : '') + (rest.length ? `${favs.length ? '<div class="pad section" style="padding-bottom:0">TODOS</div>' : ''}${rest.map(row).join('')}` : '')
       : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.</div>`;
   } else {
     const seen = S.seenEv;
-    body = S.events.length ? S.events.map(e => { const c = codeOf(e.code_id); const ic = { alert: '🔔', mail: '✉️', call: '📞' }[e.kind];
-      return `<div class="ev ${e.id > seen ? 'new' : ''}"><div class="av">${ic}</div><div class="grow"><div class="t" style="font-weight:600">${e.kind === 'alert' ? (e.auto ? 'Alerta al escanear' : 'Alerta') : e.kind === 'mail' ? 'Mensaje' : 'Piden que llames'} · ${esc(c?.name || e.code_id)}</div>
+    body = S.events.length ? S.events.map(e => { const c = codeOf(e.code_id); const ic = { alert: IC.alert(22), mail: IC.mail(22), call: IC.phone(22) }[e.kind];
+      return `<div class="ev ${e.id > seen ? 'new' : ''}"><div class="av" style="color:#fff;background:${e.kind === 'alert' ? '#e8352b' : e.kind === 'mail' ? '#1f86e0' : '#2fc23a'}">${ic}</div><div class="grow"><div class="t" style="font-weight:600">${e.kind === 'alert' ? (e.auto ? 'Alerta al escanear' : 'Alerta') : e.kind === 'mail' ? 'Mensaje' : 'Piden que llames'} · ${esc(c?.name || e.code_id)}</div>
       ${e.body ? `<div style="margin:4px 0">“${esc(e.body)}”</div>` : ''}${e.reply_email ? `<div class="s"><a href="mailto:${esc(e.reply_email)}">Responder a ${esc(e.reply_email)}</a></div>` : ''}
       <div class="s" style="font-size:12px;color:var(--mut)">${ago(e.created_at)}</div></div></div>`; }).join('')
       : `<div class="empty">Aquí verás las alertas y mensajes que te envíen al escanear tus códigos.</div>`;
     if (S.events.length) { S.seenEv = S.events[0].id; ls.set('sa_seen_ev', S.seenEv); }
   }
-  app.innerHTML = `<div class="bar">${LOGO(30)}<span class="name">Scan &</span><button class="ib" id="bScan" title="Escanear">📷</button><button class="ib" id="bMenu" title="Cuenta">👤</button></div>
+  app.innerHTML = `<div class="bar">${LOGO(30)}<span class="name">Scan &</span><button class="ib dark" id="bScan" title="Escanear">${IC.camera(26)}</button><button class="ib dark" id="bMenu" title="Cuenta">${IC.user(24)}</button></div>
     <div class="tabs">${tabs.map(([k, l, n]) => `<button class="${S.tab === k ? 'on' : ''}" data-tab="${k}">${l}${n && S.tab !== k ? `<span class="badge">${n}</span>` : ''}</button>`).join('')}</div>
-    <div class="body">${body}</div>${S.tab === 'codes' ? '<button class="fab" id="fab">+</button>' : ''}`;
+    <div class="body">${body}</div>${S.tab === 'codes' ? `<button class="fab" id="fab" style="display:grid;place-items:center">${IC.plus(28)}</button>` : ''}`;
   app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; render(); });
   app.querySelectorAll('[data-pw]').forEach(b => b.onclick = e => { e.stopPropagation(); togglePower(b.dataset.pw); });
   app.querySelectorAll('[data-edit]').forEach(b => b.onclick = e => { e.stopPropagation(); S.view = { t: 'edit', id: b.dataset.edit }; render(); });
@@ -268,8 +303,8 @@ function renderHome() {
 function accountMenu() {
   $('#overlay').innerHTML = `<div class="alarm" style="background:rgba(0,0,0,.55);justify-content:flex-end;padding:0" id="am"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));text-align:left" onclick="event.stopPropagation()">
     <div style="font-weight:700">${esc(S.user.email)}</div><div style="font-size:13px;color:#777;margin-bottom:14px">Tu email no se muestra nunca a quien escanea tus códigos.</div>
-    <button class="btn light" id="nt" style="margin-bottom:8px">🔔 Activar notificaciones</button>
-    <button class="btn light" id="ins" style="margin-bottom:8px">📲 Cómo instalar en el móvil</button>
+    <button class="btn light" id="nt" style="margin-bottom:8px">${IC.bell(20)}Activar notificaciones</button>
+    <button class="btn light" id="ins" style="margin-bottom:8px">${IC.vibrate(20)}Cómo instalar en el móvil</button>
     <button class="btn red" id="lo">Cerrar sesión</button></div></div>`;
   $('#am').onclick = () => { $('#overlay').innerHTML = ''; };
   $('#lo').onclick = async () => { await sb.auth.signOut(); location.reload(); };
@@ -290,7 +325,7 @@ async function renderEdit() {
   if (!c) { S.view = null; return render(); }
   if (!isNew && !S.members[c.id]) loadMembers(c.id);
   const mem = S.members[c.id] || [];
-  app.innerHTML = `<div class="bar"><button class="back" id="bk">‹</button><span class="name" style="font-size:16px;font-family:Inter">${isNew ? 'Nuevo código' : 'Ajustes del código'}</span></div><div class="body pad">
+  app.innerHTML = `<div class="bar"><button class="back" id="bk">${IC.back(24)}</button><span class="name" style="font-size:16px;font-family:Inter">${isNew ? 'Nuevo código' : 'Ajustes del código'}</span></div><div class="body pad">
     <label>Tipo</label><select id="f0">${Object.entries(TYPES).map(([k, [i, l]]) => `<option value="${k}" ${c.type === k ? 'selected' : ''}>${i} ${l}</option>`).join('')}</select>
     <div class="hint"><span style="color:#e8352b;font-weight:700">*</span> Obligatorio</div>
     <label class="req">Nombre (solo lo ves tú)</label><input id="f1" value="${esc(c.name)}" placeholder="Ej. Coche rojo" maxlength="60">
@@ -299,16 +334,16 @@ async function renderEdit() {
     <label class="req">Nombre público</label><input id="f2" value="${esc(c.public_name)}" placeholder="Ej. Coche" maxlength="60">
     <label>Descripción pública</label><textarea id="f3" rows="3" placeholder="Ej. Gracias por avisarme antes que a la policía…" maxlength="1000">${esc(c.public_desc)}</textarea>
     <div class="section"><span class="req">MEDIOS DE COMUNICACIÓN</span></div><div class="hint">Elige al menos uno.</div>
-    <label class="chk"><input type="checkbox" id="c0" ${c.ch_info ? 'checked' : ''}> ℹ️ Info <span style="color:#999;font-size:13px">· mostrar la descripción</span></label>
-    <label class="chk"><input type="checkbox" id="c1" ${c.ch_mail ? 'checked' : ''}> ✉️ Mail</label>
-    <label class="chk"><input type="checkbox" id="c2" ${c.ch_alert ? 'checked' : ''}> 🔊 Alert</label>
+    <label class="chk"><input type="checkbox" id="c0" ${c.ch_info ? 'checked' : ''}> <span style="color:#8d9298">${IC.info(20)}</span> Info <span style="color:#999;font-size:13px">· mostrar la descripción</span></label>
+    <label class="chk"><input type="checkbox" id="c1" ${c.ch_mail ? 'checked' : ''}> <span style="color:#1f86e0">${IC.mail(20)}</span> Mail</label>
+    <label class="chk"><input type="checkbox" id="c2" ${c.ch_alert ? 'checked' : ''}> <span style="color:#e8352b">${IC.alert(20)}</span> Alert</label>
     <label class="chk sub"><input type="checkbox" id="c5" ${c.auto_alert ? 'checked' : ''}> Sonar solo con abrir la web</label>
-    <label class="chk"><input type="checkbox" id="c3" ${c.ch_chat ? 'checked' : ''}> 💬 Chat</label>
+    <label class="chk"><input type="checkbox" id="c3" ${c.ch_chat ? 'checked' : ''}> <span style="color:#2fc23a">${IC.chat(20)}</span> Chat</label>
     <label class="chk sub"><input type="checkbox" id="c6" ${c.group_chat ? 'checked' : ''}> En grupo con los usuarios vinculados</label>
-    <label class="chk"><input type="checkbox" id="c4" ${c.ch_call ? 'checked' : ''}> 📞 Llamada</label>
+    <label class="chk"><input type="checkbox" id="c4" ${c.ch_call ? 'checked' : ''}> <span style="color:#2fc23a">${IC.phone(20)}</span> Llamada</label>
     <label id="l4" class="${c.ch_call ? 'req' : ''}">Teléfono que se mostrará${c.ch_call ? '' : ' (solo si activas Llamada)'}</label><input id="f4" value="${esc(c.phone)}" placeholder="Ej. 600 000 000" type="tel" maxlength="20">
     ${isNew ? '' : `<div class="section">USUARIOS VINCULADOS</div><div style="font-size:13px;color:#777">También reciben las alertas y los chats de este código.</div>
-      <div>${mem.map(m => `<span class="pill">👤 ${esc(m.display_name || 'usuario')}<button class="back" style="font-size:13px" data-rm="${m.user_id}">✕</button></span>`).join('') || '<div style="font-size:13px;color:#999;margin:6px 0">Nadie vinculado.</div>'}</div>
+      <div>${mem.map(m => `<span class="pill">${IC.avatar(16, true)} ${esc(m.display_name || 'usuario')}<button class="back" style="font-size:13px" data-rm="${m.user_id}">✕</button></span>`).join('') || '<div style="font-size:13px;color:#999;margin:6px 0">Nadie vinculado.</div>'}</div>
       <div style="display:flex;gap:6px;align-items:center"><input id="f6" type="email" placeholder="Email de otro usuario de Scan &" style="margin:6px 0"><button class="btn sm light" id="addm">Vincular</button></div>`}
     ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}
     <button class="btn" style="margin-top:14px" id="sv" ${S.busy ? 'disabled' : ''}>Guardar</button>
@@ -354,25 +389,26 @@ function drawQR(canvas, text, scale = 8) {
 function renderQR() {
   const c = codeOf(S.view.id); if (!c) { S.view = null; return render(); }
   const url = `${SITE}/s/${c.id}`, own = c.owner_id === S.user.id;
-  const chans = [c.ch_info && 'ℹ️ Info', c.ch_mail && '✉️ Mail', c.ch_alert && ('🔊 Alert' + (c.auto_alert ? ' (al abrir)' : '')), c.ch_chat && '💬 Chat', c.ch_call && '📞 Llamada'].filter(Boolean);
+  const chans = [c.ch_info && IC.info(14) + ' Info', c.ch_mail && IC.mail(14) + ' Mail', c.ch_alert && (IC.alert(14) + ' Alert' + (c.auto_alert ? ' (al abrir)' : '')), c.ch_chat && IC.chat(14) + ' Chat', c.ch_call && IC.phone(14) + ' Llamada'].filter(Boolean);
   const nChats = S.chats.filter(x => x.code_id === c.id).length;
-  app.innerHTML = `<div class="bar"><button class="back" id="bk">‹</button><span class="name" style="font-size:17px;font-family:Inter">${esc(c.name)}</span>${own ? '<button class="ib" id="ed" title="Ajustes">🎚️</button>' : ''}</div>
+  app.innerHTML = `<div class="bar" style="background:#3d4045;justify-content:space-around;border:0"><button class="ib" id="bk" title="Volver">${IC.contract(28)}</button><button class="ib" id="sh" title="Compartir">${IC.share(28)}</button><button class="ib" id="ml" title="Enviar por mail">${IC.mail(28)}</button>${own ? `<button class="ib" id="ed" title="Ajustes">${IC.sliders(28)}</button>` : ''}<button class="ib" id="dl" title="Guardar imagen">${IC.save(28)}</button></div>
+    <div style="text-align:center;color:#9a9ea4;font-size:20px;margin-top:14px;letter-spacing:.04em">${esc(c.name).toUpperCase()}</div>
     <div class="body"><div class="qrbox"><canvas id="cv"></canvas><div class="link">${url}</div>
-      <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><div class="pw ${c.is_on ? 'on' : ''}" id="pw">⏻</div><span style="font-size:14px;color:${c.is_on ? '#1a7a1a' : '#999'}">${c.is_on ? 'Activo' : 'Desactivado'}</span></div></div>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><div class="pw ${c.is_on ? 'on' : ''}" id="pw">${IC.power(20)}</div><span style="font-size:14px;color:${c.is_on ? '#1a7a1a' : '#999'}">${c.is_on ? 'Activo' : 'Desactivado'}</span></div></div>
       <div class="pad" style="padding-top:4px">
-        <div class="grid2"><button class="btn light" id="sh">🔗 Compartir</button><button class="btn light" id="dl">💾 Guardar imagen</button></div>
-        <button class="btn teal" style="margin-top:8px" id="op">👁️ Ver lo que ve quien escanea</button>
+        <button class="btn teal" id="op">${IC.eye(20)}Ver lo que ve quien escanea</button>
         <div class="section">CONFIGURACIÓN</div>
         <div style="font-size:14px;line-height:1.7"><b>${esc(c.public_name)}</b><br><span style="white-space:pre-line;color:#555">${esc(c.public_desc || '—')}</span></div>
         <div style="margin-top:8px">${chans.map(x => `<span class="pill">${x}</span>`).join('') || '<span class="pill">Sin medios activos</span>'}</div>
-        ${c.private_info ? `<div style="font-size:13px;color:#555;margin-top:8px">🔒 ${esc(c.private_info)}</div>` : ''}
-        ${nChats ? `<button class="btn light" style="margin-top:14px" id="gc">💬 ${nChats} chat${nChats > 1 ? 's' : ''} de este código</button>` : ''}
+        ${c.private_info ? `<div style="font-size:13px;color:#555;margin-top:8px;display:flex;gap:6px;align-items:center">${IC.lock(14)} ${esc(c.private_info)}</div>` : ''}
+        ${nChats ? `<button class="btn light" style="margin-top:14px" id="gc">${IC.chat(20)}${nChats} chat${nChats > 1 ? 's' : ''} de este código</button>` : ''}
       </div></div>`;
   drawQR($('#cv'), url);
   $('#bk').onclick = () => { S.view = null; render(); };
   if ($('#ed')) $('#ed').onclick = () => { S.view = { t: 'edit', id: c.id }; render(); };
   $('#pw').onclick = () => togglePower(c.id);
   $('#op').onclick = () => window.open(url, '_blank');
+  $('#ml').onclick = () => { location.href = 'mailto:?subject=' + encodeURIComponent('Mi código Scan &: ' + c.public_name) + '&body=' + encodeURIComponent(url); };
   $('#sh').onclick = async () => { try { if (navigator.share) await navigator.share({ title: c.public_name, url }); else { await navigator.clipboard.writeText(url); toast('Enlace copiado'); } } catch (e) {} };
   $('#dl').onclick = () => { const big = document.createElement('canvas'); drawQR(big, url, 24); const a = document.createElement('a'); a.href = big.toDataURL('image/png'); a.download = `scanand-${c.id}.png`; a.click(); };
   if ($('#gc')) $('#gc').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
@@ -383,8 +419,8 @@ function renderChat() {
   const ch = S.chats.find(x => x.id === S.view.id); if (!ch) { S.view = null; return render(); }
   const code = codeOf(ch.code_id), list = S.msgs[ch.id] || [], fav = S.favs.has(ch.id), off = chatOff(ch);
   if (S.unread[ch.id]) { delete S.unread[ch.id]; ls.set('sa_unread', S.unread); }
-  app.innerHTML = `<div class="bar"><button class="back" id="bk">‹</button><div class="grow"><div style="font-weight:700" id="nm">${esc(ch.name)} <span style="font-size:13px;color:#999">✎</span></div><div style="font-size:12px;color:var(--mut)">${esc(code?.name || '')}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
-    <button class="star ${fav ? 'on' : ''}" id="fv" title="Favorito">★</button><button class="ib" id="dc" title="Borrar chat">🗑️</button></div>
+  app.innerHTML = `<div class="bar"><button class="back" id="bk">${IC.back(24)}</button>${IC.avatar(36, true)}<div class="grow"><div style="font-weight:700" id="nm">${esc(ch.name)} <span style="font-size:13px;color:#999">✎</span></div><div style="font-size:12px;color:var(--mut)">${esc(code?.name || '')}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
+    <button class="star" id="fv" title="Favorito">${IC.star(28, fav)}</button><button class="ib dark" id="dc" title="Borrar chat">${IC.trash(22)}</button></div>
     ${off ? '<div class="notice">Este código está apagado: el chat está cerrado. Márcalo como favorito ★ para mantenerlo activo.</div>' : ''}
     <div class="body" style="padding-bottom:0"><div class="msgs" id="ms">${list.map(m => `<div class="m ${m.from_visitor ? 'them' : 'me'}">${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${esc(m.body)}</div>`).join('') || '<div class="empty">Sin mensajes todavía.</div>'}</div></div>
     <div class="compose"><input id="oi" placeholder="Escribe y envía" maxlength="2000" enterkeyhint="send"><button class="btn sm teal" id="os">Enviar</button></div>`;
@@ -392,7 +428,7 @@ function renderChat() {
   $('#bk').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
   $('#nm').onclick = () => { $('#nm').innerHTML = `<input id="rn" value="${esc(ch.name)}" style="margin:0;padding:6px" maxlength="40">`; const i = $('#rn'); i.focus(); const save = async () => { const v = i.value.trim() || ch.name; ch.name = v; await sb.from('chats').update({ name: v }).eq('id', ch.id); render(); }; i.onblur = save; i.onkeydown = e => e.key === 'Enter' && i.blur(); };
   $('#fv').onclick = async () => { if (fav) { S.favs.delete(ch.id); await sb.from('chat_favorites').delete().eq('chat_id', ch.id).eq('user_id', S.user.id); } else { S.favs.add(ch.id); await sb.from('chat_favorites').insert({ chat_id: ch.id, user_id: S.user.id }); } render(); };
-  $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { await sb.from('chats').delete().eq('id', ch.id); S.chats = S.chats.filter(x => x.id !== ch.id); S.view = null; S.tab = 'chats'; toast('Chat borrado'); render(); } else { $('#dc').dataset.sure = 1; toast('Pulsa 🗑️ otra vez para borrar el chat'); } };
+  $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { await sb.from('chats').delete().eq('id', ch.id); S.chats = S.chats.filter(x => x.id !== ch.id); S.view = null; S.tab = 'chats'; toast('Chat borrado'); render(); } else { $('#dc').dataset.sure = 1; toast('Pulsa la papelera otra vez para borrar el chat'); } };
   const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; i.value = ''; const { data, error } = await sb.from('messages').insert({ chat_id: ch.id, from_visitor: false, sender_id: S.user.id, body: t }).select().single(); if (error) return toast('No se ha podido enviar.'); const l = (S.msgs[ch.id] ||= []); if (!l.find(x => x.id === data.id)) l.push(data); render(); $('#oi')?.focus(); };
   $('#os').onclick = send; $('#oi').onkeydown = e => { if (e.key === 'Enter') send(); };
 }
@@ -401,13 +437,13 @@ function renderChat() {
 let stream = null;
 function stopCam() { stream?.getTracks().forEach(t => t.stop()); stream = null; }
 function renderPack() {
-  app.innerHTML = `<div class="bar"><button class="back" id="bk">‹</button><span class="name" style="font-size:16px;font-family:Inter">Añadir código</span></div><div class="body pad">
-    <button class="btn" id="nw">✨ Crear un código nuevo</button>
+  app.innerHTML = `<div class="bar"><button class="back" id="bk">${IC.back(24)}</button><span class="name" style="font-size:16px;font-family:Inter">Añadir código</span></div><div class="body pad">
+    <button class="btn" id="nw">${IC.plus(20)}Crear un código nuevo</button>
     <div style="font-size:13px;color:#777;margin:6px 2px 18px">Lo imprimes tú o lo compartes como enlace.</div>
     <div class="section">VINCULAR UN PACK DE PEGATINAS</div>
     <div style="font-size:14px;color:#555;margin-bottom:10px">Escanea el <b>QR maestro</b> de tu pack: todas sus pegatinas quedarán vinculadas a tu cuenta.</div>
     <div class="camwrap" id="cw" style="display:none"><video id="vd" playsinline muted></video></div>
-    <button class="btn teal" id="sc">📷 Escanear QR maestro</button>
+    <button class="btn teal" id="sc">${IC.camera(20)}Escanear QR maestro</button>
     <div style="display:flex;gap:6px;margin-top:10px"><input id="pk" placeholder="o escribe el código del pack" style="margin:0;text-transform:uppercase"><button class="btn sm light" id="pkb">Vincular</button></div>
     ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}</div>`;
   $('#bk').onclick = () => { stopCam(); S.err = ''; S.view = null; render(); };
@@ -441,7 +477,7 @@ async function claim(id) {
 /* ---------- alarma ---------- */
 function alarmHTML() {
   const e = S.alarm, c = codeOf(e.code_id);
-  return `<div class="alarm"><div class="big">${e.kind === 'call' ? '📞' : '🔊'}</div><h2 style="margin:0">${e.kind === 'call' ? 'Te piden que llames' : '¡Alerta!'}</h2><div style="font-size:19px">${esc(c?.name || '')}</div>
+  return `<div class="alarm"><div class="big">${e.kind === 'call' ? IC.phone(90) : IC.alert(90)}</div><h2 style="margin:0">${e.kind === 'call' ? 'Te piden que llames' : '¡Alerta!'}</h2><div style="font-size:19px">${esc(c?.name || '')}</div>
     ${e.body ? `<div style="background:rgba(0,0,0,.2);padding:12px 16px;border-radius:12px;font-size:17px">“${esc(e.body)}”</div>` : '<div>Alguien ha escaneado tu código y te avisa.</div>'}
     <button class="btn light" style="margin-top:22px;max-width:320px" id="aok">Entendido</button></div>`;
 }

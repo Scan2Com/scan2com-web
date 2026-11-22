@@ -96,6 +96,10 @@ label{font-size:13px;color:var(--mut)}
 .ev.new{background:#fff6f5}
 .camwrap{position:relative;background:#000;border-radius:14px;overflow:hidden}
 .camwrap video{width:100%;display:block}
+.laser{position:absolute;left:4%;right:4%;height:3px;background:#ff1a1a;box-shadow:0 0 8px 2px rgba(255,30,30,.85),0 0 18px 4px rgba(255,0,0,.4);border-radius:2px;animation:laser 2s ease-in-out infinite alternate;pointer-events:none}
+@keyframes laser{from{top:6%}to{top:94%}}
+.camwrap.found .laser{animation-play-state:paused;opacity:.35}
+.camwrap canvas.pts{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .section{font-size:12px;font-weight:700;color:var(--mut);letter-spacing:.06em;margin:18px 0 4px}
 .req::after{content:' *';color:#e8352b;font-weight:700}
 .bad{border-color:#e8352b!important;background:#fff6f5}
@@ -624,7 +628,7 @@ function renderPack() {
     <div style="font-size:13px;color:#777;margin:6px 2px 18px">Lo imprimes tú o lo compartes como enlace.</div>
     <div class="section">VINCULAR UN PACK DE PEGATINAS</div>
     <div style="font-size:14px;color:#555;margin-bottom:10px">Escanea el <b>QR maestro</b> de tu pack: todas sus pegatinas quedarán vinculadas a tu cuenta.</div>
-    <div class="camwrap" id="cw" style="display:none"><video id="vd" playsinline muted></video></div>
+    <div class="camwrap" id="cw" style="display:none"><video id="vd" playsinline muted></video><div class="laser"></div><canvas class="pts" id="pts"></canvas></div>
     <button class="btn teal" id="sc">${IC.camera(20)}Escanear QR maestro</button>
     <div style="display:flex;gap:6px;margin-top:10px"><input id="pk" placeholder="o escribe el código del pack" style="margin:0;text-transform:uppercase"><button class="btn sm light" id="pkb">Vincular</button></div>
     ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}</div>`;
@@ -638,7 +642,23 @@ async function startScan() {
   try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); } catch (e) { return toast('No se ha podido abrir la cámara.'); }
   $('#cw').style.display = 'block'; $('#sc').style.display = 'none'; const v = $('#vd'); v.srcObject = stream; await v.play();
   const cv = document.createElement('canvas'), x = cv.getContext('2d', { willReadFrequently: true });
-  const tick = () => { if (!stream) return; if (v.readyState >= 2) { cv.width = v.videoWidth; cv.height = v.videoHeight; x.drawImage(v, 0, 0); const r = jsQR(x.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height); if (r) { stopCam(); return handleScan(r.data); } } requestAnimationFrame(tick); };
+  const tick = () => { if (!stream) return; if (v.readyState >= 2) { cv.width = v.videoWidth; cv.height = v.videoHeight; x.drawImage(v, 0, 0); const r = jsQR(x.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height); if (r) return found(r); } requestAnimationFrame(tick); };
+  // código detectado: congelar la imagen, mostrar los puntos láser sobre los cuadrados del QR y esperar 1 s
+  const found = r => {
+    v.pause(); $('#cw').classList.add('found');
+    const c = $('#pts'), k = c.clientWidth / v.videoWidth; c.width = c.clientWidth * 2; c.height = c.clientHeight * 2; const g = c.getContext('2d'); g.scale(2, 2);
+    const L = r.location, P = [L.topLeftFinderPattern, L.topRightFinderPattern, L.bottomLeftFinderPattern, L.bottomRightAlignmentPattern].filter(Boolean);
+    const t0 = performance.now();
+    const draw = now => {
+      const f = Math.min(1, (now - t0) / 350); g.clearRect(0, 0, c.width, c.height);
+      g.strokeStyle = 'rgba(255,40,40,.55)'; g.lineWidth = 2; g.beginPath();
+      [L.topLeftCorner, L.topRightCorner, L.bottomRightCorner, L.bottomLeftCorner].forEach((q, i) => i ? g.lineTo(q.x * k, q.y * k) : g.moveTo(q.x * k, q.y * k)); g.closePath(); g.stroke();
+      P.forEach((q, i) => { const rad = (i === 3 ? 5 : 8) * f; g.fillStyle = 'rgba(255,214,0,.35)'; g.beginPath(); g.arc(q.x * k, q.y * k, rad * 2.2, 0, 7); g.fill(); g.fillStyle = '#ffd600'; g.shadowColor = '#ffea00'; g.shadowBlur = 12; g.beginPath(); g.arc(q.x * k, q.y * k, rad, 0, 7); g.fill(); g.shadowBlur = 0; });
+      if (now - t0 < 1000) requestAnimationFrame(draw); else { stopCam(); $('#cw')?.classList.remove('found'); handleScan(r.data); }
+    };
+    try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
+    requestAnimationFrame(draw);
+  };
   tick();
 }
 function handleScan(t) {

@@ -76,6 +76,9 @@ label{font-size:13px;color:var(--mut)}
 .camwrap{position:relative;background:#000;border-radius:14px;overflow:hidden}
 .camwrap video{width:100%;display:block}
 .section{font-size:12px;font-weight:700;color:var(--mut);letter-spacing:.06em;margin:18px 0 4px}
+.req::after{content:' *';color:#e8352b;font-weight:700}
+.bad{border-color:#e8352b!important;background:#fff6f5}
+.hint{font-size:12px;color:var(--mut);margin:-4px 0 10px}
 .pill{font-size:12px;background:#eef0f2;border-radius:8px;padding:3px 8px;display:inline-flex;gap:6px;align-items:center;margin:2px 4px 2px 0}
 </style>
 </head>
@@ -173,9 +176,9 @@ function renderAuth() {
   const reg = S.screen === 'register', rec = S.screen === 'recover';
   app.innerHTML = `<div class="welcome" style="align-items:stretch;gap:4px">
     <div style="display:flex;justify-content:center;gap:10px;align-items:center;margin:10px 0 24px">${LOGO(60)}<span style="font-family:Comfortaa;font-size:38px;font-weight:700;color:#555">Scan &</span></div>
-    <input id="em" type="email" placeholder="Email" autocomplete="email">
-    ${rec ? '' : `<input id="pw" type="password" placeholder="Contraseña" autocomplete="${reg ? 'new-password' : 'current-password'}">`}
-    ${reg ? `<input id="pw2" type="password" placeholder="Repite la contraseña" autocomplete="new-password"><label class="chk"><input type="checkbox" id="tc"> Acepto los términos y condiciones</label>` : ''}
+    <label class="req">Email</label><input id="em" type="email" placeholder="tu@email.com" autocomplete="email">
+    ${rec ? '' : `<label class="req">Contraseña</label><input id="pw" type="password" placeholder="${reg ? 'Mínimo 8 caracteres' : ''}" autocomplete="${reg ? 'new-password' : 'current-password'}">`}
+    ${reg ? `<label class="req">Repite la contraseña</label><input id="pw2" type="password" autocomplete="new-password"><label class="chk"><input type="checkbox" id="tc"> <span class="req">Acepto los términos y condiciones</span></label>` : ''}
     ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}${S.info ? `<div class="ok">${esc(S.info)}</div>` : ''}
     <button class="btn" id="go" ${S.busy ? 'disabled' : ''}>${reg ? 'Crear cuenta' : rec ? 'Enviar enlace' : 'Entrar'}</button>
     ${S.screen === 'login' ? `<button class="btn light" style="margin-top:8px;background:none" id="fp">He olvidado mi contraseña</button>` : ''}
@@ -186,6 +189,7 @@ function renderAuth() {
     const em = $('#em').value.trim(), pw = $('#pw')?.value || '';
     S.err = S.info = '';
     if (!em) { S.err = 'Escribe tu email.'; return render(); }
+    if (!rec && !pw) { S.err = 'Escribe tu contraseña.'; return render(); }
     if (reg) {
       if (pw.length < 8) { S.err = 'La contraseña debe tener al menos 8 caracteres.'; return render(); }
       if (pw !== $('#pw2').value) { S.err = 'Las contraseñas no coinciden.'; return render(); }
@@ -288,12 +292,13 @@ async function renderEdit() {
   const mem = S.members[c.id] || [];
   app.innerHTML = `<div class="bar"><button class="back" id="bk">‹</button><span class="name" style="font-size:16px;font-family:Inter">${isNew ? 'Nuevo código' : 'Ajustes del código'}</span></div><div class="body pad">
     <label>Tipo</label><select id="f0">${Object.entries(TYPES).map(([k, [i, l]]) => `<option value="${k}" ${c.type === k ? 'selected' : ''}>${i} ${l}</option>`).join('')}</select>
-    <label>Nombre (solo lo ves tú)</label><input id="f1" value="${esc(c.name)}" placeholder="Ej. Coche rojo" maxlength="60">
+    <div class="hint"><span style="color:#e8352b;font-weight:700">*</span> Obligatorio</div>
+    <label class="req">Nombre (solo lo ves tú)</label><input id="f1" value="${esc(c.name)}" placeholder="Ej. Coche rojo" maxlength="60">
     <label>Información privada (solo tú)</label><input id="f5" value="${esc(c.private_info)}" placeholder="Ej. matrícula, nº de serie…" maxlength="200">
     <div class="section">LO QUE VE QUIEN ESCANEA</div>
-    <label>Nombre público</label><input id="f2" value="${esc(c.public_name)}" placeholder="Ej. Coche" maxlength="60">
+    <label class="req">Nombre público</label><input id="f2" value="${esc(c.public_name)}" placeholder="Ej. Coche" maxlength="60">
     <label>Descripción pública</label><textarea id="f3" rows="3" placeholder="Ej. Gracias por avisarme antes que a la policía…" maxlength="1000">${esc(c.public_desc)}</textarea>
-    <div class="section">MEDIOS DE COMUNICACIÓN</div>
+    <div class="section"><span class="req">MEDIOS DE COMUNICACIÓN</span></div><div class="hint">Elige al menos uno.</div>
     <label class="chk"><input type="checkbox" id="c0" ${c.ch_info ? 'checked' : ''}> ℹ️ Info <span style="color:#999;font-size:13px">· mostrar la descripción</span></label>
     <label class="chk"><input type="checkbox" id="c1" ${c.ch_mail ? 'checked' : ''}> ✉️ Mail</label>
     <label class="chk"><input type="checkbox" id="c2" ${c.ch_alert ? 'checked' : ''}> 🔊 Alert</label>
@@ -301,7 +306,7 @@ async function renderEdit() {
     <label class="chk"><input type="checkbox" id="c3" ${c.ch_chat ? 'checked' : ''}> 💬 Chat</label>
     <label class="chk sub"><input type="checkbox" id="c6" ${c.group_chat ? 'checked' : ''}> En grupo con los usuarios vinculados</label>
     <label class="chk"><input type="checkbox" id="c4" ${c.ch_call ? 'checked' : ''}> 📞 Llamada</label>
-    <input id="f4" value="${esc(c.phone)}" placeholder="Teléfono que se mostrará (opcional)" type="tel" maxlength="20">
+    <label id="l4" class="${c.ch_call ? 'req' : ''}">Teléfono que se mostrará${c.ch_call ? '' : ' (solo si activas Llamada)'}</label><input id="f4" value="${esc(c.phone)}" placeholder="Ej. 600 000 000" type="tel" maxlength="20">
     ${isNew ? '' : `<div class="section">USUARIOS VINCULADOS</div><div style="font-size:13px;color:#777">También reciben las alertas y los chats de este código.</div>
       <div>${mem.map(m => `<span class="pill">👤 ${esc(m.display_name || 'usuario')}<button class="back" style="font-size:13px" data-rm="${m.user_id}">✕</button></span>`).join('') || '<div style="font-size:13px;color:#999;margin:6px 0">Nadie vinculado.</div>'}</div>
       <div style="display:flex;gap:6px;align-items:center"><input id="f6" type="email" placeholder="Email de otro usuario de Scan &" style="margin:6px 0"><button class="btn sm light" id="addm">Vincular</button></div>`}
@@ -309,12 +314,20 @@ async function renderEdit() {
     <button class="btn" style="margin-top:14px" id="sv" ${S.busy ? 'disabled' : ''}>Guardar</button>
     ${isNew ? '' : `<button class="btn light" style="margin-top:10px;color:var(--red)" id="del">Borrar código</button>`}</div>`;
   $('#bk').onclick = () => { S.err = ''; S.view = isNew ? null : { t: 'qr', id: c.id }; render(); };
+  $('#c4').onchange = () => { const on = $('#c4').checked; $('#l4').className = on ? 'req' : ''; $('#l4').textContent = 'Teléfono que se mostrará' + (on ? '' : ' (solo si activas Llamada)'); };
   app.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { await sb.from('code_members').delete().eq('code_id', c.id).eq('user_id', b.dataset.rm); await loadMembers(c.id); });
   if ($('#addm')) $('#addm').onclick = async () => { const em = $('#f6').value.trim(); if (!em) return; const { data } = await sb.rpc('add_member', { p_code: c.id, p_email: em }); if (data?.ok) { toast('Usuario vinculado'); loadMembers(c.id); } else toast(data?.error === 'user_not_found' ? 'Ese email no tiene cuenta en Scan &. Pídele que se registre primero.' : 'No se ha podido vincular.'); };
   if ($('#del')) $('#del').onclick = async () => { if ($('#del').dataset.sure) { await sb.from('codes').delete().eq('id', c.id); S.codes = S.codes.filter(x => x.id !== c.id); S.view = null; toast('Código borrado'); render(); } else { $('#del').dataset.sure = 1; $('#del').textContent = 'Pulsa otra vez para borrar definitivamente'; } };
   $('#sv').onclick = async () => {
-    const name = $('#f1').value.trim(); if (!name) { $('#f1').focus(); return; }
-    const row = { type: $('#f0').value, name, private_info: $('#f5').value.trim() || null, public_name: $('#f2').value.trim() || name, public_desc: $('#f3').value.trim() || null,
+    const name = $('#f1').value.trim(), pub = $('#f2').value.trim(), chans = ['c0', 'c1', 'c2', 'c3', 'c4'].some(i => $('#' + i).checked);
+    app.querySelectorAll('.bad').forEach(e => e.classList.remove('bad'));
+    const miss = [];
+    if (!name) { $('#f1').classList.add('bad'); miss.push('el nombre'); }
+    if (!pub) { $('#f2').classList.add('bad'); miss.push('el nombre público'); }
+    if (!chans) miss.push('al menos un medio de comunicación');
+    if ($('#c4').checked && !$('#f4').value.trim()) { $('#f4').classList.add('bad'); miss.push('el teléfono (has activado Llamada)'); }
+    if (miss.length) { const e = app.querySelector('.err') || Object.assign(document.createElement('div'), { className: 'err' }); e.textContent = 'Falta ' + miss.join(', ') + '.'; $('#sv').before(e); (app.querySelector('.bad') || $('#sv')).scrollIntoView({ block: 'center' }); return; }
+    const row = { type: $('#f0').value, name, private_info: $('#f5').value.trim() || null, public_name: pub, public_desc: $('#f3').value.trim() || null,
       ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: $('#c6').checked, ch_call: $('#c4').checked, phone: $('#f4').value.trim() || null };
     S.busy = true; S.err = ''; render();
     const r = isNew ? await sb.from('codes').insert({ ...row, owner_id: S.user.id }).select().single() : await sb.from('codes').update(row).eq('id', c.id).select().single();

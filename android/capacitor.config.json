@@ -1,0 +1,7 @@
+{
+  "appId": "com.scanand.pro",
+  "appName": "Scan & Pro",
+  "webDir": "www",
+  "server": { "url": "https://scan.originalbim.com/app/", "cleartext": false, "allowNavigation": ["scan.originalbim.com", "*.supabase.co"] },
+  "plugins": { "PushNotifications": { "presentationOptions": ["badge", "sound", "alert"] } }
+}

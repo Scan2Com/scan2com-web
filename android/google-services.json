@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "671663200608",
+    "project_id": "scan-and-pro",
+    "storage_bucket": "scan-and-pro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:671663200608:android:355eb5cd78e3867b58a605",
+        "android_client_info": {
+          "package_name": "com.scanand.pro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlocFvoSIrPjlo0i6Vu3DbGPXGnEo7wQo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,10 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#dedfe1">
 <link rel="icon" href="/app/logo.png">
-<title>Scan &</title>
+<title>Scan & Pro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Comfortaa:wght@700&display=swap" rel="stylesheet">
 <style>
@@ -35,7 +35,9 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 @keyframes spin{to{transform:rotate(360deg)}}
 .callrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .callrow a{grid-column:3;text-decoration:none}
-.msgs{flex:1;display:flex;flex-direction:column;gap:6px;overflow:auto;padding:4px 0}
+.app.full{height:var(--vvh,100dvh);min-height:0;overflow:hidden}
+.app.full .top,.app.full .ws{flex:none}
+.msgs{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:auto;padding:4px 0}
 .m{max-width:80%;padding:9px 12px;border-radius:16px;font-size:15px;line-height:1.4;word-wrap:break-word}
 .m.me{align-self:flex-end;background:#1aa3d9;color:#fff;border-bottom-right-radius:4px}
 .m.them{align-self:flex-start;background:#fff;border-bottom-left-radius:4px}
@@ -62,7 +64,7 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const sb = createClient('https://kbkyosyenotqjcgujbmn.supabase.co', 'sb_publishable_Ac2fFMZTIWXMGfEURbVc8Q_Z2gcpujt', { auth: { persistSession: false } });
 
-const LOGO = `<img src="/app/logo.png" width="28" height="28" alt="Scan &">`;
+const LOGO = `<img src="/app/logo.png" width="28" height="28" alt="Scan & Pro">`;
 const I = {
   mail: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z" opacity=".25"/><path d="M3 5h18v2l-9 6-9-6zM3 9l9 6 9-6v10H3z"/></svg>',
   alert: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 4V5L7 9z"/><path d="M15 8.5a4 4 0 0 1 0 7M17.5 6a7.5 7.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
@@ -82,6 +84,9 @@ const chatKey = () => 'scanand_chat_' + id;
 let chat = null; try { chat = JSON.parse(localStorage.getItem(chatKey())); } catch (e) {}
 let lastMsg = 0, msgs = [], poll = null, alive = true, pending = null, readPoll = null, readKind = '';
 
+const vv = window.visualViewport; function fitVV() { document.documentElement.style.setProperty('--vvh', (vv ? vv.height : innerHeight) + 'px'); if (document.querySelector('.full')) { window.scrollTo(0, 0); const b = document.querySelector('.full .scrollme'); if (b) b.scrollTop = b.scrollHeight; } }
+vv ? vv.addEventListener('resize', fitVV) : addEventListener('resize', fitVV); fitVV();
+
 async function rpc(fn, args) {
   const { data, error } = await sb.rpc(fn, args);
   if (error) { console.error(error); return { ok: false, error: 'network' }; }
@@ -89,10 +94,10 @@ async function rpc(fn, args) {
 }
 
 async function load() {
-  if (!id) { app.innerHTML = `<div class="center">${LOGO}<h2>Scan &</h2><p>Escanea un código Scan & con la cámara de tu móvil.</p></div>`; return; }
+  if (!id) { app.innerHTML = `<div class="center">${LOGO}<h2>Scan & Pro</h2><p>Escanea un código Scan & Pro con la cámara de tu móvil.</p></div>`; return; }
   code = await rpc('public_code', { p_id: id });
   if (!code || code.status === 'not_found' || code.ok === false) { app.innerHTML = `<div class="center">${LOGO}<h2>Código no encontrado</h2><p>Revisa que el QR se haya leído bien.</p></div>`; return; }
-  if (code.status === 'unclaimed') { app.innerHTML = `<div class="center">${LOGO}<h2>Pegatina sin activar</h2><p>Esta pegatina Scan & aún no tiene dueño. Si es tuya, vincúlala desde la app escaneando el QR maestro de tu pack.</p></div>`; return; }
+  if (code.status === 'unclaimed') { app.innerHTML = `<div class="center">${LOGO}<h2>Pegatina sin activar</h2><p>Esta pegatina Scan & Pro aún no tiene dueño. Si es tuya, vincúlala desde la app escaneando el QR maestro de tu pack.</p></div>`; return; }
   if (code.status === 'redirect' && /^https?:\/\//i.test(code.url)) { app.innerHTML = `<div class="center">${LOGO}<p>Abriendo <a href="${esc(code.url)}" rel="noopener">${esc(code.url.replace(/^https?:\/\//, ''))}</a>…</p></div>`; location.replace(code.url); return; }
   if (chat && code.status === 'on') view = 'home';
   render();
@@ -103,14 +108,15 @@ async function load() {
 }
 
 function render() {
+  if (view !== 'chat') app.classList.remove('full');
   if (view === 'read') return renderRead();
   if (view === 'chat') return renderChat();
   if (view === 'mail') return renderMail();
   const off = code.status === 'off', ch = code.channels || {};
   const any = !off && (ch.mail || ch.alert || ch.chat);
   app.innerHTML = `
-    <div class="brand">${LOGO} Scan &</div>
-    <div class="card"><h1>${esc(code.public_name || 'Scan &')}</h1><p>${off ? 'El dueño ha desactivado este código temporalmente.' : esc(code.public_desc || '')}</p></div>
+    <div class="brand">${LOGO} Scan & Pro</div>
+    <div class="card"><h1>${esc(code.public_name || 'Scan & Pro')}</h1><p>${off ? 'El dueño ha desactivado este código temporalmente.' : esc(code.public_desc || '')}</p></div>
     ${any ? `<div class="ws"><input id="ws" placeholder="Write & Send" maxlength="1000"></div>` : ''}
     <div class="status ${statusErr ? 'err' : ''}">${esc(status)}${pending && !statusErr ? '<div style="font-size:14px;margin-top:4px">Esperando a que el dueño lo lea<span class="wait"></span></div>' : ''}</div>
     ${!off && ch.call && code.phone ? `<div class="callrow"><a class="act call" href="tel:${esc(code.phone)}">${I.call}${esc(code.phone)}</a></div>` : ''}
@@ -146,7 +152,7 @@ function watchRead(eventId, token, kind) {
   }, 4000);
 }
 function renderRead() {
-  app.innerHTML = `<div class="brand">${LOGO} Scan &</div>
+  app.innerHTML = `<div class="brand">${LOGO} Scan & Pro</div>
     <div class="tick"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="56" fill="#2fc23a"/><path d="M34 62l17 17 36-38" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <h2>${readKind === 'alert' ? 'Alerta recibida' : 'Mensaje leído'}</h2>
       <p style="margin:0;color:#555">El dueño de “${esc(code.public_name)}” ya lo ha visto. ¡Gracias por avisar!</p></div>
@@ -181,10 +187,11 @@ async function openChat() {
 function renderChat() {
   app.innerHTML = `
     <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div><span style="font-size:12px;color:#777">chat anónimo</span></div>
-    <div class="msgs" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
+    <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
     ${alive ? `<div class="ws"><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs">Enviar</button></div>` : ''}`;
   $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };
-  const ms = $('#ms'); ms.scrollTop = ms.scrollHeight;
+  app.classList.add('full'); const ms = $('#ms'); ms.scrollTop = ms.scrollHeight;
+  if ($('#ci')) $('#ci').onfocus = () => setTimeout(fitVV, 300);
   if (alive) {
     const send = async () => { const t = $('#ci').value.trim(); if (!t) return; $('#ci').value = ''; const r = await rpc('visitor_send', { p_chat: chat.id, p_token: chat.token, p_body: t }); if (!r.ok && r.error === 'closed') alive = false; fetchMsgs(); };
     $('#cs').onclick = send; $('#ci').onkeydown = e => { if (e.key === 'Enter') send(); };

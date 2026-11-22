@@ -1,6 +1,6 @@
 {
-  "name": "Scan &",
-  "short_name": "Scan &",
+  "name": "Scan & Pro",
+  "short_name": "Scan & Pro",
   "description": "Tus códigos QR de comunicación: alertas, chats y mensajes sin dar tu teléfono.",
   "start_url": "/app/",
   "scope": "/app/",

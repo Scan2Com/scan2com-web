@@ -32,13 +32,65 @@ with wave.open(os.path.join(RES, 'raw', 'siren.wav'), 'w') as w:
         frames += struct.pack('<h', int(max(-1, min(1, v * 0.8)) * 32000))
     w.writeframes(bytes(frames))
 
-# 4) icono de la app a partir del logo
-src = Image.open(os.path.join(ROOT, 'app', 'icon-512.png')).convert('RGBA')
-for d, s in {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}.items():
+# 4) iconos originales de 2014 (sacados del APK original) e imágenes para la web
+import zipfile
+import glob
+_o = sorted(glob.glob(os.path.join(HERE, '*ScanAnd*.apk')))
+ORIG = _o[0] if _o else os.path.join(HERE, 'ScanAnd-2014.apk')
+WEBIMG = os.path.join(ROOT, 'app', 'img2014'); os.makedirs(WEBIMG, exist_ok=True)
+have_orig = os.path.exists(ORIG)
+if have_orig:
+    z = zipfile.ZipFile(ORIG)
+    for d in ('mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi'):
+        src_name = f'res/drawable-{d}/ic_launcher.png'
+        if src_name in z.namelist():
+            p = os.path.join(RES, 'mipmap-' + d); os.makedirs(p, exist_ok=True)
+            data = z.read(src_name)
+            for name in ('ic_launcher.png', 'ic_launcher_round.png', 'ic_launcher_foreground.png'):
+                open(os.path.join(p, name), 'wb').write(data)
+        n = f'res/drawable-{d}/ic_notif.png'
+        if n in z.namelist():
+            p = os.path.join(RES, 'drawable-' + d); os.makedirs(p, exist_ok=True)
+            open(os.path.join(p, 'ic_notif.png'), 'wb').write(z.read(n))
+    for src_name, dst in (('res/drawable-xxhdpi/ic_chat_active.png', 'chat_ok.png'), ('res/drawable-xxhdpi/ic_chat_inactive.png', 'chat_blocked.png'),
+                          ('res/drawable-xxhdpi/ic_action_camera.png', 'camera.png'), ('res/drawable-xxxhdpi/ic_launcher.png', 'icon.png'),
+                          ('res/drawable-xxhdpi/ic_action_search.png', 'search.png')):
+        if src_name in z.namelist(): open(os.path.join(WEBIMG, dst), 'wb').write(z.read(src_name))
+    shutil.rmtree(os.path.join(RES, 'mipmap-anydpi-v26'), ignore_errors=True)
+
+# 4b) si no está el APK original, icono a partir del logo
+if not have_orig:
+  src = Image.open(os.path.join(ROOT, 'app', 'icon-512.png')).convert('RGBA')
+  for d, s in {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}.items():
     p = os.path.join(RES, 'mipmap-' + d); os.makedirs(p, exist_ok=True)
     for name in ('ic_launcher.png', 'ic_launcher_round.png', 'ic_launcher_foreground.png'):
         src.resize((s, s), Image.LANCZOS).save(os.path.join(p, name))
-shutil.rmtree(os.path.join(RES, 'mipmap-anydpi-v26'), ignore_errors=True)
+  shutil.rmtree(os.path.join(RES, 'mipmap-anydpi-v26'), ignore_errors=True)
+
+# pantalla de inicio (splash) con el icono grande original de 2014, sobre negro
+_sp = sorted(glob.glob(os.path.join(HERE, '*2014-02-14*.png')) + glob.glob(os.path.join(HERE, 'splash*.png')))
+if _sp:
+    sp = Image.open(_sp[0]).convert('RGB'); sp = sp.crop((0, 0, sp.width, int(sp.height * 0.86)))  # sin la barra de botones
+    bbox = Image.eval(sp.convert('L'), lambda v: 255 if v > 24 else 0).getbbox() or (0, 0) + sp.size
+    icon = sp.crop(bbox)
+    for root, _, files in os.walk(RES):
+        for f in files:
+            if f == 'splash.png':
+                p = os.path.join(root, f); w, h = Image.open(p).size
+                out = Image.new('RGB', (w, h), (0, 0, 0)); side = int(min(w, h) * 0.6)
+                ic = icon.resize((side, int(side * icon.height / icon.width)), Image.LANCZOS)
+                out.paste(ic, ((w - ic.width) // 2, (h - ic.height) // 2)); out.save(p)
+
+# Android 12+: fondo negro e icono original en la pantalla de inicio del sistema
+st = os.path.join(RES, 'values', 'styles.xml'); x = open(st, encoding='utf-8').read()
+if 'windowSplashScreenBackground' not in x:
+    x = x.replace('<item name="android:background">@drawable/splash</item>', '<item name="android:background">@drawable/splash</item>\n        <item name="windowSplashScreenBackground">#000000</item>\n        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>\n        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>')
+    open(st, 'w', encoding='utf-8').write(x)
+
+# icono pequeño de notificación (por si falta)
+if not os.path.exists(os.path.join(RES, 'drawable-xxhdpi', 'ic_notif.png')):
+    os.makedirs(os.path.join(RES, 'drawable'), exist_ok=True)
+    Image.open(os.path.join(ROOT, 'app', 'icon-192.png')).convert('RGBA').resize((96, 96)).save(os.path.join(RES, 'drawable', 'ic_notif.png'))
 
 # 5) permisos, pantalla de alarma y servicio de avisos en el manifiesto
 mf = os.path.join(APP, 'AndroidManifest.xml'); m = open(mf, encoding='utf-8').read()

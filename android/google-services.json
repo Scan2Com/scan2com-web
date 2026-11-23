@@ -7,12 +7,11 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:671663200608:android:355eb5cd78e3867b58a605",
+        "mobilesdk_app_id": "1:671663200608:android:494b174ed110be8358a605",
         "android_client_info": {
-          "package_name": "com.scanand.pro"
+          "package_name": "com.scan2com.app"
         }
       },
-      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyAlocFvoSIrPjlo0i6Vu3DbGPXGnEo7wQo"
@@ -22,7 +21,8 @@
         "appinvite_service": {
           "other_platform_oauth_client": []
         }
-      }
+      },
+      "oauth_client": []
     }
   ],
   "configuration_version": "1"

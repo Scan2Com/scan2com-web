@@ -9,7 +9,7 @@ APP = os.path.join(HERE, 'android', 'app', 'src', 'main')
 RES = os.path.join(APP, 'res')
 
 # 1) código Java
-dst = os.path.join(APP, 'java', 'com', 'scanand', 'pro'); os.makedirs(dst, exist_ok=True)
+dst = os.path.join(APP, 'java', 'com', 'scan2com', 'app'); os.makedirs(dst, exist_ok=True)
 JAVA = os.path.join(HERE, 'native', 'java')
 for f in os.listdir(JAVA):
     if f.endswith('.java'): shutil.copy(os.path.join(JAVA, f), dst)
@@ -224,7 +224,34 @@ if 'firebase-messaging' not in g:
     open(bg, 'w', encoding='utf-8').write(g)
 
 # 7) configuración de Firebase
+import json
 gs = os.path.join(HERE, 'google-services.json')
-if os.path.exists(gs): shutil.copy(gs, os.path.join(HERE, 'android', 'app', 'google-services.json'))
-else: print('AVISO: falta google-services.json: la app no recibirá avisos')
+pk = json.load(open(os.path.join(HERE, 'capacitor.config.json')))['appId']
+if os.path.exists(gs) and pk in open(gs, encoding='utf-8').read():
+    shutil.copy(gs, os.path.join(HERE, 'android', 'app', 'google-services.json'))
+else: print('AVISO: google-services.json falta o no es de ' + pk + ': la app no recibirá avisos')
+
+# 8) firma fija: todas las versiones se firman con la misma clave (release.p12 + secreto ANDROID_KEY_PASS),
+#    así cada actualización se instala encima de la anterior sin desinstalar
+ks = os.path.join(HERE, 'release.p12')
+if os.path.exists(ks) and os.environ.get('ANDROID_KEY_PASS'):
+    g = open(bg, encoding='utf-8').read()
+    if 'signingConfigs' not in g:
+        g = g.replace('    buildTypes {', '''    signingConfigs {
+        fija {
+            storeFile file("../../release.p12")
+            storeType "pkcs12"
+            storePassword System.getenv("ANDROID_KEY_PASS")
+            keyAlias "scan2com"
+            keyPassword System.getenv("ANDROID_KEY_PASS")
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.fija }''', 1)
+        g = g.replace("minifyEnabled false", "minifyEnabled false\n            signingConfig signingConfigs.fija", 1)
+        n = int(os.environ.get('GITHUB_RUN_NUMBER', '1'))
+        g = re.sub(r'versionCode \d+', 'versionCode %d' % n, g)
+        open(bg, 'w', encoding='utf-8').write(g)
+    print('firma fija: ok')
+else: print('AVISO: sin release.p12 o sin ANDROID_KEY_PASS: firma temporal')
 print('setup ok')

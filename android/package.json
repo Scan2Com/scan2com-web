@@ -1,5 +1,5 @@
 {
-  "name": "scanand-pro-android",
+  "name": "scan2com-android",
   "private": true,
   "dependencies": {
     "@capacitor-community/text-to-speech": "^8.0.2",

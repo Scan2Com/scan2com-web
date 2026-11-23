@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.scan2com.app",
+    "sha256_cert_fingerprints": ["D1:F9:F2:DD:6E:E6:00:AE:4C:9B:3E:12:E6:07:A2:1F:66:D5:BB:2F:1F:13:12:35:8B:97:4C:F7:9D:C3:64:4F"]
+  }
+}]

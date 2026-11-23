@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Prepara el proyecto Android generado por Capacitor: código nativo, sirena, iconos y permisos."""
-import os, re, shutil, math, struct, wave
+import io, os, re, shutil, math, struct, wave
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -56,6 +56,24 @@ if have_orig:
                           ('res/drawable-xxhdpi/ic_action_camera.png', 'camera.png'), ('res/drawable-xxxhdpi/ic_launcher.png', 'icon.png'),
                           ('res/drawable-xxhdpi/ic_action_search.png', 'search.png')):
         if src_name in z.namelist(): open(os.path.join(WEBIMG, dst), 'wb').write(z.read(src_name))
+    # iconos de la barra de la pantalla del código: formas originales en azul holo #33b5e5
+    for src_name, dst in (('ic_qr_fullscreen_disabled', 'bar_back.png'), ('ic_share', 'bar_share.png'), ('ic_email', 'bar_mail.png'),
+                          ('ic_settings_enabled', 'bar_settings.png'), ('ic_save', 'bar_save.png')):
+        n = f'res/drawable-xxhdpi/{src_name}.png'
+        if n not in z.namelist(): continue
+        im = Image.open(io.BytesIO(z.read(n))).convert('RGBA')
+        a = im.getchannel('A'); bb = a.point(lambda v: 255 if v > 40 else 0).getbbox() or (0, 0) + im.size
+        a = a.crop(bb); mx = max(a.getextrema()[1], 1); a = a.point(lambda v: min(255, v * 255 // mx))
+        side = max(a.size); out = Image.new('RGBA', (side, side), (51, 181, 229, 0))
+        col = Image.new('RGBA', a.size, (51, 181, 229, 255)); col.putalpha(a)
+        out.paste(col, ((side - a.size[0]) // 2, (side - a.size[1]) // 2))
+        if dst == 'bar_back.png':  # flechas hacia dentro (reducir/volver): cada cuadrante girado 180º
+            pad = side // 8; big = Image.new('RGBA', (side + 2 * pad,) * 2, (51, 181, 229, 0)); big.paste(out, (pad, pad)); out = big; side = out.size[0]
+            h = side // 2; inv = Image.new('RGBA', out.size, (51, 181, 229, 0))
+            for x in (0, h):
+                for y in (0, h): inv.paste(out.crop((x, y, x + h, y + h)).rotate(180), (x, y))
+            out = inv
+        out.save(os.path.join(WEBIMG, dst))
     shutil.rmtree(os.path.join(RES, 'mipmap-anydpi-v26'), ignore_errors=True)
 
 # 4b) si no está el APK original, icono a partir del logo

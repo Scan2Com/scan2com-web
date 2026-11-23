@@ -71,6 +71,9 @@ label{font-size:13px;color:var(--mut)}
 .siren .on{animation:blink 1.2s infinite}
 .siren::before{content:'';position:absolute;inset:-25%;border-radius:50%;background:radial-gradient(circle,rgba(255,40,30,.55),rgba(255,40,30,0) 65%);animation:blink 1.2s infinite}
 @keyframes blink{0%,45%{opacity:1}55%,100%{opacity:0}}
+@keyframes blinkInv{0%,45%{opacity:0}55%,100%{opacity:1}}
+.siren.pol{width:min(82vw,340px)}
+.siren.pol .sh{animation:blinkInv 1.2s infinite;object-fit:contain;padding:4% 8%;box-sizing:border-box}
 .alarm h2{color:#c4160b;font-size:30px;margin:0}
 .alarm .msg{background:#fff6f5;border:1px solid #f3c2bd;padding:12px 16px;border-radius:12px;font-size:17px;color:#333}
 .welcome{display:flex;flex-direction:column;align-items:center;padding:40px 22px calc(30px + env(safe-area-inset-bottom));gap:18px;flex:1;background:var(--bg)}
@@ -82,6 +85,7 @@ label{font-size:13px;color:var(--mut)}
 .ok{color:#1a7a1a;font-size:14px;margin:6px 0}
 .qrbox{display:flex;flex-direction:column;align-items:center;padding:20px 16px 10px;gap:8px}
 .qrbox canvas{width:220px;height:220px;image-rendering:pixelated;border-radius:14px;border:10px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+.qrbox canvas.stk{width:230px;height:auto;image-rendering:auto;border:0;border-radius:0;box-shadow:none;filter:drop-shadow(0 3px 8px rgba(0,0,0,.25))}
 .link{font-size:13px;color:var(--mut);word-break:break-all;text-align:center}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .msgs{display:flex;flex-direction:column;gap:6px;padding:14px}
@@ -114,8 +118,8 @@ label{font-size:13px;color:var(--mut)}
 .ic{display:block}
 .ib{color:#555}
 .bar .ib{color:#e0e0e0}
-.qrbar-ib{color:#33b5e5!important}
-.qrbar-ib img{width:30px;height:30px;display:block}
+.qrbar-ib{color:#e0e0e0!important}
+.qrbar-ib svg{display:block}
 .ib.dark{color:#e0e0e0}
 .feat .fi{color:#8d9298;display:flex;justify-content:center;margin-bottom:4px}
 .pill .ic{display:inline-block;vertical-align:-3px}
@@ -160,6 +164,8 @@ const IC = {
   share: s => SV('<circle cx="18" cy="5" r="3" fill="currentColor"/><circle cx="6" cy="12" r="3" fill="currentColor"/><circle cx="18" cy="19" r="3" fill="currentColor"/><path d="M8.6 10.6l6.8-4M8.6 13.4l6.8 4"/>', s),
   mail: s => SV('<rect x="2.5" y="5" width="19" height="14" rx="1.5" fill="currentColor" stroke="none"/><path d="M3 6.5l9 6.5 9-6.5" stroke="#fff"/>', s),
   grid: s => SV('<rect x="3" y="3" width="8" height="8" fill="currentColor"/><rect x="13" y="3" width="8" height="8" fill="currentColor"/><rect x="3" y="13" width="8" height="8" fill="currentColor"/><rect x="13" y="13" width="8" height="8" fill="currentColor"/>', s),
+  mailL: s => SV('<rect x="3" y="5.5" width="18" height="13" rx="1.5"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/>', s),
+  saveL: s => SV('<path d="M4.5 3.5h12l3 3v14h-15z"/><path d="M8 3.5v5h7v-5M7.5 20.5v-6h9v6"/>', s),
   save: s => SV('<path d="M4 3h13l3 3v15H4z" fill="currentColor" stroke="none"/><rect x="7" y="4" width="9" height="5" fill="#fff" stroke="none"/><rect x="7" y="13" width="10" height="6" fill="#fff" stroke="none"/>', s),
   camera: s => SV('<path d="M3 8h4l2-3h6l2 3h4v12H3z" fill="currentColor" stroke="none"/><circle cx="12" cy="13.5" r="4" fill="#fff" stroke="none"/><circle cx="12" cy="13.5" r="2.4" fill="currentColor" stroke="none"/>', s),
   search: s => SV('<circle cx="10" cy="10" r="6.5"/><path d="M15 15l6 6" stroke-width="2.6"/>', s),
@@ -367,6 +373,8 @@ async function loadAll() {
     sb.from('events').select('*').order('created_at', { ascending: false }).limit(100),
     sb.from('safe_places').select('*').order('id')
   ]);
+  try { const [au, pr] = await Promise.all([sb.rpc('my_authority'), sb.from('profiles').select('terms_version').eq('id', S.user.id).maybeSingle()]);
+    S.auth = au.data || null; S.terms = pr.data?.terms_version || null; } catch (e) {}
   S.codes = c.data || []; S.chats = ch.data || []; S.favs = new Set((f.data || []).map(x => x.chat_id)); S.events = ev.data || []; S.places = pl.data || [];
   if (S.chats.length) {
     const { data } = await sb.from('messages').select('*').in('chat_id', S.chats.map(x => x.id)).order('id');
@@ -397,7 +405,7 @@ function subscribe() {
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, ({ new: e }) => {
       S.events.unshift(e); const code = codeOf(e.code_id);
-      if (e.kind === 'alert' || e.kind === 'call') { if (!(NATIVE && notifOn())) { S.alarm = e; sirenOn(); } notify('🔔 Alerta · ' + (code?.name || 'Scan & Pro'), e.body || 'Alguien ha escaneado tu código y te avisa'); }
+      if (e.kind === 'alert' || e.kind === 'call' || e.kind === 'police') { if (!(NATIVE && notifOn())) { S.alarm = e; sirenOn(); } notify((e.kind === 'police' ? '🚓 Aviso de la Policía · ' : '🔔 Alerta · ') + (code?.name || 'Scan & Pro'), e.body || 'Alguien ha escaneado tu código y te avisa'); }
       else { toast(`✉️ Mensaje en “${code?.name || ''}”: ${e.body || ''}`, () => { S.tab = 'alerts'; S.view = null; render(); }); notify('✉️ Mensaje · ' + (code?.name || ''), e.body || ''); }
       render(true);
     })
@@ -437,7 +445,7 @@ function renderAuth() {
     <div style="display:flex;justify-content:center;gap:10px;align-items:center;margin:10px 0 24px">${LOGO(60)}<span style="font-family:Comfortaa;font-size:38px;font-weight:700;color:#555">Scan & Pro</span></div>
     <label class="req">Email</label><input id="em" type="email" placeholder="tu@email.com" autocomplete="email">
     ${rec ? '' : `<label class="req">Contraseña</label><input id="pw" type="password" placeholder="${reg ? 'Mínimo 8 caracteres' : ''}" autocomplete="${reg ? 'new-password' : 'current-password'}">`}
-    ${reg ? `<label class="req">Repite la contraseña</label><input id="pw2" type="password" autocomplete="new-password"><label class="chk"><input type="checkbox" id="tc"> <span class="req">Acepto los términos y condiciones</span></label>` : ''}
+    ${reg ? `<label class="req">Repite la contraseña</label><input id="pw2" type="password" autocomplete="new-password"><label class="chk"><input type="checkbox" id="tc"> <span class="req">He leído y acepto las <a href="/app/condiciones.html" target="_blank" onclick="event.stopPropagation()">condiciones de uso</a></span></label>` : ''}
     ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}${S.info ? `<div class="ok">${esc(S.info)}</div>` : ''}
     <button class="btn" id="go" ${S.busy ? 'disabled' : ''}>${reg ? 'Crear cuenta' : rec ? 'Enviar enlace' : 'Entrar'}</button>
     ${S.screen === 'login' ? `<button class="btn light" style="margin-top:8px;background:none" id="fp">He olvidado mi contraseña</button>` : ''}
@@ -452,7 +460,8 @@ function renderAuth() {
     if (reg) {
       if (pw.length < 8) { S.err = 'La contraseña debe tener al menos 8 caracteres.'; return render(); }
       if (pw !== $('#pw2').value) { S.err = 'Las contraseñas no coinciden.'; return render(); }
-      if (!$('#tc').checked) { S.err = 'Tienes que aceptar los términos.'; return render(); }
+      if (!$('#tc').checked) { S.err = 'Tienes que aceptar las condiciones de uso.'; return render(); }
+      ls.set('sa_terms_ok_' + em.toLowerCase(), TERMS_V);
     }
     S.busy = true; render();
     let r;
@@ -506,8 +515,8 @@ function renderHome() {
       : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.</div>`;
   } else {
     const seen = S.seenEv;
-    body = S.events.length ? S.events.map(e => { const c = codeOf(e.code_id); const ic = { alert: IC.alert(22), mail: IC.mail(22), call: IC.phone(22) }[e.kind];
-      return `<div class="ev ${e.id > seen ? 'new' : ''}"><div class="av" style="color:#fff;background:${e.kind === 'alert' ? '#e8352b' : e.kind === 'mail' ? '#1f86e0' : '#2fc23a'}">${ic}</div><div class="grow"><div class="t" style="font-weight:600">${e.kind === 'alert' ? (e.auto ? 'Alerta al escanear' : 'Alerta') : e.kind === 'mail' ? 'Mensaje' : 'Piden que llames'} · ${esc(c?.name || e.code_id)}</div>
+    body = S.events.length ? S.events.map(e => { const c = codeOf(e.code_id); const ic = { alert: IC.alert(22), mail: IC.mail(22), call: IC.phone(22), police: '<img src="/app/img2014/police.png" width="30" height="34" alt="Policía" style="display:block">' }[e.kind];
+      return `<div class="ev ${e.id > seen ? 'new' : ''}"><div class="av" style="color:#fff;background:${e.kind === 'police' ? '#fff' : e.kind === 'alert' ? '#e8352b' : e.kind === 'mail' ? '#1f86e0' : '#2fc23a'}">${ic}</div><div class="grow"><div class="t" style="font-weight:600">${e.kind === 'police' ? 'Aviso de la Policía' + (e.authority?.body ? ' (' + esc(e.authority.body) + ', agente ' + esc(e.authority.badge || '') + ')' : '') : e.kind === 'alert' ? (e.auto ? 'Alerta al escanear' : 'Alerta') : e.kind === 'mail' ? 'Mensaje' : 'Piden que llames'} · ${esc(c?.name || e.code_id)}</div>
       ${e.body ? `<div style="margin:4px 0">“${esc(e.body)}”</div>` : ''}${e.reply_email ? `<div class="s"><a href="mailto:${esc(e.reply_email)}">Responder a ${esc(e.reply_email)}</a></div>` : ''}
       <div class="s" style="font-size:12px;color:var(--mut)">${ago(e.created_at)}${e.read_at ? ' · <span style="color:#1a9c16">✓ leído</span>' : ''}</div></div></div>`; }).join('')
       : `<div class="empty">Aquí verás las alertas y mensajes que te envíen al escanear tus códigos.</div>`;
@@ -519,7 +528,7 @@ function renderHome() {
   return body; };
   const idx = Math.max(0, TABS.indexOf(S.tab)); app.classList.add('homepg');
   const keepScroll = {}; app.querySelectorAll('[data-page]').forEach(p => keepScroll[p.dataset.page] = p.scrollTop);
-  app.innerHTML = `<div class="bar">${LOGO(38)}${S.searching ? `<input id="sq" class="searchin" placeholder="Buscar…" value="${esc(S.q || '')}">` : '<span class="name">Scan & Pro</span>'}<button class="ib dark" id="bSearch" title="Buscar">${IC.search(26)}</button><button class="ib dark" id="bScan" title="Escanear"><img src="/app/img2014/camera.png" width="32" height="32" alt="Escanear" style="display:block" onerror="this.style.display='none'"></button><button class="ib dark" id="bMenu" title="Menú">${IC.dots(24)}</button></div>
+  app.innerHTML = `<div class="bar">${LOGO(38)}${S.searching ? `<input id="sq" class="searchin" placeholder="Buscar…" value="${esc(S.q || '')}">` : `<span class="name">${S.auth ? 'Scan & Police' : 'Scan & Pro'}</span>`}<button class="ib dark" id="bSearch" title="Buscar">${IC.search(26)}</button><button class="ib dark" id="bScan" title="Escanear"><img src="/app/img2014/camera.png" width="32" height="32" alt="Escanear" style="display:block" onerror="this.style.display='none'"></button><button class="ib dark" id="bMenu" title="Menú">${IC.dots(24)}</button></div>
     <div class="tabs">${tabs.map(([k, l, n]) => `<button class="${S.tab === k ? 'on' : ''}" data-tab="${k}">${l}${n && S.tab !== k ? `<span class="badge">${n}</span>` : ''}</button>`).join('')}<i class="ind" id="ind" style="transform:translateX(${idx * 100}%)"></i></div>
     <div class="pager" id="pg"><div class="track" id="tr" style="transform:translateX(${-idx * 100}%)">${TABS.map(t => `<div class="page body" data-page="${t}">${page(t)}</div>`).join('')}</div></div>${S.tab === 'codes' ? `<button class="fab" id="fab" style="display:grid;place-items:center">${IC.plus(28)}</button>` : ''}`;
   app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { const i = TABS.indexOf(b.dataset.tab); $('#tr').style.transform = `translateX(${-i * 100}%)`; $('#ind').style.transform = `translateX(${i * 100}%)`; setTimeout(() => { S.tab = b.dataset.tab; render(); }, 290); });
@@ -597,7 +606,7 @@ async function renderEdit() {
     <label class="chk"><input type="checkbox" id="c7" ${c.ch_redirect ? 'checked' : ''}> <span style="color:#7e868b">${IC.globe(20)}</span> Redirección web</label>
     <div id="rbox" style="display:${c.ch_redirect ? 'block' : 'none'}"><label class="req">Dirección web</label><input id="f7" type="url" inputmode="url" value="${esc(c.redirect_url)}" placeholder="www.ejemplo.com" maxlength="500">
       <div class="hint">Quien escanee irá directamente a esta web, sin ver los demás medios. Puedes cambiarla cuando quieras, aunque el código ya esté impreso.</div></div>
-    <label id="l4" class="${c.ch_call ? 'req' : ''}">Teléfono que se mostrará${c.ch_call ? '' : ' (solo si activas Llamada)'}</label><input id="f4" value="${esc(c.phone)}" placeholder="Ej. 600 000 000" type="tel" maxlength="20">
+    <div id="pbox" style="display:${c.ch_call ? 'block' : 'none'}"><label id="l4" class="req">Teléfono que se mostrará</label><input id="f4" value="${esc(c.phone)}" placeholder="Ej. 600 000 000" type="tel" maxlength="20"></div>
     ${isNew ? '' : `<div class="section">USUARIOS VINCULADOS</div><div style="font-size:13px;color:#777">También reciben las alertas y los chats de este código.</div>
       <div>${mem.map(m => `<span class="pill">${IC.avatar(16, true)} ${esc(m.display_name || 'usuario')}<button class="back" style="font-size:13px" data-rm="${m.user_id}">✕</button></span>`).join('') || '<div style="font-size:13px;color:#999;margin:6px 0">Nadie vinculado.</div>'}</div>
       <div style="display:flex;gap:6px;align-items:center"><input id="f6" type="email" placeholder="Email de otro usuario de Scan & Pro" style="margin:6px 0"><button class="btn sm light" id="addm">Vincular</button></div>`}
@@ -613,7 +622,7 @@ async function renderEdit() {
   }
   ['c2', 'c5'].forEach(i => { const el = $('#' + i); if (el) el.addEventListener('change', () => { if (el.checked) askNotif(true); }); });
   $('#c7').onchange = () => { $('#rbox').style.display = $('#c7').checked ? 'block' : 'none'; if ($('#c7').checked) $('#f7').focus(); };
-  $('#c4').onchange = () => { const on = $('#c4').checked; $('#l4').className = on ? 'req' : ''; $('#l4').textContent = 'Teléfono que se mostrará' + (on ? '' : ' (solo si activas Llamada)'); };
+  $('#c4').onchange = () => { $('#pbox').style.display = $('#c4').checked ? 'block' : 'none'; if ($('#c4').checked) $('#f4').focus(); };
   app.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { await sb.from('code_members').delete().eq('code_id', c.id).eq('user_id', b.dataset.rm); await loadMembers(c.id); });
   if ($('#addm')) $('#addm').onclick = async () => { const em = $('#f6').value.trim(); if (!em) return; const { data } = await sb.rpc('add_member', { p_code: c.id, p_email: em }); if (data?.ok) { toast('Usuario vinculado'); loadMembers(c.id); } else toast(data?.error === 'user_not_found' ? 'Ese email no tiene cuenta en Scan & Pro. Pídele que se registre primero.' : 'No se ha podido vincular.'); };
   if ($('#del')) $('#del').onclick = async () => { if ($('#del').dataset.sure) { await sb.from('codes').delete().eq('id', c.id); S.codes = S.codes.filter(x => x.id !== c.id); S.view = null; toast('Código borrado'); render(); } else { $('#del').dataset.sure = 1; $('#del').textContent = 'Pulsa otra vez para borrar definitivamente'; } };
@@ -655,16 +664,46 @@ function drawQR(canvas, text, scale = 8) {
   canvas.width = canvas.height = sz; const x = canvas.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, sz, sz); x.fillStyle = '#000';
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) x.fillRect((c + m) * scale, (r + m) * scale, scale, scale);
 }
+/* QR redondeado (estilo del generador de 2014) y pegatina alta del coche */
+const loadImg = src => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = src; });
+async function prettyQR(text, side) {
+  const q = qrcode(0, 'M'); q.addData(text); q.make(); const n = q.getModuleCount(), p = side / n;
+  const cv = document.createElement('canvas'); cv.width = cv.height = side; const x = cv.getContext('2d');
+  const on = (c, r) => c >= 0 && r >= 0 && c < n && r < n && q.isDark(r, c);
+  const quad = (c, r, dx, dy) => x.fillRect(c * p + (dx > 0 ? p / 2 : 0), r * p + (dy > 0 ? p / 2 : 0), p / 2 + .5, p / 2 + .5);
+  const dot = (c, r) => { x.beginPath(); x.arc(c * p + p / 2, r * p + p / 2, p / 2, 0, 7); x.fill(); };
+  const D = [[-1, -1], [1, -1], [1, 1], [-1, 1]]; x.fillStyle = '#000';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    if (on(c, r)) { D.forEach(([dx, dy]) => { if (on(c + dx, r) || on(c, r + dy) || on(c + dx, r + dy)) quad(c, r, dx, dy); }); dot(c, r); }
+    else {
+      D.forEach(([dx, dy]) => { if (on(c + dx, r) && on(c, r + dy)) quad(c, r, dx, dy); });
+      x.globalCompositeOperation = 'destination-out'; dot(c, r); x.globalCompositeOperation = 'source-over';
+    }
+  }
+  // ojos redondeados como los del generador de 2014
+  const rr = (X, Y, w, rad) => { x.beginPath(); x.moveTo(X + rad, Y); x.arcTo(X + w, Y, X + w, Y + w, rad); x.arcTo(X + w, Y + w, X, Y + w, rad); x.arcTo(X, Y + w, X, Y, rad); x.arcTo(X, Y, X + w, Y, rad); x.closePath(); x.fill(); };
+  [[0, 0], [n - 7, 0], [0, n - 7]].forEach(([c, r]) => { const X = c * p, Y = r * p; x.clearRect(X, Y, 7 * p, 7 * p);
+    rr(X, Y, 7 * p, 1.4 * p); x.globalCompositeOperation = 'destination-out'; rr(X + p, Y + p, 5 * p, 0.9 * p); x.globalCompositeOperation = 'source-over'; rr(X + 2 * p, Y + 2 * p, 3 * p, 0.8 * p); });
+  return cv;
+}
+async function drawSticker(canvas, url) {
+  const base = await loadImg('/app/img2014/pegatina_coche.png');
+  canvas.width = 1126; canvas.height = 1544; const x = canvas.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(base, 0, 0, 1126, 1544);
+  const side = 802, qr = await prettyQR(url, side * 2); x.imageSmoothingQuality = 'high';
+  x.drawImage(qr, 563 - side / 2, 569 - side / 2, side, side);
+}
+const isCar = c => !!c?.style?.car;
 function renderQR() {
   const c = codeOf(S.view.id); if (!c) { S.view = null; return render(); }
   const url = `${SITE}/s/${c.id}`, own = c.owner_id === S.user.id;
   const chans = [c.ch_info && IC.info(14) + ' Info', c.ch_mail && IC.mail(14) + ' Mail', c.ch_alert && (IC.alert(14) + ' Alert' + (c.auto_alert ? ' (al abrir)' : '')), c.ch_chat && IC.chat(14) + ' Chat', c.ch_call && IC.phone(14) + ' Llamada', c.ch_redirect && c.redirect_url && IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean);
   const nChats = S.chats.filter(x => x.code_id === c.id).length;
-  app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver"><img src="/app/img2014/bar_back.png" alt="Volver"></button><button class="ib qrbar-ib" id="sh" title="Compartir"><img src="/app/img2014/bar_share.png" alt="Compartir"></button><button class="ib qrbar-ib" id="ml" title="Enviar por mail"><img src="/app/img2014/bar_mail.png" alt="Mail"></button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes"><img src="/app/img2014/bar_settings.png" alt="Ajustes"></button>` : ''}<button class="ib qrbar-ib" id="dl" title="Guardar imagen"><img src="/app/img2014/bar_save.png" alt="Guardar"></button></div>
+  app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(30)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.share(30)}</button><button class="ib qrbar-ib" id="ml" title="Enviar por mail">${IC.mailL(30)}</button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes">${IC.sliders(30)}</button>` : ''}<button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(30)}</button></div>
     <div style="text-align:center;color:#9a9ea4;font-size:20px;margin-top:14px;letter-spacing:.04em">${esc(c.name).toUpperCase()}</div>
     <div class="body"><div class="qrbox"><canvas id="cv"></canvas><div class="link">${url}</div>
       <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><div class="pw ${c.is_on ? 'on' : ''}" id="pw">${IC.power(20)}</div><span style="font-size:14px;color:${c.is_on ? '#1a7a1a' : '#999'}">${c.is_on ? 'Activo' : 'Desactivado'}</span></div></div>
       <div class="pad" style="padding-top:4px">
+        ${own && isCar(c) && c.bt_auto && !c.bt_addr ? `<button class="btn" id="btset" style="margin-bottom:10px;background:#e8352b">${IC.lock(20)}${NATIVE ? 'Elige el Bluetooth de tu coche' : 'Instala la app Android para activarlo al bajar del coche'}</button>` : ''}
         <button class="btn teal" id="op">${IC.eye(20)}Ver lo que ve quien escanea</button>
         <div class="section">CONFIGURACIÓN</div>
         <div style="font-size:14px;line-height:1.7"><b>${esc(c.public_name)}</b><br><span style="white-space:pre-line;color:#555">${esc(c.public_desc || '—')}</span></div>
@@ -672,14 +711,15 @@ function renderQR() {
         ${c.private_info ? `<div style="font-size:13px;color:#555;margin-top:8px;display:flex;gap:6px;align-items:center">${IC.lock(14)} ${esc(c.private_info)}</div>` : ''}
         ${nChats ? `<button class="btn light" style="margin-top:14px" id="gc">${IC.chat(20)}${nChats} chat${nChats > 1 ? 's' : ''} de este código</button>` : ''}
       </div></div>`;
-  drawQR($('#cv'), url);
+  if (isCar(c)) { $('#cv').classList.add('stk'); drawSticker($('#cv'), url).catch(() => { $('#cv').classList.remove('stk'); drawQR($('#cv'), url); }); } else drawQR($('#cv'), url);
   $('#bk').onclick = () => { S.view = null; render(); };
   if ($('#ed')) $('#ed').onclick = () => { S.view = { t: 'edit', id: c.id }; render(); };
   $('#pw').onclick = () => togglePower(c.id);
+  if ($('#btset')) $('#btset').onclick = () => { if (NATIVE) { S.view = { t: 'edit', id: c.id }; render(); } else location.href = '/app/scanandpro.apk'; };
   $('#op').onclick = () => window.open(url, '_blank');
   $('#ml').onclick = () => { location.href = 'mailto:?subject=' + encodeURIComponent('Mi código Scan & Pro: ' + c.public_name) + '&body=' + encodeURIComponent(url); };
   $('#sh').onclick = async () => { try { if (navigator.share) await navigator.share({ title: c.public_name, url }); else { await navigator.clipboard.writeText(url); toast('Enlace copiado'); } } catch (e) {} };
-  $('#dl').onclick = () => { const big = document.createElement('canvas'); drawQR(big, url, 24); const a = document.createElement('a'); a.href = big.toDataURL('image/png'); a.download = `scanand-${c.id}.png`; a.click(); };
+  $('#dl').onclick = async () => { if (isCar(c)) { const a = document.createElement('a'); a.href = $('#cv').toDataURL('image/png'); a.download = `scanand-coche-${c.id}.png`; return a.click(); } const big = document.createElement('canvas'); drawQR(big, url, 24); const a = document.createElement('a'); a.href = big.toDataURL('image/png'); a.download = `scanand-${c.id}.png`; a.click(); };
   if ($('#gc')) $('#gc').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
 }
 
@@ -778,6 +818,7 @@ async function startScan() {
 function handleScan(t) {
   const pack = t.match(/\/(?:link|p)\/([A-Z0-9]+)/i), code = t.match(/\/s\/([A-Z0-9]+)/i);
   if (pack) return claim(pack[1]);
+  if (code && S.auth) { S.view = null; render(); return policeSheet(code[1].toUpperCase()); }
   if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: 'qr', id: c.id }; return render(); } window.open(t, '_blank'); S.view = null; return render(); }
   toast('Ese QR no es de Scan & Pro: ' + t.slice(0, 60)); renderPack();
 }
@@ -839,13 +880,65 @@ async function ensureStarter() {
     public_desc: 'Hola, puedes escribirme por aquí sin necesidad de mi teléfono.', ch_info: true, ch_mail: false, ch_alert: false, ch_chat: true, ch_call: false }).select().single();
   if (!error && data) { S.codes.push(data); ls.set('sa_starter_' + S.user.id, 1); }
 }
+/* cada usuario tiene su propio código de coche, ya preparado: Alert + Bluetooth + desactivar conduciendo */
+async function ensureCar() {
+  const mine = S.codes.filter(c => c.owner_id === S.user.id);
+  if (mine.some(isCar) || ls.get('sa_car_' + S.user.id, 0)) return;
+  const old = mine.find(c => /coche/i.test(c.name || ''));
+  const r = old ? await sb.from('codes').update({ style: { ...(old.style || {}), car: true } }).eq('id', old.id).select().single()
+    : await sb.from('codes').insert({ owner_id: S.user.id, type: 'alert', name: 'Coche', public_name: 'Mi coche',
+      public_desc: 'Si mi coche molesta o le pasa algo, avísame pulsando Alert. ¡Gracias!', ch_info: true, ch_mail: false, ch_alert: true, ch_chat: false, ch_call: false,
+      bt_auto: true, bt_drive_off: true, is_on: false, style: { car: true } }).select().single();
+  if (!r.error && r.data) { if (old) Object.assign(old, r.data); else S.codes.push(r.data); ls.set('sa_car_' + S.user.id, 1); render(); }
+}
+
+/* ---------- Scan & Police: aviso de autoridad ---------- */
+const POLICE_MSGS = ['Su vehículo está mal estacionado. Acuda inmediatamente.', 'Su vehículo obstaculiza la salida de otro vehículo.', 'Su vehículo va a ser retirado por la grúa.', 'Contacte con la policía en relación con su vehículo.'];
+function policeSheet(id) {
+  $('#overlay').innerHTML = `<div class="sheet keep" id="pol"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px"><img src="/app/img2014/police.png" width="52" height="60" alt=""><div><div style="font-weight:700;font-size:18px;color:#0b2a6b">Aviso de autoridad</div>
+    <div style="font-size:13px;color:#666">Código ${esc(id)} · ${esc(S.auth.body)} · agente ${esc(S.auth.badge)}</div></div></div>
+    <div style="font-size:13px;color:#555;margin-bottom:8px">Sonará la sirena en el móvil del dueño aunque el código esté apagado.</div>
+    ${POLICE_MSGS.map((m, i) => `<label class="chk" style="margin:6px 0"><input type="radio" name="pm" value="${i}" ${i ? '' : 'checked'}> ${esc(m)}</label>`).join('')}
+    <textarea id="pmx" rows="2" maxlength="300" placeholder="Mensaje (opcional): sustituye al seleccionado" style="margin-top:6px"></textarea>
+    <button class="btn" id="psend" style="margin-top:10px;background:#0b2a6b">🚓 Enviar aviso</button>
+    <button class="btn light" id="pcl" style="margin-top:8px">Cancelar</button></div></div>`;
+  $('#pol').onclick = $('#pcl').onclick = () => { $('#overlay').innerHTML = ''; };
+  $('#psend').onclick = async () => {
+    const msg = $('#pmx').value.trim() || POLICE_MSGS[+app.parentNode.querySelector('[name=pm]:checked').value];
+    $('#psend').disabled = true; $('#psend').textContent = 'Enviando…';
+    let pos = null; try { pos = await new Promise((ok, ko) => navigator.geolocation.getCurrentPosition(p => ok(p.coords), ko, { timeout: 5000, maximumAge: 60000 })); } catch (e) {}
+    const { data, error } = await sb.rpc('police_alert', { p_id: id, p_body: msg, p_lat: pos?.latitude ?? null, p_lng: pos?.longitude ?? null });
+    $('#overlay').innerHTML = '';
+    if (data?.ok) toast(`Aviso enviado al dueño de “${data.public_name || id}”`);
+    else toast({ not_eligible: 'Este código no es de coche ni de Alert.', rate_limited: 'Demasiados avisos seguidos. Espera unos minutos.', unavailable: 'Código no encontrado o sin dueño.', not_authority: 'Tu cuenta no es de autoridad.' }[data?.error] || 'No se ha podido enviar' + (error ? ': ' + error.message : '.'));
+  };
+}
+/* ---------- condiciones de uso ---------- */
+const TERMS_V = '2026-11-23';
+async function checkTerms() {
+  if (S.terms === TERMS_V) return;
+  if (ls.get('sa_terms_ok_' + (S.user.email || '').toLowerCase(), '') === TERMS_V) { await sb.rpc('accept_terms', { p_version: TERMS_V }); S.terms = TERMS_V; return; }
+  $('#overlay').innerHTML = `<div class="sheet keep" id="trm"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
+    <div style="font-weight:700;font-size:18px;margin-bottom:6px">Condiciones de uso</div>
+    <div style="font-size:14px;color:#555;margin-bottom:12px">Hemos actualizado las condiciones de uso de Scan & Pro. Entre otras cosas, recogen los <b>avisos de la Policía</b>: en los códigos de coche y Alert, la policía puede enviarte un aviso aunque tengas el código apagado.</div>
+    <a href="/app/condiciones.html" target="_blank" class="btn light" style="text-decoration:none">Leer las condiciones</a>
+    <label class="chk" style="margin:14px 0 6px"><input type="checkbox" id="tca"> He leído y acepto las condiciones de uso</label>
+    <button class="btn" id="tok" style="margin-top:6px">Aceptar y continuar</button></div></div>`;
+  $('#tok').onclick = async () => { if (!$('#tca').checked) return toast('Marca la casilla para aceptar las condiciones.');
+    await sb.rpc('accept_terms', { p_version: TERMS_V }); S.terms = TERMS_V; $('#overlay').innerHTML = ''; };
+}
 
 /* ---------- alarma ---------- */
 function alarmHTML() {
   const e = S.alarm, c = codeOf(e.code_id);
-  return `<div class="alarm"><div class="siren"><img src="/app/alert_white.png" alt=""><img class="on" src="/app/alert_red.png" alt="Alerta"></div>
-    <h2>${e.kind === 'call' ? 'Te piden que llames' : '¡Alerta!'}</h2><div style="font-size:20px;font-weight:600">${esc(c?.name || '')}</div>
-    ${e.body ? `<div class="msg">“${esc(e.body)}”</div>` : '<div style="color:#555">Alguien ha escaneado tu código y te avisa.</div>'}
+  const pol = e.kind === 'police';
+  // aviso de la policía: la imagen alterna entre la sirena roja y el escudo, más grande
+  const sir = pol ? `<div class="siren pol"><img class="on" src="/app/alert_red.png" alt="Alerta"><img class="sh" src="/app/img2014/police.png" alt="Policía"></div>`
+    : `<div class="siren"><img src="/app/alert_white.png" alt=""><img class="on" src="/app/alert_red.png" alt="Alerta"></div>`;
+  const head = `<h2 ${pol ? 'style="color:#0b2a6b;margin:0 0 4px"' : ''}>${pol ? 'Aviso de la Policía' : e.kind === 'call' ? 'Te piden que llames' : '¡Alerta!'}</h2>`;
+  return `<div class="alarm">${pol ? head + sir : sir + head}${pol && e.authority ? `<div style="color:#0b2a6b;font-weight:600">${esc(e.authority.body)} · agente ${esc(e.authority.badge)}</div>` : ''}<div style="font-size:20px;font-weight:600">${esc(c?.name || '')}</div>
+    ${e.body ? `<div class="msg">“${esc(e.body)}”</div>` : (pol ? '<div style="color:#555">Te piden que acudas a tu vehículo.</div>' : '<div style="color:#555">Alguien ha escaneado tu código y te avisa.</div>')}
     <button class="btn red" style="margin-top:22px;max-width:320px" id="aok">Recibido</button></div>`;
 }
 /* sirena: sonido continuo a volumen máximo hasta pulsar Recibido */
@@ -873,7 +966,7 @@ async function start(session) {
   S.user = session?.user || null;
   if (!S.user) { channel?.unsubscribe(); return render(); }
   app.innerHTML = `<div style="position:fixed;inset:0;background:#000;display:grid;place-items:center;z-index:30"><img src="/app/img2014/icon.png" width="170" height="170" alt="Scan &amp; Pro" onerror="this.src='/app/icon-192.png'"></div>`;
-  await loadAll(); await ensureStarter(); subscribe(); render(); syncAuto();
+  await loadAll(); await ensureStarter(); await ensureCar(); subscribe(); render(); syncAuto(); checkTerms();
   if (location.search) { openUrl(location.href); history.replaceState(null, '', '/app/'); }
   if (NATIVE) enableNativePush(false); else if (pushOK() && Notification.permission === 'granted') enablePush(false);
 }

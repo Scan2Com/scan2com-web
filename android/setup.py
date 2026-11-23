@@ -61,7 +61,7 @@ pol.save(os.path.join(_webimg, 'police.png'), optimize=True)
 
 # 2c) base de la pegatina alta del coche, recortada de la plantilla original de Luis (si está en el repo)
 def sticker_base():
-    from PIL import ImageDraw
+    from PIL import ImageDraw, ImageFilter, ImageChops
     src = None   # la plantilla de pegatinas de coche: PNG apaisado de unos 2480 x 1181
     for f in sorted(os.listdir(HERE)):
         if f.lower().endswith('.png'):
@@ -70,17 +70,23 @@ def sticker_base():
     if not src: return
     t = Image.open(src).convert('RGB')
     k = t.width / 2480                              # la plantilla original mide 2480 x 1181
-    box = [round(v * k) for v in (20, 20, 583, 792)]
-    st = t.crop(box).resize((1126, 1544), Image.LANCZOS)
-    d = ImageDraw.Draw(st); d.rounded_rectangle((114, 120, 1012, 1018), radius=80, fill='white')   # quita el QR de ejemplo
-    st = st.convert('RGBA'); tmp = st.convert('RGB')
-    for p in ((0, 0), (st.width - 1, 0), (0, st.height - 1), (st.width - 1, st.height - 1)):
-        ImageDraw.floodfill(tmp, p, (1, 2, 3), thresh=40)                               # fondo blanco exterior -> transparente
-    a = st.getchannel('A'); tp = tmp.load(); ap = a.load()
-    for y in range(st.height):
-        for x in range(st.width):
-            if tp[x, y] == (1, 2, 3): ap[x, y] = 0
-    st.putalpha(a); st.resize((563, 772), Image.LANCZOS).save(os.path.join(_webimg, 'pegatina_coche.png'), optimize=True)
+    st = t.crop([round(v * k) for v in (20, 20, 582, 786)])          # justo hasta el borde negro exterior
+    if k != 1: st = st.resize((562, 766), Image.LANCZOS)
+    W, H = st.size
+    # 1) recuadro blanco: relleno desde el margen interior y se tapan los huecos (el QR de ejemplo)
+    tmp = st.copy(); ImageDraw.floodfill(tmp, (67, 280), (1, 2, 3), thresh=110)
+    m = Image.eval(ImageChops.difference(tmp, Image.new('RGB', st.size, (1, 2, 3))).convert('L'), lambda v: 255 if v == 0 else 0)
+    holes = m.copy(); ImageDraw.floodfill(holes, (0, 0), 128)       # lo que no se alcanza desde fuera = dentro del recuadro
+    panel = Image.eval(holes, lambda v: 255 if v != 128 else 0)
+    panel = panel.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))
+    st.paste((255, 255, 255), (0, 0), panel)
+    # 2) fuera de la pegatina, transparente (con el borde suavizado)
+    tmp = st.copy()
+    for p in ((0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1)): ImageDraw.floodfill(tmp, p, (1, 2, 3), thresh=110)
+    out = Image.eval(ImageChops.difference(tmp, Image.new('RGB', st.size, (1, 2, 3))).convert('L'), lambda v: 0 if v == 0 else 255)
+    big = st.resize((W * 2, H * 2), Image.LANCZOS).convert('RGBA')
+    big.putalpha(out.resize((W * 2, H * 2), Image.LANCZOS).filter(ImageFilter.GaussianBlur(0.7)))
+    big.save(os.path.join(_webimg, 'pegatina_coche.png'), optimize=True)
 sticker_base()
 
 # 3) sonido de sirena (barrido 650-1500 Hz, 1,8 s, se repite en bucle)

@@ -249,6 +249,19 @@ comp = '''
 '''
 if 'AlarmActivity' not in m: m = m.replace('</application>', comp + '    </application>')
 m = re.sub(r'android:launchMode="[^"]*"', 'android:launchMode="singleTask"', m, count=1)
+# enlaces https://scan2com.com/s/… (cámara del móvil, WhatsApp…) se abren directamente en la app (Android App Links)
+if 'scan2com.com' not in m:
+    links = """
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="scan2com.com" android:pathPrefix="/s/" />
+                <data android:scheme="https" android:host="www.scan2com.com" android:pathPrefix="/s/" />
+            </intent-filter>
+"""
+    i = m.find('.MainActivity'); j = m.find('</activity>', i)
+    if i > 0 and j > 0: m = m[:j] + links + '        ' + m[j:]
 open(mf, 'w', encoding='utf-8').write(m)
 
 # 6) dependencia de Firebase visible para nuestro código (el plugin la declara como interna)

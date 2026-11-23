@@ -339,7 +339,8 @@ if _cands:
                 w, h = Image.open(pth).size; out = Image.new('RGB', (w, h), (0, 0, 0)); side = int(min(w, h) * 0.5)
                 out.paste(NEW.resize((side, side), Image.LANCZOS).convert('RGB'), ((w - side) // 2, (h - side) // 2)); out.save(pth)
     vb = os.path.join(RES, 'values', 'ic_launcher_background.xml')
-    if os.path.exists(vb): open(vb, 'w').write(open(vb).read().replace('#000000', '#FFFFFF'))
+    if os.path.exists(vb):
+        _x = open(vb).read(); open(vb, 'w').write(_x.replace('#000000', '#FFFFFF'))
     for f, sz in (('img2014/icon.png', 192), ('logo.png', 1024), ('icon-192.png', 192), ('icon-512.png', 512)):
         NEW.resize((sz, sz), Image.LANCZOS).save(os.path.join(ROOT, 'app', f))
     print('icono nuevo: ok')

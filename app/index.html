@@ -34,7 +34,7 @@ body{font-family:Inter,system-ui,sans-serif;color:var(--ink);max-width:560px;mar
 .pager{flex:1;min-height:0;overflow:hidden;position:relative;background:#f7f7f7}
 .track{display:flex;height:100%;will-change:transform;transition:transform .28s cubic-bezier(.2,.8,.2,1)}
 .track.drag{transition:none}
-.page{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.track>.page{flex:0 0 100%;width:100%;min-width:100%;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .badge{background:var(--red);color:#fff;border-radius:9px;font-size:10px;padding:1px 6px;margin-left:4px}
 .body{flex:1;overflow:auto;padding-bottom:90px;background:#f7f7f7}
 .foot2{background:#e2e2e2;text-align:center;padding:14px;font-size:16px;color:#444}
@@ -115,6 +115,7 @@ label{font-size:13px;color:var(--mut)}
 .ib{color:#555}
 .bar .ib{color:#e0e0e0}
 .qrbar-ib{color:#33b5e5!important}
+.qrbar-ib img{width:30px;height:30px;display:block}
 .ib.dark{color:#e0e0e0}
 .feat .fi{color:#8d9298;display:flex;justify-content:center;margin-bottom:4px}
 .pill .ic{display:inline-block;vertical-align:-3px}
@@ -659,7 +660,7 @@ function renderQR() {
   const url = `${SITE}/s/${c.id}`, own = c.owner_id === S.user.id;
   const chans = [c.ch_info && IC.info(14) + ' Info', c.ch_mail && IC.mail(14) + ' Mail', c.ch_alert && (IC.alert(14) + ' Alert' + (c.auto_alert ? ' (al abrir)' : '')), c.ch_chat && IC.chat(14) + ' Chat', c.ch_call && IC.phone(14) + ' Llamada', c.ch_redirect && c.redirect_url && IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean);
   const nChats = S.chats.filter(x => x.code_id === c.id).length;
-  app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(28)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.share(28)}</button><button class="ib qrbar-ib" id="ml" title="Enviar por mail">${IC.mail(28)}</button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes">${IC.sliders(28)}</button>` : ''}<button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.save(28)}</button></div>
+  app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver"><img src="/app/img2014/bar_back.png" alt="Volver"></button><button class="ib qrbar-ib" id="sh" title="Compartir"><img src="/app/img2014/bar_share.png" alt="Compartir"></button><button class="ib qrbar-ib" id="ml" title="Enviar por mail"><img src="/app/img2014/bar_mail.png" alt="Mail"></button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes"><img src="/app/img2014/bar_settings.png" alt="Ajustes"></button>` : ''}<button class="ib qrbar-ib" id="dl" title="Guardar imagen"><img src="/app/img2014/bar_save.png" alt="Guardar"></button></div>
     <div style="text-align:center;color:#9a9ea4;font-size:20px;margin-top:14px;letter-spacing:.04em">${esc(c.name).toUpperCase()}</div>
     <div class="body"><div class="qrbox"><canvas id="cv"></canvas><div class="link">${url}</div>
       <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><div class="pw ${c.is_on ? 'on' : ''}" id="pw">${IC.power(20)}</div><span style="font-size:14px;color:${c.is_on ? '#1a7a1a' : '#999'}">${c.is_on ? 'Activo' : 'Desactivado'}</span></div></div>

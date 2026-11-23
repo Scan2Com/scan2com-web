@@ -35,7 +35,7 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npx cap add android
-          pip install pillow numpy
+          pip install pillow numpy qrcode
           python3 setup.py
       - name: Compilar APK
         working-directory: android/android

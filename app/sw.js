@@ -1,12 +1,12 @@
-// Scan & Pro — service worker: instalable + notificaciones push con la app cerrada
+// Scan2Com — service worker: instalable + notificaciones push con la app cerrada
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', () => {});
 
 self.addEventListener('push', e => {
-  let d = {}; try { d = e.data.json(); } catch (x) { d = { title: 'Scan & Pro', body: e.data ? e.data.text() : '' }; }
+  let d = {}; try { d = e.data.json(); } catch (x) { d = { title: 'Scan2Com', body: e.data ? e.data.text() : '' }; }
   const opt = {
-    body: d.body || '', icon: '/app/icon-192.png', badge: '/app/icon-192.png', tag: d.tag || 'scanand', renotify: true,
+    body: d.body || '', icon: '/app/icon-192.png', badge: '/app/icon-192.png', tag: d.tag || 'scan2com', renotify: true,
     data: { url: d.url || '/app/' }
   };
   if (d.alarm) { opt.requireInteraction = true; opt.vibrate = [600, 200, 600, 200, 600, 200, 600]; opt.image = '/app/alert_red.png'; }
@@ -15,7 +15,7 @@ self.addEventListener('push', e => {
     // si la app está a la vista, ella ya avisa (sirena / aviso dentro)
     const cs = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     if (!d.alarm && cs.some(c => c.visibilityState === 'visible' && c.focused)) return;
-    await self.registration.showNotification(d.title || 'Scan & Pro', opt);
+    await self.registration.showNotification(d.title || 'Scan2Com', opt);
   })());
 });
 

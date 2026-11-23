@@ -9,6 +9,8 @@ concurrency: { group: apk, cancel-in-progress: true }
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -17,6 +19,17 @@ jobs:
         with: { node-version: '22' }
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
+      - name: Clave de firma fija (se crea una sola vez)
+        run: |
+          if [ -z "$ANDROID_KEY_PASS" ]; then echo "::error::Falta el secreto ANDROID_KEY_PASS"; exit 1; fi
+          if [ ! -f android/release.p12 ]; then
+            keytool -genkeypair -storetype PKCS12 -keystore android/release.p12 -alias scan2com \
+              -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=Scan2Com, C=ES" \
+              -storepass "$ANDROID_KEY_PASS" -keypass "$ANDROID_KEY_PASS"
+            git config user.name "scan2com-bot"
+            git config user.email "scan2com-bot@users.noreply.github.com"
+            git add android/release.p12 && git commit -m "Clave de firma fija" && git pull --rebase && git push
+          fi
       - name: Preparar proyecto
         working-directory: android
         run: |
@@ -26,14 +39,15 @@ jobs:
           python3 setup.py
       - name: Compilar APK
         working-directory: android/android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
       - name: Publicar APK en la web
         run: |
-          cp android/android/app/build/outputs/apk/debug/app-debug.apk app/scanandpro.apk
-          git config user.name "scanand-bot"
-          git config user.email "scanand-bot@users.noreply.github.com"
-          git add app/scanandpro.apk app/img2014
+          cp android/android/app/build/outputs/apk/release/app-release.apk app/scan2com.apk
+          git config user.name "scan2com-bot"
+          git config user.email "scan2com-bot@users.noreply.github.com"
+          git rm -q --ignore-unmatch app/scanandpro.apk
+          git add app/scan2com.apk app/img2014
           git commit -m "APK Android actualizado" || echo "sin cambios"
           git pull --rebase && git push
       - uses: actions/upload-artifact@v4
-        with: { name: scanandpro-apk, path: app/scanandpro.apk }
+        with: { name: scan2com-apk, path: app/scan2com.apk }

@@ -209,6 +209,7 @@ const IC = {
   check: s => `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="#2fc23a" stroke-width="2"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#2fc23a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   play: s => SV('<path d="M8 5l11 7-11 7z" fill="currentColor" stroke="none"/>', s),
   stop: s => SV('<rect x="7" y="6" width="4" height="12" fill="currentColor" stroke="none"/><rect x="13" y="6" width="4" height="12" fill="currentColor" stroke="none"/>', s),
+  refresh: s => SV('<path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/>', s),
   lock: s => SV('<rect x="5" y="11" width="14" height="10" rx="1.5" fill="currentColor" stroke="none"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', s),
   bell: s => SV('<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z" fill="currentColor" stroke="none"/><path d="M10 20a2 2 0 0 0 4 0"/>', s)
 };
@@ -572,6 +573,7 @@ function accountMenu() {
     <button class="btn light" id="nt" style="margin-bottom:8px">${IC.bell(20)}${notifOn() ? 'Notificaciones activadas ✓' : 'Activar notificaciones'}</button>
     <button class="btn light" id="sp" style="margin-bottom:8px">${IC.lock(20)}Lugares seguros (${(S.places || []).length})</button>
     <button class="btn light" id="how" style="margin-bottom:8px">${IC.play(20)}Cómo funciona</button>
+    ${NATIVE ? `<a class="btn light" href="https://github.com/scanandqr/scanand-web/raw/main/app/scanandpro.apk" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.refresh(20)}Actualizar la app</a>` : ''}
     ${/android/i.test(navigator.userAgent) && !NATIVE ? `<a class="btn red" href="/app/scanandpro.apk" download style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.alert(20)}Descargar app Android (sirena a pantalla completa)</a>` : ''}
     <button class="btn light" id="ins" style="margin-bottom:8px">${IC.vibrate(20)}Cómo instalar en el móvil</button>
     <button class="btn red" id="lo">Cerrar sesión</button></div></div>`;

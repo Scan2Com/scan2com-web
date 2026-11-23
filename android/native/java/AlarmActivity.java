@@ -35,7 +35,7 @@ public class AlarmActivity extends Activity {
     private int oldVol = -1;
     private final Handler h = new Handler(Looper.getMainLooper());
     private boolean on = true;
-    private ImageView red;
+    private ImageView red, shield;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -59,21 +59,30 @@ public class AlarmActivity extends Activity {
 
     private void build(Intent i) {
         String title = i.getStringExtra("title"), body = i.getStringExtra("body");
+        boolean police = title != null && title.startsWith("🚓");
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL); root.setGravity(Gravity.CENTER);
         root.setBackgroundColor(Color.WHITE); root.setPadding(dp(28), dp(28), dp(28), dp(28));
 
+        TextView h2 = new TextView(this); h2.setText(police ? "Aviso de la Policía" : "¡Alerta!"); h2.setTextColor(Color.parseColor(police ? "#0B2A6B" : "#C4160B"));
+        h2.setTextSize(police ? 30 : 34); h2.setTypeface(Typeface.DEFAULT_BOLD); h2.setGravity(Gravity.CENTER); h2.setPadding(0, police ? 0 : dp(12), 0, police ? dp(8) : 0);
+        if (police) root.addView(h2);
         FrameLayout siren = new FrameLayout(this);
         ImageView white = new ImageView(this); white.setImageResource(R.drawable.alert_white);
         red = new ImageView(this); red.setImageResource(R.drawable.alert_red);
         siren.addView(white, new FrameLayout.LayoutParams(dp(240), dp(252)));
         siren.addView(red, new FrameLayout.LayoutParams(dp(240), dp(252)));
-        root.addView(siren, new LinearLayout.LayoutParams(dp(240), dp(252)));
+        if (police) {  // aviso de autoridad: la imagen alterna entre la sirena roja y el escudo, más grande
+            siren.removeAllViews();
+            shield = new ImageView(this); shield.setImageResource(R.drawable.police); shield.setVisibility(View.INVISIBLE);
+            shield.setScaleType(ImageView.ScaleType.FIT_CENTER); shield.setPadding(dp(24), dp(12), dp(24), dp(12));
+            siren.addView(red, new FrameLayout.LayoutParams(dp(300), dp(315)));
+            siren.addView(shield, new FrameLayout.LayoutParams(dp(300), dp(315)));
+            root.addView(siren, new LinearLayout.LayoutParams(dp(300), dp(315)));
+        } else { shield = null; root.addView(siren, new LinearLayout.LayoutParams(dp(240), dp(252))); }
 
-        TextView h2 = new TextView(this); h2.setText("¡Alerta!"); h2.setTextColor(Color.parseColor("#C4160B"));
-        h2.setTextSize(34); h2.setTypeface(Typeface.DEFAULT_BOLD); h2.setGravity(Gravity.CENTER); h2.setPadding(0, dp(12), 0, 0);
-        root.addView(h2);
-        TextView t = new TextView(this); t.setText(title == null ? "" : title.replace("🚨 ¡Alerta! · ", ""));
+        if (!police) root.addView(h2);
+        TextView t = new TextView(this); t.setText(title == null ? "" : title.replace("🚨 ¡Alerta! · ", "").replace("🚓 Aviso de la Policía · ", ""));
         t.setTextSize(22); t.setTextColor(Color.parseColor("#222222")); t.setGravity(Gravity.CENTER); t.setTypeface(Typeface.DEFAULT_BOLD);
         root.addView(t);
         TextView m = new TextView(this); m.setText(body == null || body.isEmpty() ? "Alguien ha escaneado tu código y te avisa." : "“" + body + "”");
@@ -98,7 +107,7 @@ public class AlarmActivity extends Activity {
         } catch (Exception ignored) {}
         vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         try { if (Build.VERSION.SDK_INT >= 26) vib.vibrate(VibrationEffect.createWaveform(new long[]{0, 700, 300}, 0)); else vib.vibrate(new long[]{0, 700, 300}, 0); } catch (Exception ignored) {}
-        h.post(new Runnable() { public void run() { on = !on; if (red != null) red.setVisibility(on ? View.VISIBLE : View.INVISIBLE); h.postDelayed(this, 600); } });
+        h.post(new Runnable() { public void run() { on = !on; if (red != null) red.setVisibility(on ? View.VISIBLE : View.INVISIBLE); if (shield != null) shield.setVisibility(on ? View.INVISIBLE : View.VISIBLE); h.postDelayed(this, 600); } });
         // por seguridad, la sirena se para sola a los 3 minutos
         h.postDelayed(this::stopAll, 180000);
     }

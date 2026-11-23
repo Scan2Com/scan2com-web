@@ -316,6 +316,7 @@ function openUrl(u) {
   const q = new URL(u, location.href).searchParams;
   if (q.get('chat')) S.view = { t: 'chat', id: q.get('chat') };
   else if (q.get('vchat')) S.view = { t: 'vchat', id: q.get('vchat') };
+  else if (q.get('open')) setTimeout(() => openScanned(q.get('open')), 0);
   else if (q.get('ack')) { markRead([Number(q.get('ack'))]); S.alarm = null; S.tab = 'alerts'; S.view = null; }
   else if (q.get('ev')) { const e = S.events.find(x => String(x.id) === q.get('ev')); if (e && !e.read_at) { S.alarm = e; sirenOn(); } else { S.tab = 'alerts'; S.view = null; } }
   else if (q.get('tab')) { S.tab = q.get('tab'); S.view = null; }
@@ -390,7 +391,7 @@ function placesSheet() {
 async function loadAll() {
   const [c, ch, f, ev, pl] = await Promise.all([
     sb.from('codes').select('*').order('created_at'),
-    sb.from('chats').select('id,code_id,name,created_at,blocked').order('created_at', { ascending: false }),
+    sb.from('chats').select('id,code_id,name,created_at,blocked,code_name').order('created_at', { ascending: false }),
     sb.from('chat_favorites').select('chat_id'),
     sb.from('events').select('*').order('created_at', { ascending: false }).limit(100),
     sb.from('safe_places').select('*').order('id')
@@ -407,7 +408,7 @@ async function loadAll() {
 const face = (blocked, s) => `<img src="/app/img2014/${blocked ? 'chat_blocked' : 'chat_ok'}.png" width="${s}" height="${s}" alt="" style="display:block">`;
 const codeOf = id => S.codes.find(c => c.id === id);
 const lastMsg = cid => (S.msgs[cid] || []).at(-1);
-const chatOff = ch => { const c = codeOf(ch.code_id); return c && !c.is_on && !S.favs.has(ch.id); };
+const chatOff = ch => { const c = codeOf(ch.code_id); return c ? !c.is_on && !S.favs.has(ch.id) : !S.favs.has(ch.id); };  // sin código (borrado): cerrado salvo favorito
 const newEvents = () => S.events.filter(e => e.id > S.seenEv).length;
 const unreadTotal = () => Object.values(S.unread).reduce((a, b) => a + b, 0);
 
@@ -416,7 +417,7 @@ function subscribe() {
   channel?.unsubscribe();
   channel = sb.channel('owner')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async ({ new: m }) => {
-      if (!S.chats.find(c => c.id === m.chat_id)) { const { data } = await sb.from('chats').select('id,code_id,name,created_at,blocked').eq('id', m.chat_id).single(); if (data) S.chats.unshift(data); }
+      if (!S.chats.find(c => c.id === m.chat_id)) { const { data } = await sb.from('chats').select('id,code_id,name,created_at,blocked,code_name').eq('id', m.chat_id).single(); if (data) S.chats.unshift(data); }
       const list = (S.msgs[m.chat_id] ||= []); if (!list.find(x => x.id === m.id)) list.push(m);
       if (m.from_visitor) {
         const viewing = S.view?.t === 'chat' && S.view.id === m.chat_id && !document.hidden;
@@ -528,7 +529,7 @@ function renderHome() {
         <div class="grow"><div class="t">${esc(c.name || c.public_name || 'Sin nombre')}</div>${c.private_info || c.owner_id !== S.user.id ? `<div class="s">${esc(c.private_info || '')}${c.owner_id !== S.user.id ? ' · compartido contigo' : ''}</div>` : ''}</div>
         ${c.owner_id === S.user.id ? `<button class="ib" data-edit="${c.id}" title="Ajustes">${IC.sliders(24)}</button>` : ''}<button class="ib" data-qr="${c.id}" title="Ver código">${IC.expand(24)}</button></div>`).join('')
       : `<div class="empty">Aún no tienes códigos.<br>Pulsa <b>+</b> para crear uno o para vincular un pack de pegatinas.</div>`;
-    const nb = !notifOn() && S.codes.some(c => c.is_on && (c.ch_alert || c.auto_alert)) ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Activa las notificaciones</b><br>Sin ellas, las alertas solo suenan con la app abierta.</div><span class="nbtn">Activar</span></div>` : '';
+    const nb = !notifOn() && (S.codes.some(c => c.is_on && (c.ch_alert || c.auto_alert || c.ch_chat || c.ch_mail || c.ch_call)) || (S.vchats || []).length) ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Activa las notificaciones</b><br>Sin ellas, no te enterarás de alertas ni mensajes con la app cerrada.</div><span class="nbtn">Activar</span></div>` : '';
     body = nb + tourHTML() + body;
   } else if (tab === 'chats') {
     const list = S.chats.filter(c => match(c.name, codeOf(c.code_id)?.name, lastMsg(c.id)?.body)).sort((a, b) => new Date(lastMsg(b.id)?.created_at || b.created_at) - new Date(lastMsg(a.id)?.created_at || a.created_at));
@@ -538,7 +539,7 @@ function renderHome() {
       <div class="grow"><div class="t">${esc(v.name || v.public_name || 'Chat')}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(v.last ? (v.last.mine ? 'Tú: ' : '') + v.last.body : (v.public_name || ''))}</div></div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;white-space:nowrap">${ago(v.last?.at || v.created_at)}</div></div>`; };
     const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div style="flex:none">${face(c.blocked, 54)}</div>
-      <div class="grow"><div class="t">${esc(c.name)}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + lm.body : (code?.name || ''))}</div></div>
+      <div class="grow"><div class="t">${esc(c.name)}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + lm.body : (code?.name || c.code_name || ''))}</div></div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><button class="star" data-fav="${c.id}" title="Favorito" style="padding:0">${IC.star(26, S.favs.has(c.id))}</button><div style="white-space:nowrap">${ago(lm?.created_at || c.created_at)}</div></div></div>`; };
     const mineHTML = list.length ? (favs.length ? `<div class="pad section" style="padding-bottom:0">FAVORITOS</div>${favs.map(row).join('')}` : '') + (rest.length ? `${favs.length ? '<div class="pad section" style="padding-bottom:0">TODOS</div>' : ''}${rest.map(row).join('')}` : '')
       : '';
@@ -618,11 +619,12 @@ async function renderEdit() {
     <label>Información privada (solo tú)</label><input id="f5" value="${esc(c.private_info)}" placeholder="Ej. matrícula, nº de serie…" maxlength="200">
     <div class="section">DISEÑO DEL QR</div>
     <div class="dsg">${DESIGNS.map(([k, t]) => `<button type="button" data-dsg="${k}" class="${designOf(c) === k ? 'on' : ''}"><canvas></canvas>${t}</button>`).join('')}</div>
-    <div class="section">LO QUE VE QUIEN ESCANEA</div>
-    <label class="req">Nombre público</label><input id="f2" value="${esc(c.public_name)}" placeholder="Ej. Coche" maxlength="60">
-    <label>Descripción pública</label><textarea id="f3" rows="3" placeholder="Ej. Gracias por avisarme antes que a la policía…" maxlength="1000">${esc(c.public_desc)}</textarea>
     <div class="section"><span class="req">MEDIOS DE COMUNICACIÓN</span></div><div class="hint">Elige al menos uno.</div>
-    <label class="chk"><input type="checkbox" id="c0" ${c.ch_info ? 'checked' : ''}> <span style="color:#8d9298">${IC.info(20)}</span> Info <span style="color:#999;font-size:13px">· mostrar la descripción</span></label>
+    <label class="chk"><input type="checkbox" id="c0" ${c.ch_info ? 'checked' : ''}> <span style="color:#8d9298">${IC.info(20)}</span> Info <span style="color:#999;font-size:13px">· un texto para quien escanee</span></label>
+    <div id="ibox" class="sub" style="display:${c.ch_info ? 'block' : 'none'};margin-left:30px"><div class="hint" style="font-weight:600;color:#555;margin-top:2px">Lo que ve quien escanea</div>
+      <label>Nombre público</label><input id="f2" value="${esc(c.public_name)}" placeholder="Ej. Mi coche" maxlength="60">
+      <label>Información pública</label><textarea id="f3" rows="3" placeholder="Ej. Si mi coche molesta, avísame con Alert. ¡Gracias!" maxlength="1000">${esc(c.public_desc)}</textarea>
+      <div class="hint">Es lo primero que verá quien escanee el código.</div></div>
     <label class="chk"><input type="checkbox" id="c1" ${c.ch_mail ? 'checked' : ''}> <span style="color:#1f86e0">${IC.mail(20)}</span> Mail</label>
     <label class="chk"><input type="checkbox" id="c2" ${c.ch_alert ? 'checked' : ''}> <span style="color:#e8352b">${IC.alert(20)}</span> Alert</label>
     <label class="chk sub"><input type="checkbox" id="c5" ${c.auto_alert ? 'checked' : ''}> Sonar solo con abrir la web</label>
@@ -660,6 +662,7 @@ async function renderEdit() {
     if ($('#c8').checked) { refreshAutoPerm(); loadBonded(); }
   }
   ['c2', 'c5'].forEach(i => { const el = $('#' + i); if (el) el.addEventListener('change', () => { if (el.checked) askNotif(true); }); });
+  $('#c0').onchange = () => { $('#ibox').style.display = $('#c0').checked ? 'block' : 'none'; if ($('#c0').checked) $('#f3').focus(); };
   $('#c7').onchange = () => { $('#rbox').style.display = $('#c7').checked ? 'block' : 'none'; if ($('#c7').checked) $('#f7').focus(); };
   $('#c4').onchange = () => { $('#pbox').style.display = $('#c4').checked ? 'block' : 'none'; if ($('#c4').checked) $('#f4').focus(); };
   app.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { await sb.from('code_members').delete().eq('code_id', c.id).eq('user_id', b.dataset.rm); await loadMembers(c.id); });
@@ -672,14 +675,13 @@ async function renderEdit() {
     app.querySelectorAll('.bad').forEach(e => e.classList.remove('bad'));
     const miss = [];
     if (!name) { $('#f1').classList.add('bad'); miss.push('el nombre'); }
-    if (!pub) { $('#f2').classList.add('bad'); miss.push('el nombre público'); }
     if (!chans) miss.push('al menos un medio de comunicación');
     if ($('#c7').checked && !urlOk) { $('#f7').classList.add('bad'); miss.push('una dirección web válida (ej. www.ejemplo.com)'); }
     if (NATIVE && $('#c8')?.checked && $('#c2').checked && !$('#f8').value) { $('#f8').classList.add('bad'); miss.push('el Bluetooth del coche'); }
     if ($('#c4').checked && !$('#f4').value.trim()) { $('#f4').classList.add('bad'); miss.push('el teléfono (has activado Llamada)'); }
     if (miss.length) { const e = app.querySelector('.err') || Object.assign(document.createElement('div'), { className: 'err' }); e.textContent = 'Falta ' + miss.join(', ') + '.'; $('#sv').before(e); (app.querySelector('.bad') || $('#sv')).scrollIntoView({ block: 'center' }); return; }
     const style = { ...(c.style || {}), design: selDsg, car: selDsg === 'car' }; if (c.style?.car || c.style?.car_code) style.car_code = true;
-    const row = { type: selType, style, name, private_info: $('#f5').value.trim() || null, public_name: pub, public_desc: $('#f3').value.trim() || null,
+    const row = { type: selType, style, name, private_info: $('#f5').value.trim() || null, public_name: pub || null, public_desc: $('#f3').value.trim() || null,
       ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: $('#c6').checked, ch_call: $('#c4').checked, ch_redirect: $('#c7').checked, redirect_url: urlOk ? url : null, phone: $('#f4').value.trim() || null };
     if (NATIVE && $('#c8')) { const o = $('#f8').selectedOptions[0]; Object.assign(row, { bt_auto: $('#c8').checked && $('#c2').checked, bt_addr: $('#f8').value || null, bt_name: o && o.value ? o.dataset.name : null, bt_drive_off: $('#c9').checked }); }
     S.busy = true; S.err = ''; render();
@@ -802,9 +804,9 @@ function renderChat() {
   const ch = S.chats.find(x => x.id === S.view.id); if (!ch) { S.view = null; return render(); }
   const code = codeOf(ch.code_id), list = S.msgs[ch.id] || [], fav = S.favs.has(ch.id), off = chatOff(ch);
   if (S.unread[ch.id]) { delete S.unread[ch.id]; ls.set('sa_unread', S.unread); }
-  app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button>${LOGO(36)}<div class="grow"><div style="font-size:20px" id="nm">${esc(ch.name)}</div><div style="font-size:12px;color:#aaa">${esc(code?.name || '')}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
+  app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button>${LOGO(36)}<div class="grow"><div style="font-size:20px" id="nm">${esc(ch.name)}</div><div style="font-size:12px;color:#aaa">${esc(code?.name || (ch.code_name ? ch.code_name + ' (código borrado)' : ''))}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
     <button class="star" id="fv" title="Favorito">${IC.star(28, fav)}</button><button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
-    ${ch.blocked ? '<div class="notice" style="background:#eee">Has bloqueado a este contacto: no puede escribirte. Desbloquéalo desde ⋮.</div>' : ''}${off ? '<div class="notice">Este código está apagado: el chat está cerrado. Márcalo como favorito ★ para mantenerlo activo.</div>' : ''}
+    ${ch.blocked ? '<div class="notice" style="background:#eee">Has bloqueado a este contacto: no puede escribirte. Desbloquéalo desde ⋮.</div>' : ''}${off ? `<div class="notice">${code ? 'Este código está apagado' : 'El código de este chat se ha borrado'}: el chat está cerrado. Márcalo como favorito ★ para mantenerlo activo.</div>` : ''}
     <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${list.map(m => `<div class="m ${m.from_visitor ? 'them' : 'me'}">${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${esc(m.body)}<div class="tm">${ago(m.created_at)}${m.from_visitor ? '' : IC.check(16)}</div></div>`).join('') || '<div class="empty">Sin mensajes todavía.</div>'}</div></div>
     <div class="compose"><input id="oi" placeholder="Escribe y envía" maxlength="2000" enterkeyhint="send"><button class="sendb" id="os" title="Enviar">${IC.send(34)}</button></div>`;
   app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight;
@@ -841,12 +843,39 @@ function renderChat() {
 }
 
 /* ---------- chat con un código de otra persona (yo escaneé) ---------- */
-// código de otra persona: si ya tengo chat con ese código, voy a ese chat; si no, abro su página dentro de la app
-async function openScanned(id, url) {
+// código de otra persona (escaneado con la app o abierto desde un enlace scan2com.com/s/…):
+// si ya tengo chat con ese código voy a ese chat; si no, muestro sus opciones DENTRO de la app
+async function openScanned(id) {
+  id = String(id || '').toUpperCase(); if (!id) return;
+  if (codeOf(id)) { S.view = { t: 'qr', id }; return render(); }
   try { const r = await sb.rpc('my_visitor_chats'); if (r.data) S.vchats = r.data; } catch (e) {}
   const v = (S.vchats || []).find(x => x.code_id === id);
   if (v) { S.view = { t: 'vchat', id: v.id }; return render(); }
-  location.href = url;
+  const { data: c } = await sb.rpc('public_code', { p_id: id });
+  const web = `${SITE}/s/${id}?web=1`;
+  if (!c || c.status === 'not_found') return toast('Ese código no existe.');
+  if (c.status === 'redirect' && /^https?:\/\//i.test(c.url || '')) { location.href = c.url; return; }
+  if (c.status !== 'on') { location.href = web; return; }   // sin dueño, apagado… lo explica la página del código
+  const ch = c.channels || {}, others = ch.alert || ch.mail || ch.call || S.auth;
+  if (ch.chat && !others) return startVChat(id);
+  S.view = null; S.tab = 'codes'; render();
+  $('#overlay').innerHTML = `<div class="sheet keep" id="scs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
+    <div style="font-size:20px;font-weight:700;margin-bottom:4px">${esc(c.public_name || 'Código Scan2Com')}</div>
+    ${c.public_desc ? `<div style="font-size:14px;color:#555;white-space:pre-line;margin-bottom:12px">${esc(c.public_desc)}</div>` : '<div style="height:8px"></div>'}
+    ${ch.chat ? `<button class="btn" id="sc_chat" style="margin-bottom:8px;background:#2fc23a">${IC.chat(20)} Chat</button>` : ''}
+    ${others ? `<button class="btn light" id="sc_web">${ch.alert ? IC.alert(20) : ch.mail ? IC.mail(20) : IC.phone(20)} ${[ch.alert && 'Alert', ch.mail && 'Mail', ch.call && 'Llamada', S.auth && 'Aviso de autoridad'].filter(Boolean).join(' · ')}</button>` : ''}
+  </div></div>`;
+  $('#scs').onclick = () => { $('#overlay').innerHTML = ''; };
+  if ($('#sc_chat')) $('#sc_chat').onclick = () => { $('#overlay').innerHTML = ''; startVChat(id); };
+  if ($('#sc_web')) $('#sc_web').onclick = () => { location.href = web; };
+}
+// abre un chat nuevo con un código ajeno, ya dentro de la app y vinculado a mi cuenta
+async function startVChat(id) {
+  const { data: r } = await sb.rpc('start_chat', { p_id: id, p_first: null });
+  if (!r?.ok) return toast(r?.error === 'rate_limited' ? 'Demasiados chats nuevos con este código. Prueba en unos minutos.' : 'Este código no admite chat ahora.');
+  await sb.rpc('link_visitor_chat', { p_chat: r.chat_id, p_token: r.token });
+  try { const l = await sb.rpc('my_visitor_chats'); if (l.data) S.vchats = l.data; } catch (e) {}
+  S.view = { t: 'vchat', id: r.chat_id }; render();
 }
 let vPoll = null;
 async function renderVChat() {
@@ -1017,7 +1046,7 @@ function handleScan(t) {
   const pack = t.match(/\/(?:link|p)\/([A-Z0-9]+)/i), code = t.match(/\/s\/([A-Z0-9]+)/i);
   if (pack) return claim(pack[1]);
   if (code && S.auth) { S.view = null; render(); return policeSheet(code[1].toUpperCase()); }
-  if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: 'qr', id: c.id }; return render(); } stopCam(); if (/^https:\/\/(www\.)?scan2com\.com\//i.test(t)) { openScanned(code[1].toUpperCase(), t); return; } window.open(t, '_blank'); S.view = null; return render(); }
+  if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: 'qr', id: c.id }; return render(); } stopCam(); if (/^https:\/\/(www\.)?scan2com\.com\//i.test(t)) { openScanned(code[1].toUpperCase()); return; } window.open(t, '_blank'); S.view = null; return render(); }
   toast('Ese QR no es de Scan2Com: ' + t.slice(0, 60)); if (S.view?.only) S.view.scan = true; renderPack();
 }
 async function claim(id) {

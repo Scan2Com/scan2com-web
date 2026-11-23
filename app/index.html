@@ -89,6 +89,8 @@ label{font-size:13px;color:var(--mut)}
 .ok{color:#1a7a1a;font-size:14px;margin:6px 0}
 .qrbox{display:flex;flex-direction:column;align-items:center;padding:20px 16px 10px;gap:8px}
 .qrbox canvas{width:220px;height:220px;image-rendering:pixelated;border-radius:14px;border:10px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+.dsg{display:flex;gap:10px;margin:8px 0 4px}.dsg button{flex:1;background:#fff;border:2px solid #e3e3e3;border-radius:12px;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;font:500 12px Inter,sans-serif;color:#555;cursor:pointer}.dsg button.on{border-color:#2fc23a;color:#1a7a1a;background:#f3fbf3}.dsg canvas{width:64px;height:64px;object-fit:contain}
+.qrbox canvas.rnd{image-rendering:auto}
 .qrbox canvas.stk{width:230px;height:auto;image-rendering:auto;border:0;border-radius:0;box-shadow:none;filter:drop-shadow(0 3px 8px rgba(0,0,0,.25))}
 .link{font-size:13px;color:var(--mut);word-break:break-all;text-align:center}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -573,7 +575,7 @@ function accountMenu() {
     <button class="btn light" id="nt" style="margin-bottom:8px">${IC.bell(20)}${notifOn() ? 'Notificaciones activadas ✓' : 'Activar notificaciones'}</button>
     <button class="btn light" id="sp" style="margin-bottom:8px">${IC.lock(20)}Lugares seguros (${(S.places || []).length})</button>
     <button class="btn light" id="how" style="margin-bottom:8px">${IC.play(20)}Cómo funciona</button>
-    ${NATIVE ? `<a class="btn light" href="/app/scan2com.apk" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.refresh(20)}Actualizar la app</a>` : ''}
+    ${NATIVE ? `<a class="btn light" href="https://www.scan2com.com/app/scan2com.apk" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.refresh(20)}Actualizar la app</a>` : ''}
     ${/android/i.test(navigator.userAgent) && !NATIVE ? `<a class="btn red" href="/app/scan2com.apk" download style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.alert(20)}Descargar app Android (sirena a pantalla completa)</a>` : ''}
     <button class="btn light" id="ins" style="margin-bottom:8px">${IC.vibrate(20)}Cómo instalar en el móvil</button>
     <button class="btn red" id="lo">Cerrar sesión</button></div></div>`;
@@ -603,6 +605,8 @@ async function renderEdit() {
     <div class="hint"><span style="color:#e8352b;font-weight:700">*</span> Obligatorio</div>
     <label class="req">Nombre (solo lo ves tú)</label><input id="f1" value="${esc(c.name)}" placeholder="Ej. Coche rojo" maxlength="60">
     <label>Información privada (solo tú)</label><input id="f5" value="${esc(c.private_info)}" placeholder="Ej. matrícula, nº de serie…" maxlength="200">
+    <div class="section">DISEÑO DEL QR</div>
+    <div class="dsg">${DESIGNS.map(([k, t]) => `<button type="button" data-dsg="${k}" class="${designOf(c) === k ? 'on' : ''}"><canvas></canvas>${t}</button>`).join('')}</div>
     <div class="section">LO QUE VE QUIEN ESCANEA</div>
     <label class="req">Nombre público</label><input id="f2" value="${esc(c.public_name)}" placeholder="Ej. Coche" maxlength="60">
     <label>Descripción pública</label><textarea id="f3" rows="3" placeholder="Ej. Gracias por avisarme antes que a la policía…" maxlength="1000">${esc(c.public_desc)}</textarea>
@@ -634,7 +638,11 @@ async function renderEdit() {
     <button class="btn" style="margin-top:14px" id="sv" ${S.busy ? 'disabled' : ''}>Guardar</button>
     ${isNew ? '' : `<button class="btn light" style="margin-top:10px;color:var(--red)" id="del">Borrar código</button>`}</div>`;
   $('#bk').onclick = () => { S.err = ''; S.view = null; render(); };
-  let selType = c.type || 'link';
+  let selType = c.type || 'link', selDsg = designOf(c);
+  app.querySelectorAll('[data-dsg]').forEach(b => {
+    drawDesign(b.querySelector('canvas'), { style: { design: b.dataset.dsg } }, `${SITE}/s/${c.id || 'EJEMPLO1'}`);
+    b.onclick = () => { selDsg = b.dataset.dsg; app.querySelectorAll('[data-dsg]').forEach(x => x.classList.toggle('on', x === b)); };
+  });
   if ($('#c2')) $('#c2').addEventListener('change', () => { $('#btbox').style.display = $('#c2').checked ? 'block' : 'none'; });
   if (NATIVE && $('#c8')) {
     $('#c8').onchange = async () => { $('#btcfg').style.display = $('#c8').checked ? 'block' : 'none'; if ($('#c8').checked) { await autoPermStep(true); loadBonded(); } };
@@ -659,7 +667,8 @@ async function renderEdit() {
     if (NATIVE && $('#c8')?.checked && $('#c2').checked && !$('#f8').value) { $('#f8').classList.add('bad'); miss.push('el Bluetooth del coche'); }
     if ($('#c4').checked && !$('#f4').value.trim()) { $('#f4').classList.add('bad'); miss.push('el teléfono (has activado Llamada)'); }
     if (miss.length) { const e = app.querySelector('.err') || Object.assign(document.createElement('div'), { className: 'err' }); e.textContent = 'Falta ' + miss.join(', ') + '.'; $('#sv').before(e); (app.querySelector('.bad') || $('#sv')).scrollIntoView({ block: 'center' }); return; }
-    const row = { type: selType, name, private_info: $('#f5').value.trim() || null, public_name: pub, public_desc: $('#f3').value.trim() || null,
+    const style = { ...(c.style || {}), design: selDsg, car: selDsg === 'car' }; if (c.style?.car || c.style?.car_code) style.car_code = true;
+    const row = { type: selType, style, name, private_info: $('#f5').value.trim() || null, public_name: pub, public_desc: $('#f3').value.trim() || null,
       ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: $('#c6').checked, ch_call: $('#c4').checked, ch_redirect: $('#c7').checked, redirect_url: urlOk ? url : null, phone: $('#f4').value.trim() || null };
     if (NATIVE && $('#c8')) { const o = $('#f8').selectedOptions[0]; Object.assign(row, { bt_auto: $('#c8').checked && $('#c2').checked, bt_addr: $('#f8').value || null, bt_name: o && o.value ? o.dataset.name : null, bt_drive_off: $('#c9').checked }); }
     S.busy = true; S.err = ''; render();
@@ -713,11 +722,26 @@ async function drawSticker(canvas, url) {
   const k = base.width / 1124, side = 784 * k, qr = await prettyQR(url, Math.round(side * 2)); x.imageSmoothingQuality = 'high';
   x.drawImage(qr, 562.5 * k - side / 2, 568.5 * k - side / 2, side, side);
 }
-const isCar = c => !!c?.style?.car;
+const DESIGNS = [['square', 'Clásico'], ['round', 'Redondeado'], ['car', 'Pegatina coche']];
+const designOf = c => c?.style?.design || (c?.style?.car ? 'car' : 'square');
+const isCar = c => designOf(c) === 'car';
+// QR redondeado con margen blanco
+async function drawRound(canvas, url, side = 480) {
+  const q = await prettyQR(url, side), m = Math.round(q.width * 0.08);
+  canvas.width = canvas.height = q.width + 2 * m; const x = canvas.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, canvas.width, canvas.height); x.drawImage(q, m, m);
+}
+// pinta el código con el diseño elegido
+async function drawDesign(canvas, c, url, big) {
+  const d = designOf(c); canvas.classList.toggle('stk', d === 'car'); canvas.classList.toggle('rnd', d === 'round');
+  try {
+    if (d === 'car') return await drawSticker(canvas, url);
+    if (d === 'round') return await drawRound(canvas, url, big ? 1600 : 480);
+  } catch (e) { canvas.classList.remove('stk', 'rnd'); }
+  drawQR(canvas, url, big ? 24 : 8);
+}
 // compartir el código con la imagen adjunta (WhatsApp, Telegram, email…)
 async function codeImage(c, url) {
-  if (isCar(c) && $('#cv')?.classList.contains('stk')) return $('#cv').toDataURL('image/png');
-  const big = document.createElement('canvas'); drawQR(big, url, 24); return big.toDataURL('image/png');
+  const big = document.createElement('canvas'); await drawDesign(big, c, url, true); return big.toDataURL('image/png');
 }
 async function shareCode(c, url) {
   const title = 'Mi código Scan2Com: ' + (c.public_name || c.name), text = `${c.public_name || c.name}\n${url}`, name = `scan2com-${c.id}.png`;
@@ -751,14 +775,14 @@ function renderQR() {
         ${c.private_info ? `<div style="font-size:13px;color:#555;margin-top:8px;display:flex;gap:6px;align-items:center">${IC.lock(14)} ${esc(c.private_info)}</div>` : ''}
         ${nChats ? `<button class="btn light" style="margin-top:14px" id="gc">${IC.chat(20)}${nChats} chat${nChats > 1 ? 's' : ''} de este código</button>` : ''}
       </div></div>`;
-  if (isCar(c)) { $('#cv').classList.add('stk'); drawSticker($('#cv'), url).catch(() => { $('#cv').classList.remove('stk'); drawQR($('#cv'), url); }); } else drawQR($('#cv'), url);
+  drawDesign($('#cv'), c, url);
   $('#bk').onclick = () => { S.view = null; render(); };
   if ($('#ed')) $('#ed').onclick = () => { S.view = { t: 'edit', id: c.id }; render(); };
   $('#pw').onclick = () => togglePower(c.id);
   if ($('#btset')) $('#btset').onclick = () => { if (NATIVE) { S.view = { t: 'edit', id: c.id }; render(); } else location.href = '/app/scan2com.apk'; };
   $('#op').onclick = () => window.open(url, '_blank');
   $('#sh').onclick = () => shareCode(c, url);
-  $('#dl').onclick = async () => { if (isCar(c)) { const a = document.createElement('a'); a.href = $('#cv').toDataURL('image/png'); a.download = `scan2com-coche-${c.id}.png`; return a.click(); } const big = document.createElement('canvas'); drawQR(big, url, 24); const a = document.createElement('a'); a.href = big.toDataURL('image/png'); a.download = `scan2com-${c.id}.png`; a.click(); };
+  $('#dl').onclick = async () => { const a = document.createElement('a'); a.href = await codeImage(c, url); a.download = `scan2com-${isCar(c) ? 'coche-' : ''}${c.id}.png`; a.click(); };
   if ($('#gc')) $('#gc').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
 }
 
@@ -839,11 +863,54 @@ function renderPack() {
   $('#sc').onclick = startScan;
   if (S.view.scan) { S.view.scan = false; startScan(); }
 }
+// ---------- lectura de QR (también los redondeados de las pegatinas) ----------
+let QRR = null;
+async function qrReaders() {
+  if (QRR) return QRR;
+  QRR = {};
+  try { if ('BarcodeDetector' in window && (await BarcodeDetector.getSupportedFormats()).includes('qr_code')) QRR.bd = new BarcodeDetector({ formats: ['qr_code'] }); } catch (e) {}
+  if (!QRR.bd) import('https://cdn.jsdelivr.net/npm/zxing-wasm@2/dist/es/reader/index.js').then(m => { QRR.zx = m.readBarcodes; }).catch(() => {});
+  return QRR;
+}
+// convierte 4 esquinas en el formato de jsQR (los puntos láser van sobre los tres cuadrados grandes)
+function qrLoc(c, data) {
+  const [a, b, d, e] = c, m = (p, q, t) => ({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t });
+  return { data, location: { topLeftCorner: a, topRightCorner: b, bottomRightCorner: d, bottomLeftCorner: e,
+    topLeftFinderPattern: m(a, d, .12), topRightFinderPattern: m(b, e, .12), bottomLeftFinderPattern: m(e, b, .12), bottomRightAlignmentPattern: m(d, a, .17) } };
+}
+async function qrDecode(R, v, cv, x, n) {
+  if (R.bd) { const b = (await R.bd.detect(v))[0]; return b ? qrLoc(b.cornerPoints, b.rawValue) : null; }
+  const W = v.videoWidth, H = v.videoHeight;
+  if (R.zx) {
+    cv.width = W; cv.height = H; x.drawImage(v, 0, 0);
+    const b = (await R.zx(x.getImageData(0, 0, W, H), { formats: ['QRCode'], tryHarder: true, maxNumberOfSymbols: 1 }))[0];
+    if (b && b.isValid) { const p = b.position; return qrLoc([p.topLeft, p.topRight, p.bottomRight, p.bottomLeft], b.text); }
+    return null;
+  }
+  // jsQR: alterna imagen reducida (lee mejor los módulos redondeados) y completa
+  const k = n % 2 ? Math.min(1, 640 / Math.max(W, H)) : 1, w = Math.round(W * k), h = Math.round(H * k);
+  cv.width = w; cv.height = h; x.drawImage(v, 0, 0, w, h);
+  const r = jsQR(x.getImageData(0, 0, w, h).data, w, h);
+  if (r && k !== 1) { const sc = p => p && ({ x: p.x / k, y: p.y / k }); for (const key in r.location) r.location[key] = sc(r.location[key]); }
+  return r;
+}
 async function startScan() {
-  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); } catch (e) { return toast('No se ha podido abrir la cámara.'); }
+  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 }, advanced: [{ focusMode: 'continuous' }] } }); }
+  catch (e) { try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); } catch (e2) { return toast('No se ha podido abrir la cámara.'); } }
   $('#cw').style.display = 'block'; if ($('#sc')) $('#sc').style.display = 'none'; const v = $('#vd'); v.srcObject = stream; await v.play();
   const cv = document.createElement('canvas'), x = cv.getContext('2d', { willReadFrequently: true });
-  const tick = () => { if (!stream) return; if (v.readyState >= 2) { cv.width = v.videoWidth; cv.height = v.videoHeight; x.drawImage(v, 0, 0); const r = jsQR(x.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height); if (r) return found(r); } requestAnimationFrame(tick); };
+  // lectores, del más robusto al más sencillo: lector nativo del sistema (BarcodeDetector), ZXing (WebAssembly) y jsQR
+  const det = await qrReaders(); let n = 0;
+  const tick = async () => {
+    if (!stream) return;
+    if (v.readyState >= 2 && v.videoWidth) {
+      let r = null; n++;
+      try { r = await qrDecode(det, v, cv, x, n); } catch (e) {}
+      if (!stream) return;
+      if (r) return found(r);
+    }
+    setTimeout(tick, 60);
+  };
   // código detectado: congelar la imagen, mostrar los puntos láser sobre los cuadrados del QR y esperar 1 s
   const found = r => {
     v.pause(); $('#cw').classList.add('found');
@@ -930,12 +997,12 @@ async function ensureStarter() {
 /* cada usuario tiene su propio código de coche, ya preparado: Alert + Bluetooth + desactivar conduciendo */
 async function ensureCar() {
   const mine = S.codes.filter(c => c.owner_id === S.user.id);
-  if (mine.some(isCar) || ls.get('sa_car_' + S.user.id, 0)) return;
+  if (mine.some(c => isCar(c) || c.style?.car_code) || ls.get('sa_car_' + S.user.id, 0)) return;
   const old = mine.find(c => /coche/i.test(c.name || ''));
-  const r = old ? await sb.from('codes').update({ style: { ...(old.style || {}), car: true } }).eq('id', old.id).select().single()
+  const r = old ? await sb.from('codes').update({ style: { ...(old.style || {}), car: true, car_code: true, design: 'car' } }).eq('id', old.id).select().single()
     : await sb.from('codes').insert({ owner_id: S.user.id, type: 'alert', name: 'Coche', public_name: 'Mi coche',
       public_desc: 'Si mi coche molesta o le pasa algo, avísame pulsando Alert. ¡Gracias!', ch_info: true, ch_mail: false, ch_alert: true, ch_chat: false, ch_call: false,
-      bt_auto: true, bt_drive_off: true, is_on: false, style: { car: true } }).select().single();
+      bt_auto: true, bt_drive_off: true, is_on: false, style: { car: true, car_code: true, design: 'car' } }).select().single();
   if (!r.error && r.data) { if (old) Object.assign(old, r.data); else S.codes.push(r.data); ls.set('sa_car_' + S.user.id, 1); render(); }
 }
 

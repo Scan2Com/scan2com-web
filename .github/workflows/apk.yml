@@ -35,7 +35,7 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npx cap add android
-          pip install pillow
+          pip install pillow numpy
           python3 setup.py
       - name: Compilar APK
         working-directory: android/android
@@ -46,7 +46,7 @@ jobs:
           git config user.name "scan2com-bot"
           git config user.email "scan2com-bot@users.noreply.github.com"
           git rm -q --ignore-unmatch app/scanandpro.apk
-          git add app/scan2com.apk app/img2014
+          git add app/scan2com.apk app/img2014 app/logo.png app/icon-192.png app/icon-512.png
           git commit -m "APK Android actualizado" || echo "sin cambios"
           git pull --rebase && git push
       - uses: actions/upload-artifact@v4

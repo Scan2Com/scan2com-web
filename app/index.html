@@ -1108,13 +1108,18 @@ async function startScan() {
     v.pause(); $('#cw').classList.add('found');
     const c = $('#pts'), k = Math.max(c.clientWidth / v.videoWidth, c.clientHeight / v.videoHeight); c.width = c.clientWidth * 2; c.height = c.clientHeight * 2; const g = c.getContext('2d'); g.scale(2, 2); g.translate((c.clientWidth - v.videoWidth * k) / 2, (c.clientHeight - v.videoHeight * k) / 2);
     const L = r.location, P = [L.topLeftFinderPattern, L.topRightFinderPattern, L.bottomLeftFinderPattern, L.bottomRightAlignmentPattern].filter(Boolean);
-    const t0 = performance.now();
-    const draw = now => {
-      const f = Math.min(1, (now - t0) / 350); g.clearRect(-c.width, -c.height, c.width * 3, c.height * 3);
+    const t0 = performance.now(); let done = false;
+    // pase lo que pase con el dibujo, a los 0,8 s se abre el código
+    const go = () => { if (done) return; done = true; stopCam(); $('#cw')?.classList.remove('found'); handleScan(r.data); };
+    setTimeout(go, 800);
+    const draw = now => { try { draw2(now); } catch (e) { go(); } };
+    const draw2 = now => {
+      // el reloj del primer fotograma puede ir por detrás de t0: un radio negativo daba error y congelaba la pantalla
+      const f = Math.max(0, Math.min(1, (now - t0) / 350)); g.clearRect(-c.width, -c.height, c.width * 3, c.height * 3);
       g.strokeStyle = 'rgba(255,40,40,.55)'; g.lineWidth = 2; g.beginPath();
       [L.topLeftCorner, L.topRightCorner, L.bottomRightCorner, L.bottomLeftCorner].forEach((q, i) => i ? g.lineTo(q.x * k, q.y * k) : g.moveTo(q.x * k, q.y * k)); g.closePath(); g.stroke();
       P.forEach((q, i) => { const rad = (i === 3 ? 5 : 8) * f; g.fillStyle = 'rgba(255,214,0,.35)'; g.beginPath(); g.arc(q.x * k, q.y * k, rad * 2.2, 0, 7); g.fill(); g.fillStyle = '#ffd600'; g.shadowColor = '#ffea00'; g.shadowBlur = 12; g.beginPath(); g.arc(q.x * k, q.y * k, rad, 0, 7); g.fill(); g.shadowBlur = 0; });
-      if (now - t0 < 600) requestAnimationFrame(draw); else { stopCam(); $('#cw')?.classList.remove('found'); handleScan(r.data); }
+      if (done) return; if (now - t0 < 600) requestAnimationFrame(draw); else go();
     };
     try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
     requestAnimationFrame(draw);

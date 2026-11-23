@@ -558,7 +558,7 @@ function renderHome() {
   app.querySelectorAll('[data-chat]').forEach(b => b.onclick = () => { S.view = { t: 'chat', id: b.dataset.chat }; render(); });
   app.querySelectorAll('[data-fav]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleFav(b.dataset.fav); });
   if ($('#fab')) $('#fab').onclick = () => { S.view = { t: 'pack' }; render(); };
-  $('#bScan').onclick = () => { S.view = { t: 'pack', scan: true }; render(); };
+  $('#bScan').onclick = () => { S.view = { t: 'pack', scan: true, only: true }; render(); };
   $('#bMenu').onclick = accountMenu;
   bindTour();
   if ($('#bNotif')) $('#bNotif').onclick = () => askNotif(true);
@@ -631,7 +631,7 @@ async function renderEdit() {
     ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}
     <button class="btn" style="margin-top:14px" id="sv" ${S.busy ? 'disabled' : ''}>Guardar</button>
     ${isNew ? '' : `<button class="btn light" style="margin-top:10px;color:var(--red)" id="del">Borrar código</button>`}</div>`;
-  $('#bk').onclick = () => { S.err = ''; S.view = isNew ? null : { t: 'qr', id: c.id }; render(); };
+  $('#bk').onclick = () => { S.err = ''; S.view = null; render(); };
   let selType = c.type || 'link';
   if ($('#c2')) $('#c2').addEventListener('change', () => { $('#btbox').style.display = $('#c2').checked ? 'block' : 'none'; });
   if (NATIVE && $('#c8')) {
@@ -712,12 +712,31 @@ async function drawSticker(canvas, url) {
   x.drawImage(qr, 562.5 * k - side / 2, 568.5 * k - side / 2, side, side);
 }
 const isCar = c => !!c?.style?.car;
+// compartir el código con la imagen adjunta (WhatsApp, Telegram, email…)
+async function codeImage(c, url) {
+  if (isCar(c) && $('#cv')?.classList.contains('stk')) return $('#cv').toDataURL('image/png');
+  const big = document.createElement('canvas'); drawQR(big, url, 24); return big.toDataURL('image/png');
+}
+async function shareCode(c, url) {
+  const title = 'Mi código Scan & Pro: ' + (c.public_name || c.name), text = `${c.public_name || c.name}\n${url}`, name = `scanand-${c.id}.png`;
+  try {
+    const data = await codeImage(c, url), P = window.Capacitor?.Plugins;
+    if (NATIVE && P?.Share && P?.Filesystem) {
+      const f = await P.Filesystem.writeFile({ path: name, data: data.split(',')[1], directory: 'CACHE' });
+      return await P.Share.share({ title, text, files: [f.uri], dialogTitle: 'Compartir código' });
+    }
+    const blob = await (await fetch(data)).blob(), file = new File([blob], name, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) return await navigator.share({ title, text, files: [file] });
+    if (navigator.share) return await navigator.share({ title, text, url });
+    await navigator.clipboard.writeText(url); toast('Enlace copiado. Usa el botón de guardar para descargar la imagen.');
+  } catch (e) { if (!/abort|cancel/i.test(String(e?.message || e))) toast('No se ha podido compartir.'); }
+}
 function renderQR() {
   const c = codeOf(S.view.id); if (!c) { S.view = null; return render(); }
   const url = `${SITE}/s/${c.id}`, own = c.owner_id === S.user.id;
   const chans = [c.ch_info && IC.info(14) + ' Info', c.ch_mail && IC.mail(14) + ' Mail', c.ch_alert && (IC.alert(14) + ' Alert' + (c.auto_alert ? ' (al abrir)' : '')), c.ch_chat && IC.chat(14) + ' Chat', c.ch_call && IC.phone(14) + ' Llamada', c.ch_redirect && c.redirect_url && IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean);
   const nChats = S.chats.filter(x => x.code_id === c.id).length;
-  app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(24)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="ml" title="Enviar por mail">${IC.mailL(24)}</button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes">${IC.sliders(24)}</button>` : ''}<button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button></div>
+  app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(24)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button></div>
     <div class="namebar">${esc(c.name).toUpperCase()}</div>
     <div class="body"><div class="qrbox"><canvas id="cv"></canvas><div class="link">${url}</div>
       <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><div class="pw ${c.is_on ? 'on' : ''}" id="pw">${IC.power(20)}</div><span style="font-size:14px;color:${c.is_on ? '#1a7a1a' : '#999'}">${c.is_on ? 'Activo' : 'Desactivado'}</span></div></div>
@@ -736,8 +755,7 @@ function renderQR() {
   $('#pw').onclick = () => togglePower(c.id);
   if ($('#btset')) $('#btset').onclick = () => { if (NATIVE) { S.view = { t: 'edit', id: c.id }; render(); } else location.href = '/app/scanandpro.apk'; };
   $('#op').onclick = () => window.open(url, '_blank');
-  $('#ml').onclick = () => { location.href = 'mailto:?subject=' + encodeURIComponent('Mi código Scan & Pro: ' + c.public_name) + '&body=' + encodeURIComponent(url); };
-  $('#sh').onclick = async () => { try { if (navigator.share) await navigator.share({ title: c.public_name, url }); else { await navigator.clipboard.writeText(url); toast('Enlace copiado'); } } catch (e) {} };
+  $('#sh').onclick = () => shareCode(c, url);
   $('#dl').onclick = async () => { if (isCar(c)) { const a = document.createElement('a'); a.href = $('#cv').toDataURL('image/png'); a.download = `scanand-coche-${c.id}.png`; return a.click(); } const big = document.createElement('canvas'); drawQR(big, url, 24); const a = document.createElement('a'); a.href = big.toDataURL('image/png'); a.download = `scanand-${c.id}.png`; a.click(); };
   if ($('#gc')) $('#gc').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
 }
@@ -796,6 +814,14 @@ async function toggleFav(id) {
 let stream = null;
 function stopCam() { stream?.getTracks().forEach(t => t.stop()); stream = null; }
 function renderPack() {
+  if (S.view.only) {   // cámara: solo el escáner a pantalla completa
+    app.innerHTML = `<div class="bar"><button class="back" id="bk">${IC.back(24)}</button><span class="name" style="font-size:16px;font-family:Inter">Escanear código</span></div>
+      <div class="camwrap" id="cw" style="flex:1;border-radius:0;display:block"><video id="vd" playsinline muted style="width:100%;height:100%;object-fit:cover"></video><div class="laser"></div><canvas class="pts" id="pts"></canvas></div>`;
+    app.classList.add('full');
+    $('#bk').onclick = () => { stopCam(); app.classList.remove('full'); S.view = null; render(); };
+    if (S.view.scan) { S.view.scan = false; startScan(); }
+    return;
+  }
   app.innerHTML = `<div class="bar"><button class="back" id="bk">${IC.back(24)}</button><span class="name" style="font-size:16px;font-family:Inter">Añadir código</span></div><div class="body pad">
     <button class="btn" id="nw">${IC.plus(20)}Crear un código nuevo</button>
     <div style="font-size:13px;color:#777;margin:6px 2px 18px">Lo imprimes tú o lo compartes como enlace.</div>
@@ -813,17 +839,17 @@ function renderPack() {
 }
 async function startScan() {
   try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); } catch (e) { return toast('No se ha podido abrir la cámara.'); }
-  $('#cw').style.display = 'block'; $('#sc').style.display = 'none'; const v = $('#vd'); v.srcObject = stream; await v.play();
+  $('#cw').style.display = 'block'; if ($('#sc')) $('#sc').style.display = 'none'; const v = $('#vd'); v.srcObject = stream; await v.play();
   const cv = document.createElement('canvas'), x = cv.getContext('2d', { willReadFrequently: true });
   const tick = () => { if (!stream) return; if (v.readyState >= 2) { cv.width = v.videoWidth; cv.height = v.videoHeight; x.drawImage(v, 0, 0); const r = jsQR(x.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height); if (r) return found(r); } requestAnimationFrame(tick); };
   // código detectado: congelar la imagen, mostrar los puntos láser sobre los cuadrados del QR y esperar 1 s
   const found = r => {
     v.pause(); $('#cw').classList.add('found');
-    const c = $('#pts'), k = c.clientWidth / v.videoWidth; c.width = c.clientWidth * 2; c.height = c.clientHeight * 2; const g = c.getContext('2d'); g.scale(2, 2);
+    const c = $('#pts'), k = Math.max(c.clientWidth / v.videoWidth, c.clientHeight / v.videoHeight); c.width = c.clientWidth * 2; c.height = c.clientHeight * 2; const g = c.getContext('2d'); g.scale(2, 2); g.translate((c.clientWidth - v.videoWidth * k) / 2, (c.clientHeight - v.videoHeight * k) / 2);
     const L = r.location, P = [L.topLeftFinderPattern, L.topRightFinderPattern, L.bottomLeftFinderPattern, L.bottomRightAlignmentPattern].filter(Boolean);
     const t0 = performance.now();
     const draw = now => {
-      const f = Math.min(1, (now - t0) / 350); g.clearRect(0, 0, c.width, c.height);
+      const f = Math.min(1, (now - t0) / 350); g.clearRect(-c.width, -c.height, c.width * 3, c.height * 3);
       g.strokeStyle = 'rgba(255,40,40,.55)'; g.lineWidth = 2; g.beginPath();
       [L.topLeftCorner, L.topRightCorner, L.bottomRightCorner, L.bottomLeftCorner].forEach((q, i) => i ? g.lineTo(q.x * k, q.y * k) : g.moveTo(q.x * k, q.y * k)); g.closePath(); g.stroke();
       P.forEach((q, i) => { const rad = (i === 3 ? 5 : 8) * f; g.fillStyle = 'rgba(255,214,0,.35)'; g.beginPath(); g.arc(q.x * k, q.y * k, rad * 2.2, 0, 7); g.fill(); g.fillStyle = '#ffd600'; g.shadowColor = '#ffea00'; g.shadowBlur = 12; g.beginPath(); g.arc(q.x * k, q.y * k, rad, 0, 7); g.fill(); g.shadowBlur = 0; });
@@ -839,7 +865,7 @@ function handleScan(t) {
   if (pack) return claim(pack[1]);
   if (code && S.auth) { S.view = null; render(); return policeSheet(code[1].toUpperCase()); }
   if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: 'qr', id: c.id }; return render(); } window.open(t, '_blank'); S.view = null; return render(); }
-  toast('Ese QR no es de Scan & Pro: ' + t.slice(0, 60)); renderPack();
+  toast('Ese QR no es de Scan & Pro: ' + t.slice(0, 60)); if (S.view?.only) S.view.scan = true; renderPack();
 }
 async function claim(id) {
   if (!id) return; S.err = '';

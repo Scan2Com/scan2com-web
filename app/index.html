@@ -315,6 +315,7 @@ function askNotif(force) {
 function openUrl(u) {
   const q = new URL(u, location.href).searchParams;
   if (q.get('chat')) S.view = { t: 'chat', id: q.get('chat') };
+  else if (q.get('vchat')) S.view = { t: 'vchat', id: q.get('vchat') };
   else if (q.get('ack')) { markRead([Number(q.get('ack'))]); S.alarm = null; S.tab = 'alerts'; S.view = null; }
   else if (q.get('ev')) { const e = S.events.find(x => String(x.id) === q.get('ev')); if (e && !e.read_at) { S.alarm = e; sirenOn(); } else { S.tab = 'alerts'; S.view = null; } }
   else if (q.get('tab')) { S.tab = q.get('tab'); S.view = null; }
@@ -396,6 +397,7 @@ async function loadAll() {
   ]);
   try { const [au, pr] = await Promise.all([sb.rpc('my_authority'), sb.from('profiles').select('terms_version').eq('id', S.user.id).maybeSingle()]);
     S.auth = au.data || null; S.terms = pr.data?.terms_version || null; } catch (e) {}
+  try { const v = await sb.rpc('my_visitor_chats'); S.vchats = v.data || []; } catch (e) { S.vchats = S.vchats || []; }
   S.codes = c.data || []; S.chats = ch.data || []; S.favs = new Set((f.data || []).map(x => x.chat_id)); S.events = ev.data || []; S.places = pl.data || [];
   if (S.chats.length) {
     const { data } = await sb.from('messages').select('*').in('chat_id', S.chats.map(x => x.id)).order('id');
@@ -443,9 +445,11 @@ function render(soft) {
   else if (S.view?.t === 'edit') renderEdit();
   else if (S.view?.t === 'qr') renderQR();
   else if (S.view?.t === 'chat') renderChat();
+  else if (S.view?.t === 'vchat') renderVChat();
   else if (S.view?.t === 'pack') renderPack();
   else renderHome();
-  if (S.view?.t !== 'chat') app.classList.remove('full');
+  if (S.view?.t !== 'chat' && S.view?.t !== 'vchat') app.classList.remove('full');
+  if (S.view?.t !== 'vchat') clearInterval(vPoll);
   if (S.alarm) $('#overlay').innerHTML = alarmHTML(); else if (!$('#overlay .keep')) $('#overlay').innerHTML = '';
   if (S.touring && S.tourKeyNow) highlight(S.tourKeyNow);
   if (keep) { const el = document.getElementById(keep.id); if (el) { el.value = keep.v; el.focus(); } }
@@ -528,12 +532,18 @@ function renderHome() {
     body = nb + tourHTML() + body;
   } else if (tab === 'chats') {
     const list = S.chats.filter(c => match(c.name, codeOf(c.code_id)?.name, lastMsg(c.id)?.body)).sort((a, b) => new Date(lastMsg(b.id)?.created_at || b.created_at) - new Date(lastMsg(a.id)?.created_at || a.created_at));
+    const vlist = (S.vchats || []).filter(v => match(v.name, v.public_name, v.last?.body));
     const favs = list.filter(c => S.favs.has(c.id)), rest = list.filter(c => !S.favs.has(c.id));
+    const vrow = v => { const u = S.unread['v' + v.id]; return `<div class="item ${v.alive ? '' : 'off'}" data-vchat="${v.id}"><div style="flex:none">${face(false, 54)}</div>
+      <div class="grow"><div class="t">${esc(v.name || v.public_name || 'Chat')}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(v.last ? (v.last.mine ? 'Tú: ' : '') + v.last.body : (v.public_name || ''))}</div></div>
+      <div style="text-align:right;font-size:14px;color:#8a8a8a;white-space:nowrap">${ago(v.last?.at || v.created_at)}</div></div>`; };
     const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div style="flex:none">${face(c.blocked, 54)}</div>
       <div class="grow"><div class="t">${esc(c.name)}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + lm.body : (code?.name || ''))}</div></div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><button class="star" data-fav="${c.id}" title="Favorito" style="padding:0">${IC.star(26, S.favs.has(c.id))}</button><div style="white-space:nowrap">${ago(lm?.created_at || c.created_at)}</div></div></div>`; };
-    body = list.length ? (favs.length ? `<div class="pad section" style="padding-bottom:0">FAVORITOS</div>${favs.map(row).join('')}` : '') + (rest.length ? `${favs.length ? '<div class="pad section" style="padding-bottom:0">TODOS</div>' : ''}${rest.map(row).join('')}` : '')
-      : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.</div>`;
+    const mineHTML = list.length ? (favs.length ? `<div class="pad section" style="padding-bottom:0">FAVORITOS</div>${favs.map(row).join('')}` : '') + (rest.length ? `${favs.length ? '<div class="pad section" style="padding-bottom:0">TODOS</div>' : ''}${rest.map(row).join('')}` : '')
+      : '';
+    body = (mineHTML || vlist.length) ? mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">CÓDIGOS QUE HE ESCANEADO</div>${vlist.map(vrow).join('')}` : '')
+      : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.<br><br>Y si tú escaneas el código de otra persona con la app y le escribes, el chat también aparecerá aquí.</div>`;
   } else {
     const seen = S.seenEv;
     body = S.events.length ? S.events.map(e => { const c = codeOf(e.code_id); const ic = { alert: IC.alert(22), mail: IC.mail(22), call: IC.phone(22), police: '<img src="/app/img2014/police.png" width="30" height="34" alt="Policía" style="display:block">' }[e.kind];
@@ -559,6 +569,7 @@ function renderHome() {
   app.querySelectorAll('[data-qr]').forEach(b => b.onclick = e => { e.stopPropagation(); S.view = { t: 'qr', id: b.dataset.qr }; render(); });
   app.querySelectorAll('[data-code]').forEach(b => b.onclick = () => { S.view = { t: 'qr', id: b.dataset.code }; render(); });
   app.querySelectorAll('[data-chat]').forEach(b => b.onclick = () => { S.view = { t: 'chat', id: b.dataset.chat }; render(); });
+  app.querySelectorAll('[data-vchat]').forEach(b => b.onclick = () => { S.view = { t: 'vchat', id: b.dataset.vchat }; render(); });
   app.querySelectorAll('[data-fav]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleFav(b.dataset.fav); });
   if ($('#fab')) $('#fab').onclick = () => { S.view = { t: 'pack' }; render(); };
   $('#bScan').onclick = () => { S.view = { t: 'pack', scan: true, only: true }; render(); };
@@ -829,6 +840,79 @@ function renderChat() {
   $('#os').onclick = send; $('#oi').onkeydown = e => { if (e.key === 'Enter') send(); };
 }
 
+/* ---------- chat con un código de otra persona (yo escaneé) ---------- */
+// código de otra persona: si ya tengo chat con ese código, voy a ese chat; si no, abro su página dentro de la app
+async function openScanned(id, url) {
+  try { const r = await sb.rpc('my_visitor_chats'); if (r.data) S.vchats = r.data; } catch (e) {}
+  const v = (S.vchats || []).find(x => x.code_id === id);
+  if (v) { S.view = { t: 'vchat', id: v.id }; return render(); }
+  location.href = url;
+}
+let vPoll = null;
+async function renderVChat() {
+  const v = (S.vchats || []).find(x => x.id === S.view.id); if (!v) { S.view = null; return render(); }
+  if (S.unread['v' + v.id]) { delete S.unread['v' + v.id]; ls.set('sa_unread', S.unread); }
+  const list = S.vmsgs?.[v.id] || [];
+  app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button>${LOGO(36)}<div class="grow"><div style="font-size:20px" id="nm">${esc(v.name || v.public_name || 'Chat')}</div><div style="font-size:12px;color:#aaa">${esc(v.public_name || '')} · código escaneado</div></div>
+    <button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
+    ${v.alive ? '' : '<div class="notice">El dueño ha cerrado este chat o ha apagado su código: no puedes escribir ahora.</div>'}
+    <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${list.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}<div class="tm">${ago(m.at)}${m.mine ? IC.check(16) : ''}</div></div>`).join('') || '<div class="empty">Sin mensajes todavía.</div>'}</div></div>
+    ${v.alive ? `<div class="compose"><input id="oi" placeholder="Escribe y envía" maxlength="2000" enterkeyhint="send"><button class="sendb" id="os" title="Enviar">${IC.send(34)}</button></div>` : ''}`;
+  app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight;
+  if ($('#oi')) $('#oi').onfocus = () => setTimeout(fitVV, 300);
+  $('#bk').onclick = () => { clearInterval(vPoll); S.view = null; S.tab = 'chats'; render(); };
+  $('#ren').onclick = () => $('#nm').onclick();
+  $('#nm').onclick = () => {
+    if ($('#rn')) return;
+    const cur = v.name || v.public_name || '';
+    $('#nm').innerHTML = `<div style="display:flex;gap:6px;align-items:center"><input id="rn" value="${esc(cur)}" style="margin:0;padding:6px 8px;color:#222;font-size:17px;flex:1;min-width:0" maxlength="40" enterkeyhint="done" autocomplete="off"><button id="rnok" class="btn sm teal" style="flex:none">OK</button></div>`;
+    const i = $('#rn'); i.focus(); i.select(); let done = false;
+    const save = async () => {
+      if (done) return; done = true; const val = i.value.trim();
+      if (!val || val === cur) return render();
+      const old = v.name; v.name = val; render();
+      const { data } = await sb.rpc('visitor_rename', { p_chat: v.id, p_name: val });
+      if (!data?.ok) { v.name = old; render(); toast('No se ha podido cambiar el nombre.'); } else toast('Nombre guardado');
+    };
+    $('#rnok').onmousedown = e => e.preventDefault(); $('#rnok').onclick = save;
+    i.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); save(); } if (e.key === 'Escape') { done = true; render(); } };
+    i.onblur = () => setTimeout(() => { if (document.activeElement?.id !== 'rnok') save(); }, 150);
+  };
+  $('#cm').onclick = () => {
+    $('#overlay').innerHTML = `<div class="sheet keep" id="cms"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
+      <button class="btn light" id="og" style="margin-bottom:8px">${IC.eye(18)} Abrir la página del código</button>
+      <button class="btn light" id="dc" style="color:var(--red)">${IC.trash(18)} Quitar de mi lista</button></div></div>`;
+    $('#cms').onclick = () => { $('#overlay').innerHTML = ''; };
+    $('#og').onclick = () => { location.href = `${SITE}/s/${v.code_id}`; };
+    $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { $('#overlay').innerHTML = ''; await sb.rpc('visitor_forget', { p_chat: v.id }); S.vchats = S.vchats.filter(x => x.id !== v.id); S.view = null; S.tab = 'chats'; toast('Chat quitado de tu lista'); render(); } else { $('#dc').dataset.sure = 1; $('#dc').textContent = 'Pulsa otra vez para quitarlo'; } };
+  };
+  const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; i.value = ''; const { data } = await sb.rpc('visitor_send', { p_chat: v.id, p_token: v.token, p_body: t }); if (!data?.ok) return toast(data?.error === 'closed' ? 'El chat está cerrado.' : 'No se ha podido enviar.'); await vFetch(v); $('#oi')?.focus(); };
+  if ($('#os')) { $('#os').onclick = send; $('#oi').onkeydown = e => { if (e.key === 'Enter') send(); }; }
+  if (!S.vmsgs?.[v.id]) vFetch(v);
+  clearInterval(vPoll); vPoll = setInterval(() => { if (S.view?.t === 'vchat' && S.view.id === v.id && !document.hidden) vFetch(v); }, 3000);
+}
+async function vFetch(v) {
+  S.vmsgs ||= {}; const l = S.vmsgs[v.id] ||= [];
+  const { data } = await sb.rpc('visitor_messages', { p_chat: v.id, p_token: v.token, p_after: l.at(-1)?.id || 0 });
+  if (!data?.ok) return;
+  const changed = data.messages.length || v.alive !== data.alive; v.alive = data.alive;
+  data.messages.forEach(m => { if (!l.find(x => x.id === m.id)) l.push(m); });
+  if (l.length) v.last = { ...l.at(-1) };
+  if (changed && S.view?.t === 'vchat' && S.view.id === v.id && document.activeElement?.id !== 'oi' && document.activeElement?.id !== 'rn') render();
+  else if (changed && S.view?.t === 'vchat' && S.view.id === v.id) { const ms = $('#ms'); if (ms) { ms.innerHTML = l.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}<div class="tm">${ago(m.at)}${m.mine ? IC.check(16) : ''}</div></div>`).join(''); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight; } }
+}
+// avisos de respuestas en chats de códigos escaneados (con la app abierta): consulta cada 20 s
+setInterval(async () => {
+  if (!S.user || document.hidden || !(S.vchats || []).length) return;
+  const old = new Map(S.vchats.map(v => [v.id, v.last?.id || 0]));
+  try { const r = await sb.rpc('my_visitor_chats'); if (!r.data) return; S.vchats = r.data; } catch (e) { return; }
+  let any = false;
+  S.vchats.forEach(v => { if (v.last && !v.last.mine && v.last.id > (old.get(v.id) || 0) && !(S.view?.t === 'vchat' && S.view.id === v.id)) {
+    S.unread['v' + v.id] = (S.unread['v' + v.id] || 0) + 1; any = true;
+    toast(`💬 ${v.name || v.public_name}: ${v.last.body}`, () => { S.view = { t: 'vchat', id: v.id }; render(); }); beep(); } });
+  if (any) { ls.set('sa_unread', S.unread); if (!S.view) render(true); }
+}, 20000);
+
 async function toggleFav(id) {
   const on = !S.favs.has(id); on ? S.favs.add(id) : S.favs.delete(id); render(true);
   toast(on ? '★ Añadido a favoritos: aparece arriba y sigue activo aunque apagues el código' : 'Quitado de favoritos');
@@ -933,7 +1017,7 @@ function handleScan(t) {
   const pack = t.match(/\/(?:link|p)\/([A-Z0-9]+)/i), code = t.match(/\/s\/([A-Z0-9]+)/i);
   if (pack) return claim(pack[1]);
   if (code && S.auth) { S.view = null; render(); return policeSheet(code[1].toUpperCase()); }
-  if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: 'qr', id: c.id }; return render(); } window.open(t, '_blank'); S.view = null; return render(); }
+  if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: 'qr', id: c.id }; return render(); } stopCam(); if (/^https:\/\/(www\.)?scan2com\.com\//i.test(t)) { openScanned(code[1].toUpperCase(), t); return; } window.open(t, '_blank'); S.view = null; return render(); }
   toast('Ese QR no es de Scan2Com: ' + t.slice(0, 60)); if (S.view?.only) S.view.scan = true; renderPack();
 }
 async function claim(id) {

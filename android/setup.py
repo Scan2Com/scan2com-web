@@ -60,6 +60,38 @@ _webimg = os.path.join(ROOT, 'app', 'img2014'); os.makedirs(_webimg, exist_ok=Tr
 pol.save(os.path.join(_webimg, 'police.png'), optimize=True)
 
 # 2c) base de la pegatina alta del coche, recortada de la plantilla original de Luis (si está en el repo)
+# contorno del "2" de Helvetica (FreeSans, unidades de 1000): es la misma letra que "Scan" de la pegatina
+DOS = [[[50,463],[53,502],[58,538],[67,571],[79,600],[94,625],[112,648],[133,666],[157,682],[184,694],[214,702],[248,707],[284,709],[301,709],[317,707],[332,705],[347,703],[362,699],[376,694],[389,689],[402,683],[414,676],[426,669],[437,660],[448,651],[458,641],[467,631],[476,620],[483,609],[490,597],[495,584],[500,572],[504,559],[507,545],[509,531],[511,516],[511,501],[510,479],[507,458],[502,438],[494,419],[485,400],[474,382],[460,364],[444,347],[427,331],[407,316],[385,301],[361,287],[261,233],[250,227],[240,221],[231,216],[222,210],[213,204],[205,198],[198,193],[191,187],[184,182],[178,176],[173,170],[168,165],[164,159],[159,154],[155,148],[152,142],[148,135],[145,129],[142,122],[140,116],[138,109],[136,102],[134,94],[133,87],[506,87],[506,0],[34,0],[35,19],[37,38],[39,55],[42,72],[45,88],[49,104],[53,118],[58,132],[63,145],[68,158],[74,170],[81,180],[88,191],[97,202],[106,212],[116,223],[127,233],[140,244],[153,254],[167,265],[182,276],[198,286],[215,296],[233,307],[325,359],[340,368],[354,378],[367,388],[378,399],[388,410],[397,422],[404,433],[410,446],[415,458],[418,472],[420,485],[421,499],[421,508],[420,518],[418,526],[417,535],[414,543],[411,551],[407,559],[403,567],[398,574],[393,581],[387,588],[381,594],[374,600],[367,606],[360,611],[352,615],[344,619],[336,622],[328,625],[319,628],[310,630],[300,631],[291,632],[281,632],[260,631],[240,627],[222,621],[206,613],[192,603],[179,590],[168,574],[158,557],[151,537],[145,515],[140,490],[138,463]]]
+
+RND, THR = 2.5, 0.47
+
+def scan2(img):
+    """Cambia "Scan & Alert" por "Scan 2 Alert": borra el & (rellenando con el rojo de alrededor) y dibuja un 2
+    con la misma tipografía, tamaño, grosor y línea base que la S de "Scan"."""
+    import numpy as np
+    from PIL import ImageDraw
+    k = img.width / 1124
+    a = np.asarray(img).astype(float).copy()
+    x0, x1, y0, y1 = int(642 * k), int(742 * k), int(1086 * k), int(1192 * k); m = max(2, int(4 * k))
+    for y in range(y0, y1):
+        L = a[y, x0 - m:x0].mean(0); R = a[y, x1:x1 + m].mean(0)
+        for x in range(x0, x1):
+            t = (x - x0) / (x1 - x0); a[y, x] = L * (1 - t) + R * t
+    # tamaño: un 6 % mayor que la Helvetica a la escala de la S, para que se vea igual de alto que la S;
+    # apoyado en la línea base de "Scan" (y=1183)
+    sc = 92 / 764 * 1.06 * k; base = 1183 * k
+    xs = [x for c in DOS for x, _ in c]; left = 662 * k - min(xs) * sc; ss = 4
+    W, H = img.size; msk = Image.new('L', (W * ss, H * ss), 0); d = ImageDraw.Draw(msk)
+    for c in DOS: d.polygon([((left + x * sc) * ss, (base - y * sc) * ss) for x, y in c], fill=255)
+    # terminaciones redondeadas como las de la S y trazo un poco más grueso: desenfoque + umbral
+    from PIL import ImageFilter
+    bl = np.asarray(msk.filter(ImageFilter.GaussianBlur(RND * k * ss))).astype(float) / 255
+    alpha = ((bl - THR) / 0.12 + 0.5).clip(0, 1)
+    msk = Image.fromarray((alpha * 255).astype('uint8')).resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(0.5 * k))
+    msk = np.asarray(msk).astype(float)[..., None] / 255
+    a[..., :3] = a[..., :3] * (1 - msk) + 255 * msk
+    return Image.fromarray(a.clip(0, 255).astype('uint8'), 'RGBA')
+
 def sticker_base():
     from PIL import ImageDraw, ImageFilter, ImageChops
     src = None   # la plantilla de pegatinas de coche: PNG apaisado de unos 2480 x 1181
@@ -86,6 +118,8 @@ def sticker_base():
     out = Image.eval(ImageChops.difference(tmp, Image.new('RGB', st.size, (1, 2, 3))).convert('L'), lambda v: 0 if v == 0 else 255)
     big = st.resize((W * 2, H * 2), Image.LANCZOS).convert('RGBA')
     big.putalpha(out.resize((W * 2, H * 2), Image.LANCZOS).filter(ImageFilter.GaussianBlur(0.7)))
+    try: big = scan2(big)
+    except Exception as e: print('AVISO "Scan 2":', e)
     big.save(os.path.join(_webimg, 'pegatina_coche.png'), optimize=True)
 sticker_base()
 
@@ -254,4 +288,59 @@ if os.path.exists(ks) and os.environ.get('ANDROID_KEY_PASS'):
         open(bg, 'w', encoding='utf-8').write(g)
     print('firma fija: ok')
 else: print('AVISO: sin release.p12 o sin ANDROID_KEY_PASS: firma temporal')
+def relieve(src):
+    """Relieve al estilo de la S de 2014: marco negro con degradado, bisel y sombra; check con bisel."""
+    import numpy as np
+    from PIL import ImageFilter
+    src = src.convert('RGBA').resize((1024, 1024), Image.LANCZOS)
+    A = np.asarray(src).astype(float); rgb = A[..., :3]; W = 1024
+    mx = rgb.max(-1); mn = rgb.min(-1); yy, xx = np.mgrid[0:W, 0:W]
+    center = (xx > 190) & (xx < 830) & (yy > 190) & (yy < 830)
+    im_ = lambda m: Image.fromarray((m * 255).astype('uint8'))
+    arr = lambda i: np.asarray(i).astype(float) / 255
+    blur = lambda m, r: arr(im_(m).filter(ImageFilter.GaussianBlur(r)))
+    dark = ((mx < 90) & center).astype(float)
+    shape = (arr(im_(dark).filter(ImageFilter.MaxFilter(31)).filter(ImageFilter.MinFilter(31))) > 0.5) & center
+    green = (rgb[..., 1] > 150) & (rgb[..., 0] < 140) & (rgb[..., 2] < 140) & (xx > 380) & (xx < 650) & (yy > 440) & (yy < 620)
+    def bevel(m, r, amp):
+        h = blur(m.astype(float), r); gy, gx = np.gradient(h); L = -(gx + gy); L /= (np.abs(L).max() + 1e-6); return L * amp
+    out = rgb.copy()
+    sh = blur(np.roll(np.roll(shape | green, 10, 0), 7, 1).astype(float), 14)
+    white = (mn > 235) & center
+    out[white] *= (1 - 0.28 * sh[white])[:, None]
+    g = ((830 - yy) / 640).clip(0, 1); darkness = (1 - mx / 90).clip(0, 1)
+    out += (((14 + 34 * g) * darkness) * shape)[..., None]
+    out += (bevel(shape, 6, 95) * shape * darkness)[..., None]
+    out += ((np.exp(-((xx - 300) ** 2 + (yy - 260) ** 2) / (2 * 180 ** 2)) * 35 * darkness) * shape)[..., None]
+    out += (bevel(green, 4, 70) * green)[..., None]
+    return Image.fromarray(np.dstack([out.clip(0, 255), A[..., 3]]).astype('uint8'), 'RGBA')
+
+# 9) icono nuevo de Scan2Com (boomerangs verdes, check y láser): el PNG cuadrado más grande que haya en android/
+_cands = []
+for f in glob.glob(os.path.join(HERE, '*.png')):
+    try:
+        w, h = Image.open(f).size
+        if w == h and w >= 512: _cands.append((w, f))
+    except Exception: pass
+if _cands:
+    NEW = Image.open(max(_cands)[1]).convert('RGBA')
+    bg = Image.new('RGBA', NEW.size, (255, 255, 255, 255)); bg.alpha_composite(NEW); NEW = bg
+    try: NEW = relieve(NEW)
+    except Exception as e: print('AVISO relieve:', e)
+    for root, _, files in os.walk(RES):
+        for f in files:
+            pth = os.path.join(root, f)
+            if f in ('ic_launcher.png', 'ic_launcher_round.png'):
+                w, h = Image.open(pth).size; NEW.resize((w, h), Image.LANCZOS).save(pth)
+            elif f == 'ic_launcher_foreground.png':   # icono adaptativo: entero dentro del círculo, sobre blanco
+                w, h = Image.open(pth).size; fg = Image.new('RGBA', (w, h), (255, 255, 255, 255)); side = int(w * 0.56)
+                fg.alpha_composite(NEW.resize((side, side), Image.LANCZOS), ((w - side) // 2, (h - side) // 2)); fg.save(pth)
+            elif f == 'splash.png':
+                w, h = Image.open(pth).size; out = Image.new('RGB', (w, h), (0, 0, 0)); side = int(min(w, h) * 0.5)
+                out.paste(NEW.resize((side, side), Image.LANCZOS).convert('RGB'), ((w - side) // 2, (h - side) // 2)); out.save(pth)
+    vb = os.path.join(RES, 'values', 'ic_launcher_background.xml')
+    if os.path.exists(vb): open(vb, 'w').write(open(vb).read().replace('#000000', '#FFFFFF'))
+    for f, sz in (('img2014/icon.png', 192), ('logo.png', 1024), ('icon-192.png', 192), ('icon-512.png', 512)):
+        NEW.resize((sz, sz), Image.LANCZOS).save(os.path.join(ROOT, 'app', f))
+    print('icono nuevo: ok')
 print('setup ok')

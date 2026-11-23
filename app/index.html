@@ -123,8 +123,12 @@ label{font-size:13px;color:var(--mut)}
 .feat svg{stroke-width:1.5}
 .camwrap{position:relative;background:#000;border-radius:14px;overflow:hidden}
 .camwrap video{width:100%;display:block}
-.laser{position:absolute;left:4%;right:4%;height:3px;background:#ff1a1a;box-shadow:0 0 8px 2px rgba(255,30,30,.85),0 0 18px 4px rgba(255,0,0,.4);border-radius:2px;animation:laser 2s ease-in-out infinite alternate;pointer-events:none}
-@keyframes laser{from{top:6%}to{top:94%}}
+.laser{position:absolute;left:4%;right:4%;top:6%;height:88%;animation:laser 2s ease-in-out infinite alternate;pointer-events:none;will-change:transform}
+.laser::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:#ff1a1a;box-shadow:0 0 8px 2px rgba(255,30,30,.85),0 0 18px 4px rgba(255,0,0,.4);border-radius:2px}
+@keyframes laser{from{transform:translateY(0)}to{transform:translateY(100%)}}
+.busy{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(0,0,0,.55);color:#fff;font-size:16px}
+.busy i{display:block;width:42px;height:42px;margin:0 auto 12px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .camwrap.found .laser{animation-play-state:paused;opacity:.35}
 .camwrap canvas.pts{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .section{font-size:12px;font-weight:700;color:var(--mut);letter-spacing:.06em;margin:18px 0 4px}
@@ -304,6 +308,7 @@ async function enablePush(ask = true) {
   } catch (e) { console.error(e); if (ask) toast('No se han podido activar las notificaciones. Inténtalo de nuevo.'); return false; }
 }
 function askNotif(force) {
+  if (NATIVE && S.av) { if (avMissing()) avOpen(); return; }
   if (notifOn() || (S.notifAsked && !force)) return; S.notifAsked = true;
   $('#overlay').innerHTML = `<div class="sheet keep" id="na"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:22px 18px calc(20px + env(safe-area-inset-bottom));text-align:center" onclick="event.stopPropagation()">
     <img src="/app/alert_red.png" alt="" style="width:74px"><h3 style="margin:8px 0 6px;font-size:21px">Activa las notificaciones</h3>
@@ -312,6 +317,68 @@ function askNotif(force) {
   $('#na').onclick = $('#nano').onclick = () => { $('#overlay').innerHTML = ''; };
   $('#naok').onclick = async () => { $('#overlay').innerHTML = ''; await enablePush(true); };
 }
+/* ---------- asistente "Configura los avisos" (app Android): notificaciones, batería, autoinicio y pantalla completa ---------- */
+// Android no deja activarlos sin que la persona toque: la app abre cada aviso o pantalla en orden y continúa sola al volver
+async function avStatus() { const A = AUTO(); if (!A || !A.avisos) return null; try { S.av = await A.avisos(); } catch (e) { S.av = null; } return S.av; }
+const avRelevant = () => S.codes.some(c => c.is_on && (c.ch_alert || c.auto_alert || c.ch_chat || c.ch_mail || c.ch_call)) || (S.vchats || []).length;
+function avSteps() {
+  const a = S.av; if (!a) return [];
+  const st = [{ k: 'notif', t: 'Permitir notificaciones', d: 'Para enterarte de alertas y mensajes con la app cerrada.', ok: a.notif && notifOn() },
+    { k: 'battery', t: 'Batería sin restricciones', d: 'Para que el móvil no duerma la app.', ok: a.battery }];
+  if (a.autostart) st.push({ k: 'auto', t: 'Activar Autoinicio', d: 'Se abre la pantalla de tu móvil: activa Scan2Com y vuelve.', ok: a.autostartOn === 1 || (a.autostartOn === -1 && !!ls.get('sa_autostart', 0)) });
+  if (!a.fullscreen && S.codes.some(c => c.is_on && (c.ch_alert || c.auto_alert || c.ch_call))) st.push({ k: 'full', t: 'Alertas a pantalla completa', d: 'Activa el permiso y vuelve.', ok: false });
+  return st;
+}
+const avMissing = () => avSteps().some(x => !x.ok);
+// devuelve true si se ha salido de la app (ajustes del sistema): se continúa al volver
+async function avRun(k) {
+  const A = AUTO();
+  if (k === 'notif') {
+    const P = window.Capacitor.Plugins.PushNotifications;
+    let st = await P.checkPermissions(); if (st.receive !== 'granted') st = await P.requestPermissions();
+    if (st.receive !== 'granted') { await A.openNotif(); return true; }   // ya se había denegado: Android solo deja activarlas en ajustes
+    await Promise.race([enableNativePush(false), new Promise(r => setTimeout(r, 8000))]); return false;
+  }
+  if (k === 'battery') { await A.askBattery(); return true; }
+  if (k === 'auto') { ls.set('sa_autostart', 1); await A.openAutostart(); return true; }
+  if (k === 'full') { await A.openFullScreen(); return true; }
+  return false;
+}
+function avSheet() {
+  if (!S.avOpen) return;
+  const st = avSteps(), left = st.filter(x => !x.ok).length;
+  $('#overlay').innerHTML = `<div class="sheet keep" id="av"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:22px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
+    <h3 style="margin:0 0 4px;font-size:21px">Configura los avisos</h3>
+    <p style="margin:0 0 12px;color:#555;line-height:1.4">Para que te lleguen alertas y mensajes aunque la app esté cerrada. ${left ? `Solo ${left === 1 ? 'falta 1 paso' : `son ${left} pasos`}: pulsa <b>Permitir</b> o activa el interruptor y vuelve.` : '¡Todo listo!'}</p>
+    ${st.map(x => `<div class="item" data-av="${x.k}" style="padding:10px 4px;cursor:pointer"><div style="flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;background:${x.ok ? '#2fc23a' : '#ccc'}">${x.ok ? '✓' : ''}</div>
+      <div class="grow"><div class="t" style="font-size:16px">${x.t}</div><div class="s">${x.d}</div></div></div>`).join('')}
+    <button class="btn red" id="avgo" style="margin:12px 0 8px">${left ? 'Configurar' : 'Hecho'}</button>${left ? '<button class="btn light" id="avno">Ahora no</button>' : ''}</div></div>`;
+  const close = () => { S.avOpen = false; $('#overlay').innerHTML = ''; render(true); };
+  $('#av').onclick = close; if ($('#avno')) $('#avno').onclick = close;
+  $('#avgo').onclick = () => { if (!left) return close(); S.avTried = new Set(); avNext(); };
+  document.querySelectorAll('[data-av]').forEach(el => el.onclick = async () => { const x = st.find(y => y.k === el.dataset.av); if (x && !x.ok) { S.avTried.add(x.k); if (!await avRun(x.k)) avNext(); } });
+}
+async function avNext() {
+  if (!S.avOpen || S.avBusy) return; S.avBusy = true;
+  try {
+    for (;;) {
+      await avStatus(); avSheet();
+      const x = avSteps().find(y => !y.ok && !S.avTried.has(y.k));
+      if (!x) { if (!avMissing()) { S.avOpen = false; $('#overlay').innerHTML = ''; toast('Avisos configurados ✓'); render(true); } return; }
+      S.avTried.add(x.k);
+      if (await avRun(x.k)) return;   // ha salido a los ajustes: se sigue al volver
+    }
+  } finally { S.avBusy = false; }
+}
+function avOpen(auto) { S.avOpen = true; S.avTried = new Set(); avSheet(); if (auto) setTimeout(avNext, 700); }
+async function avInit() {
+  if (!await avStatus()) return;
+  render(true);
+  if (avMissing() && avRelevant() && Date.now() - ls.get('sa_av_ask', 0) > 864e5) { ls.set('sa_av_ask', Date.now()); avOpen(true); }
+}
+// al volver de los ajustes del sistema se sigue con el siguiente paso
+const avResume = () => { if (S.avOpen) setTimeout(avNext, 500); else if (S.av) avStatus().then(() => render(true)); };
+try { if (NATIVE && window.Capacitor.Plugins.App) window.Capacitor.Plugins.App.addListener('resume', avResume); } catch (e) {}
 function openUrl(u) {
   const q = new URL(u, location.href).searchParams;
   if (q.get('chat')) S.view = { t: 'chat', id: q.get('chat') };
@@ -529,7 +596,7 @@ function renderHome() {
         <div class="grow"><div class="t">${esc(c.name || c.public_name || 'Sin nombre')}</div>${c.private_info || c.owner_id !== S.user.id ? `<div class="s">${esc(c.private_info || '')}${c.owner_id !== S.user.id ? ' · compartido contigo' : ''}</div>` : ''}</div>
         ${c.owner_id === S.user.id ? `<button class="ib" data-edit="${c.id}" title="Ajustes">${IC.sliders(24)}</button>` : ''}<button class="ib" data-qr="${c.id}" title="Ver código">${IC.expand(24)}</button></div>`).join('')
       : `<div class="empty">Aún no tienes códigos.<br>Pulsa <b>+</b> para crear uno o para vincular un pack de pegatinas.</div>`;
-    const nb = !notifOn() && (S.codes.some(c => c.is_on && (c.ch_alert || c.auto_alert || c.ch_chat || c.ch_mail || c.ch_call)) || (S.vchats || []).length) ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Activa las notificaciones</b><br>Sin ellas, no te enterarás de alertas ni mensajes con la app cerrada.</div><span class="nbtn">Activar</span></div>` : '';
+    const nb = NATIVE && S.av ? (avMissing() && avRelevant() ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Completa la configuración de avisos</b><br>Sin ella, no te enterarás de alertas ni mensajes con la app cerrada.</div><span class="nbtn">Configurar</span></div>` : '') : !notifOn() && (S.codes.some(c => c.is_on && (c.ch_alert || c.auto_alert || c.ch_chat || c.ch_mail || c.ch_call)) || (S.vchats || []).length) ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Activa las notificaciones</b><br>Sin ellas, no te enterarás de alertas ni mensajes con la app cerrada.</div><span class="nbtn">Activar</span></div>` : '';
     body = nb + tourHTML() + body;
   } else if (tab === 'chats') {
     const list = S.chats.filter(c => match(c.name, codeOf(c.code_id)?.name, lastMsg(c.id)?.body)).sort((a, b) => new Date(lastMsg(b.id)?.created_at || b.created_at) - new Date(lastMsg(a.id)?.created_at || a.created_at));
@@ -576,7 +643,7 @@ function renderHome() {
   $('#bScan').onclick = () => { S.view = { t: 'pack', scan: true, only: true }; render(); };
   $('#bMenu').onclick = accountMenu;
   bindTour();
-  if ($('#bNotif')) $('#bNotif').onclick = () => askNotif(true);
+  if ($('#bNotif')) $('#bNotif').onclick = () => NATIVE && S.av ? avOpen(true) : askNotif(true);
   $('#bSearch').onclick = () => { S.searching = !S.searching; if (!S.searching) S.q = ''; render(); if (S.searching) $('#sq').focus(); };
   if ($('#sq')) $('#sq').oninput = e => { S.q = e.target.value; const pos = e.target.selectionStart; render(); const i = $('#sq'); i.focus(); i.setSelectionRange(pos, pos); };
 }
@@ -584,7 +651,7 @@ function renderHome() {
 function accountMenu() {
   $('#overlay').innerHTML = `<div class="sheet" id="am"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));text-align:left" onclick="event.stopPropagation()">
     <div style="font-weight:700">${esc(S.user.email)}</div><div style="font-size:13px;color:#777;margin-bottom:14px">Tu email no se muestra nunca a quien escanea tus códigos.</div>
-    <button class="btn light" id="nt" style="margin-bottom:8px">${IC.bell(20)}${notifOn() ? 'Notificaciones activadas ✓' : 'Activar notificaciones'}</button>
+    <button class="btn light" id="nt" style="margin-bottom:8px">${IC.bell(20)}${NATIVE && S.av ? (avMissing() ? 'Configurar avisos' : 'Avisos configurados ✓') : notifOn() ? 'Notificaciones activadas ✓' : 'Activar notificaciones'}</button>
     <button class="btn light" id="sp" style="margin-bottom:8px">${IC.lock(20)}Lugares seguros (${(S.places || []).length})</button>
     <button class="btn light" id="how" style="margin-bottom:8px">${IC.play(20)}Cómo funciona</button>
     ${NATIVE ? `<a class="btn light" href="https://www.scan2com.com/app/scan2com.apk" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.refresh(20)}Actualizar la app</a>` : ''}
@@ -595,7 +662,7 @@ function accountMenu() {
   $('#sp').onclick = placesSheet;
   $('#how').onclick = () => { $('#overlay').innerHTML = ''; S.tourForce = true; S.tab = 'codes'; S.view = null; render(); setTimeout(playTour, 100); };
   $('#lo').onclick = async () => { await sb.auth.signOut(); location.reload(); };
-  $('#nt').onclick = async () => { $('#overlay').innerHTML = ''; if (notifOn()) return toast('Las notificaciones ya están activadas en este móvil.'); await enablePush(true); };
+  $('#nt').onclick = async () => { $('#overlay').innerHTML = ''; if (NATIVE && S.av) return avOpen(true); if (notifOn()) return toast('Las notificaciones ya están activadas en este móvil.'); await enablePush(true); };
   $('#ins').onclick = () => { $('#overlay').innerHTML = ''; toast('En Chrome (Android): menú ⋮ → “Añadir a pantalla de inicio”. En iPhone (Safari): Compartir → “Añadir a pantalla de inicio”.'); };
 }
 
@@ -848,10 +915,16 @@ function renderChat() {
 async function openScanned(id) {
   id = String(id || '').toUpperCase(); if (!id) return;
   if (codeOf(id)) { S.view = { t: 'qr', id }; return render(); }
-  try { const r = await sb.rpc('my_visitor_chats'); if (r.data) S.vchats = r.data; } catch (e) {}
+  const v0 = (S.vchats || []).find(x => x.code_id === id);
+  if (v0) { S.view = { t: 'vchat', id: v0.id }; return render(); }
+  busy(true);
+  let c = null;
+  try {
+    const [l, p] = await Promise.all([sb.rpc('my_visitor_chats').catch(() => ({})), sb.rpc('public_code', { p_id: id })]);
+    if (l.data) S.vchats = l.data; c = p.data;
+  } finally { busy(false); }
   const v = (S.vchats || []).find(x => x.code_id === id);
   if (v) { S.view = { t: 'vchat', id: v.id }; return render(); }
-  const { data: c } = await sb.rpc('public_code', { p_id: id });
   const web = `${SITE}/s/${id}?web=1`;
   if (!c || c.status === 'not_found') return toast('Ese código no existe.');
   if (c.status === 'redirect' && /^https?:\/\//i.test(c.url || '')) { location.href = c.url; return; }
@@ -871,6 +944,11 @@ async function openScanned(id) {
 }
 // abre un chat nuevo con un código ajeno, ya dentro de la app y vinculado a mi cuenta
 async function startVChat(id) {
+  busy(true);
+  try { await startVChat2(id); } finally { busy(false); }
+}
+function busy(on) { let el = $('#busy'); if (!on) return el && el.remove(); if (el) return; el = document.createElement('div'); el.id = 'busy'; el.className = 'busy'; el.innerHTML = '<div style="text-align:center"><i></i>Abriendo…</div>'; document.body.appendChild(el); }
+async function startVChat2(id) {
   const { data: r } = await sb.rpc('start_chat', { p_id: id, p_first: null });
   if (!r?.ok) return toast(r?.error === 'rate_limited' ? 'Demasiados chats nuevos con este código. Prueba en unos minutos.' : 'Este código no admite chat ahora.');
   await sb.rpc('link_visitor_chat', { p_chat: r.chat_id, p_token: r.token });
@@ -995,13 +1073,14 @@ async function qrDecode(R, v, cv, x, n) {
   if (R.bd) { const b = (await R.bd.detect(v))[0]; return b ? qrLoc(b.cornerPoints, b.rawValue) : null; }
   const W = v.videoWidth, H = v.videoHeight;
   if (R.zx) {
-    cv.width = W; cv.height = H; x.drawImage(v, 0, 0);
-    const b = (await R.zx(x.getImageData(0, 0, W, H), { formats: ['QRCode'], tryHarder: true, maxNumberOfSymbols: 1 }))[0];
-    if (b && b.isValid) { const p = b.position; return qrLoc([p.topLeft, p.topRight, p.bottomRight, p.bottomLeft], b.text); }
+    const z = Math.min(1, 1280 / Math.max(W, H)), w = Math.round(W * z), h = Math.round(H * z);
+    cv.width = w; cv.height = h; x.drawImage(v, 0, 0, w, h);
+    const b = (await R.zx(x.getImageData(0, 0, w, h), { formats: ['QRCode'], tryHarder: true, maxNumberOfSymbols: 1 }))[0];
+    if (b && b.isValid) { const p = b.position, u = q => ({ x: q.x / z, y: q.y / z }); return qrLoc([u(p.topLeft), u(p.topRight), u(p.bottomRight), u(p.bottomLeft)], b.text); }
     return null;
   }
   // jsQR: alterna imagen reducida (lee mejor los módulos redondeados) y completa
-  const k = n % 2 ? Math.min(1, 640 / Math.max(W, H)) : 1, w = Math.round(W * k), h = Math.round(H * k);
+  const k = Math.min(1, (n % 2 ? 640 : 1100) / Math.max(W, H)), w = Math.round(W * k), h = Math.round(H * k);
   cv.width = w; cv.height = h; x.drawImage(v, 0, 0, w, h);
   const r = jsQR(x.getImageData(0, 0, w, h).data, w, h);
   if (r && k !== 1) { const sc = p => p && ({ x: p.x / k, y: p.y / k }); for (const key in r.location) r.location[key] = sc(r.location[key]); }
@@ -1022,7 +1101,7 @@ async function startScan() {
       if (!stream) return;
       if (r) return found(r);
     }
-    setTimeout(tick, 60);
+    setTimeout(tick, det.bd ? 80 : 160);
   };
   // código detectado: congelar la imagen, mostrar los puntos láser sobre los cuadrados del QR y esperar 1 s
   const found = r => {
@@ -1035,7 +1114,7 @@ async function startScan() {
       g.strokeStyle = 'rgba(255,40,40,.55)'; g.lineWidth = 2; g.beginPath();
       [L.topLeftCorner, L.topRightCorner, L.bottomRightCorner, L.bottomLeftCorner].forEach((q, i) => i ? g.lineTo(q.x * k, q.y * k) : g.moveTo(q.x * k, q.y * k)); g.closePath(); g.stroke();
       P.forEach((q, i) => { const rad = (i === 3 ? 5 : 8) * f; g.fillStyle = 'rgba(255,214,0,.35)'; g.beginPath(); g.arc(q.x * k, q.y * k, rad * 2.2, 0, 7); g.fill(); g.fillStyle = '#ffd600'; g.shadowColor = '#ffea00'; g.shadowBlur = 12; g.beginPath(); g.arc(q.x * k, q.y * k, rad, 0, 7); g.fill(); g.shadowBlur = 0; });
-      if (now - t0 < 1000) requestAnimationFrame(draw); else { stopCam(); $('#cw')?.classList.remove('found'); handleScan(r.data); }
+      if (now - t0 < 600) requestAnimationFrame(draw); else { stopCam(); $('#cw')?.classList.remove('found'); handleScan(r.data); }
     };
     try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
     requestAnimationFrame(draw);
@@ -1046,7 +1125,7 @@ function handleScan(t) {
   const pack = t.match(/\/(?:link|p)\/([A-Z0-9]+)/i), code = t.match(/\/s\/([A-Z0-9]+)/i);
   if (pack) return claim(pack[1]);
   if (code && S.auth) { S.view = null; render(); return policeSheet(code[1].toUpperCase()); }
-  if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: 'qr', id: c.id }; return render(); } stopCam(); if (/^https:\/\/(www\.)?scan2com\.com\//i.test(t)) { openScanned(code[1].toUpperCase()); return; } window.open(t, '_blank'); S.view = null; return render(); }
+  if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: 'qr', id: c.id }; return render(); } stopCam(); app.classList.remove('full'); if (/^https:\/\/(www\.)?scan2com\.com\//i.test(t)) { openScanned(code[1].toUpperCase()); return; } window.open(t, '_blank'); S.view = null; return render(); }
   toast('Ese QR no es de Scan2Com: ' + t.slice(0, 60)); if (S.view?.only) S.view.scan = true; renderPack();
 }
 async function claim(id) {
@@ -1216,7 +1295,7 @@ async function start(session) {
   app.innerHTML = `<div style="position:fixed;inset:0;background:#000;display:grid;place-items:center;z-index:30"><img src="/app/img2014/icon.png" width="170" height="170" alt="Scan2Com" onerror="this.src='/app/icon-192.png'"></div>`;
   await loadAll(); await ensureStarter(); await ensureCar(); subscribe(); render(); syncAuto(); checkTerms();
   if (location.search) { openUrl(location.href); history.replaceState(null, '', '/app/'); }
-  if (NATIVE) enableNativePush(false); else if (pushOK() && Notification.permission === 'granted') enablePush(false);
+  if (NATIVE) { await Promise.race([enableNativePush(false), new Promise(r => setTimeout(r, 5000))]); avInit(); } else if (pushOK() && Notification.permission === 'granted') enablePush(false);
 }
 /* ---------- vídeo de bienvenida: solo la primera vez que se abre la app ---------- */
 (function intro() {

@@ -2,11 +2,13 @@
   "name": "scanand-pro-android",
   "private": true,
   "dependencies": {
+    "@capacitor-community/text-to-speech": "^8.0.2",
     "@capacitor/android": "^8.6.2",
     "@capacitor/app": "^8.1.2",
     "@capacitor/cli": "^8.6.2",
     "@capacitor/core": "^8.6.2",
+    "@capacitor/filesystem": "^8.1.5",
     "@capacitor/push-notifications": "^8.1.3",
-    "@capacitor-community/text-to-speech": "^8.0.2"
+    "@capacitor/share": "^8.0.3"
   }
 }

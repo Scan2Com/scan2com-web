@@ -18,15 +18,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ScanAutoPlugin.class);
         super.onCreate(b);
         AlarmService.channels(this);
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
-            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7);
-        // Android 14+: permiso para mostrar la sirena a pantalla completa
-        if (Build.VERSION.SDK_INT >= 34) {
-            NotificationManager nm = getSystemService(NotificationManager.class);
-            if (!nm.canUseFullScreenIntent()) {
-                try { startActivity(new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:" + getPackageName()))); } catch (Exception ignored) {}
-            }
-        }
+        // los permisos (notificaciones, batería, autoinicio, pantalla completa) los pide la web con el asistente "Configura los avisos"
         openFrom(getIntent());
     }
 

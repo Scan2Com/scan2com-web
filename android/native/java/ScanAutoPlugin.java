@@ -2,6 +2,9 @@ package com.scan2com.app;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AppOpsManager;
+import android.app.NotificationManager;
+import android.content.ComponentName;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -19,6 +22,7 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -87,6 +91,88 @@ public class ScanAutoPlugin extends Plugin {
     public void setConfig(PluginCall call) {
         String json = call.getString("json", "{}");
         Auto.saveCfg(getContext(), json);
+        call.resolve();
+    }
+
+    /* ---------- configuración de avisos: notificaciones, batería, autoinicio (Xiaomi, Oppo, Vivo, Huawei…) ---------- */
+    private static final String[][] AUTOSTART = {
+        {"com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"},
+        {"com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"},
+        {"com.coloros.safecenter", "com.coloros.safecenter.startupapp.StartupAppListActivity"},
+        {"com.oppo.safe", "com.oppo.safe.permission.startup.StartupAppListActivity"},
+        {"com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"},
+        {"com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"},
+        {"com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"},
+        {"com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity"},
+        {"com.oneplus.security", "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity"},
+        {"com.asus.mobilemanager", "com.asus.mobilemanager.autostart.AutoStartActivity"},
+    };
+    private static boolean needsAutostart() {
+        String b = (Build.MANUFACTURER + " " + Build.BRAND).toLowerCase();
+        for (String k : new String[]{"xiaomi", "redmi", "poco", "oppo", "realme", "vivo", "iqoo", "huawei", "honor", "oneplus", "asus"}) if (b.contains(k)) return true;
+        return false;
+    }
+    /** Xiaomi permite saber si el autoinicio está activado: 1 sí, 0 no, -1 no se sabe. */
+    private int autostartOn() {
+        String b = (Build.MANUFACTURER + " " + Build.BRAND).toLowerCase();
+        if (!(b.contains("xiaomi") || b.contains("redmi") || b.contains("poco"))) return -1;
+        try {
+            AppOpsManager ops = (AppOpsManager) getContext().getSystemService(Context.APP_OPS_SERVICE);
+            Method m = AppOpsManager.class.getMethod("checkOpNoThrow", int.class, int.class, String.class);
+            int r = (int) m.invoke(ops, 10008, android.os.Process.myUid(), getContext().getPackageName());
+            return r == AppOpsManager.MODE_ALLOWED ? 1 : 0;
+        } catch (Exception e) { return -1; }
+    }
+
+    @PluginMethod
+    public void avisos(PluginCall call) {
+        Context c = getContext();
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
+        JSObject r = new JSObject();
+        r.put("notif", nm != null && nm.areNotificationsEnabled() && (Build.VERSION.SDK_INT < 33 || granted(Manifest.permission.POST_NOTIFICATIONS)));
+        r.put("battery", pm != null && pm.isIgnoringBatteryOptimizations(c.getPackageName()));
+        r.put("autostart", needsAutostart());
+        r.put("autostartOn", autostartOn());
+        r.put("fullscreen", Build.VERSION.SDK_INT < 34 || (nm != null && nm.canUseFullScreenIntent()));
+        r.put("brand", Build.MANUFACTURER);
+        call.resolve(r);
+    }
+
+    private void go(Intent i) {
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try { getActivity().startActivity(i); }
+        catch (Exception e) {
+            try { getActivity().startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName())).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) {}
+        }
+    }
+
+    /** Si el permiso de notificaciones ya se denegó, Android no vuelve a preguntar: se abre su pantalla de ajustes. */
+    @PluginMethod
+    public void openNotif(PluginCall call) {
+        Intent i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName());
+        go(i); call.resolve();
+    }
+
+    @PluginMethod
+    public void askBattery(PluginCall call) {
+        @SuppressLint("BatteryLife") Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getContext().getPackageName()));
+        go(i); call.resolve();
+    }
+
+    @PluginMethod
+    public void openAutostart(PluginCall call) {
+        for (String[] a : AUTOSTART) {
+            Intent i = new Intent().setComponent(new ComponentName(a[0], a[1])).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try { getActivity().startActivity(i); call.resolve(); return; } catch (Exception ignored) {}
+        }
+        go(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName())));
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void openFullScreen(PluginCall call) {
+        if (Build.VERSION.SDK_INT >= 34) go(new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:" + getContext().getPackageName())));
         call.resolve();
     }
 }

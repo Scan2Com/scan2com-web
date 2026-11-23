@@ -115,6 +115,7 @@ async function rpc(fn, args) {
 async function load() {
   if (!id) { app.innerHTML = `<div class="center">${LOGO}<h2>Scan2Com</h2><p>Escanea un código Scan2Com con la cámara de tu móvil.</p></div>`; return; }
   [code] = await Promise.all([rpc('public_code', { p_id: id }), loadAuthority()]);
+  if (chat) linkChat();
   if (!code || code.status === 'not_found' || code.ok === false) { app.innerHTML = `<div class="center">${LOGO}<h2>Código no encontrado</h2><p>Revisa que el QR se haya leído bien.</p></div>`; return; }
   if (code.status === 'unclaimed') { app.innerHTML = `<div class="center">${LOGO}<h2>Pegatina sin activar</h2><p>Esta pegatina Scan2Com aún no tiene dueño. Si es tuya, vincúlala desde la app escaneando el QR maestro de tu pack.</p></div>`; return; }
   if (code.status === 'redirect' && /^https?:\/\//i.test(code.url)) { app.innerHTML = `<div class="center">${LOGO}<p>Abriendo <a href="${esc(code.url)}" rel="noopener">${esc(code.url.replace(/^https?:\/\//, ''))}</a>…</p></div>`; location.replace(code.url); return; }
@@ -193,6 +194,9 @@ function renderMail() {
 }
 
 async function openChat() {
+  if (!chat) {   // con sesión de Scan2Com: si ya tengo chat con este código, se reutiliza (un chat por código y persona)
+    try { if (!sbA) await loadAuthority(); if (sbA) { const { data } = await sbA.rpc('my_chat_for_code', { p_id: id }); if (data?.ok) { chat = { id: data.chat_id, token: data.token }; try { localStorage.setItem(chatKey(), JSON.stringify(chat)); } catch (e) {} } } } catch (e) {}
+  }
   if (!chat) {
     const first = wsText();
     const r = await rpc('start_chat', { p_id: id, p_first: first || null });
@@ -203,11 +207,16 @@ async function openChat() {
     await rpc('visitor_send', { p_chat: chat.id, p_token: chat.token, p_body: wsText() });
   }
   view = 'chat'; renderChat(); fetchMsgs(); clearInterval(poll); poll = setInterval(fetchMsgs, 3000);
+  linkChat();
+}
+// si quien escanea tiene sesión de Scan2Com en este navegador o en la app, el chat queda también en su lista de chats
+async function linkChat() {
+  try { if (!sbA) await loadAuthority(); if (sbA && chat) await sbA.rpc('link_visitor_chat', { p_chat: chat.id, p_token: chat.token }); } catch (e) {}
 }
 
 function renderChat() {
   app.innerHTML = `
-    <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div><span style="font-size:12px;color:#777">chat anónimo</span></div>
+    <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div>${sbA ? `<a href="/app/?vchat=${chat.id}" style="font-size:13px;color:#0a8f8f;font-weight:600;text-decoration:none">Mis chats ›</a>` : '<span style="font-size:12px;color:#777">chat anónimo</span>'}</div>
     <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
     ${alive ? `<div class="ws"><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs">Enviar</button></div>` : ''}`;
   $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };

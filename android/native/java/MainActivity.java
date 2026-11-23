@@ -36,6 +36,8 @@ public class MainActivity extends BridgeActivity {
     private void openFrom(Intent i) {
         if (i == null) return;
         String u = i.getStringExtra("url");
+        // enlace https://scan2com.com/s/… abierto desde la cámara, WhatsApp, etc.
+        if (u == null && i.getData() != null && String.valueOf(i.getData().getHost()).endsWith("scan2com.com")) u = i.getData().toString();
         if (u == null || getBridge() == null) return;
         final String full = u.startsWith("http") ? u : SITE + u;
         getBridge().getWebView().post(() -> getBridge().getWebView().loadUrl(full));

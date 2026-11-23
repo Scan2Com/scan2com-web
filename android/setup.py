@@ -19,6 +19,70 @@ os.makedirs(os.path.join(RES, 'drawable'), exist_ok=True)
 for f in ('alert_red.png', 'alert_white.png'):
     shutil.copy(os.path.join(ROOT, 'app', f), os.path.join(RES, 'drawable', f))
 
+# 2b) agente de policía para los avisos de autoridad: emoji 3D de Google Noto (Apache 2.0),
+#     hombre con pelo corto, retocado con gesto serio (cejas fruncidas y boca recta)
+def police_png():
+    import urllib.request
+    from PIL import ImageDraw, ImageFilter
+    url = 'https://raw.githubusercontent.com/googlefonts/noto-emoji/main/3D/png/512/emoji_u1f46e_200d_2642.png'
+    im = Image.open(io.BytesIO(urllib.request.urlopen(url, timeout=60).read())).convert('RGBA')
+    px = im.load()
+    def fill_cols(x0, x1, y0, y1):   # borra una zona rellenando cada columna con la piel de arriba y de abajo
+        for x in range(x0, x1):
+            top, bot = px[x, y0], px[x, y1]
+            for y in range(y0, y1 + 1):
+                t = (y - y0) / (y1 - y0); px[x, y] = tuple(round(top[i] * (1 - t) + bot[i] * t) for i in range(4))
+    fill_cols(156, 232, 188, 213); fill_cols(280, 356, 188, 213); fill_cols(196, 316, 300, 360)
+    blur = im.filter(ImageFilter.GaussianBlur(1.5)); msk = Image.new('L', im.size, 0); d = ImageDraw.Draw(msk)
+    for r in ((196, 300, 316, 360), (156, 188, 232, 213), (280, 188, 356, 213)): d.rectangle(r, fill=255)
+    im = Image.composite(blur, im, msk.filter(ImageFilter.GaussianBlur(2)))
+    S = 4; big = im.resize((512 * S, 512 * S), Image.LANCZOS)
+    lay = Image.new('RGBA', big.size, (0, 0, 0, 0)); d = ImageDraw.Draw(lay)
+    def stroke(p, q, w, col):
+        d.line([(p[0] * S, p[1] * S), (q[0] * S, q[1] * S)], fill=col, width=int(w * S))
+        for c in (p, q): d.ellipse(((c[0] - w / 2) * S, (c[1] - w / 2) * S, (c[0] + w / 2) * S, (c[1] + w / 2) * S), fill=col)
+    stroke((166, 196), (224, 205), 12, (104, 58, 40, 255)); stroke((288, 205), (346, 196), 12, (104, 58, 40, 255))
+    stroke((230, 327), (282, 327), 7, (72, 34, 24, 255))
+    big = Image.alpha_composite(big, lay.filter(ImageFilter.GaussianBlur(0.6 * S)))
+    sh = Image.new('RGBA', big.size, (0, 0, 0, 0)); ImageDraw.Draw(sh).ellipse((238 * S, 335 * S, 274 * S, 343 * S), fill=(190, 110, 0, 60))
+    big = Image.alpha_composite(big, sh.filter(ImageFilter.GaussianBlur(3 * S)))
+    out = big.resize((512, 512), Image.LANCZOS); out = out.crop(out.getbbox())
+    W, H = 480, 552; k = min(W * 0.96 / out.width, H * 0.96 / out.height)
+    out = out.resize((int(out.width * k), int(out.height * k)), Image.LANCZOS)
+    canvas = Image.new('RGBA', (W, H), (0, 0, 0, 0)); canvas.paste(out, ((W - out.width) // 2, (H - out.height) // 2), out)
+    return canvas
+try:
+    pol = police_png()
+except Exception as e:
+    print('aviso: no se pudo generar el agente de policía:', e); pol = Image.open(os.path.join(ROOT, 'app', 'alert_red.png'))
+pol.save(os.path.join(RES, 'drawable', 'police.png'))
+_webimg = os.path.join(ROOT, 'app', 'img2014'); os.makedirs(_webimg, exist_ok=True)
+pol.save(os.path.join(_webimg, 'police.png'), optimize=True)
+
+# 2c) base de la pegatina alta del coche, recortada de la plantilla original de Luis (si está en el repo)
+def sticker_base():
+    from PIL import ImageDraw
+    src = None   # la plantilla de pegatinas de coche: PNG apaisado de unos 2480 x 1181
+    for f in sorted(os.listdir(HERE)):
+        if f.lower().endswith('.png'):
+            with Image.open(os.path.join(HERE, f)) as im:
+                if im.width >= 1200 and 2.0 < im.width / im.height < 2.2: src = os.path.join(HERE, f)
+    if not src: return
+    t = Image.open(src).convert('RGB')
+    k = t.width / 2480                              # la plantilla original mide 2480 x 1181
+    box = [round(v * k) for v in (20, 20, 583, 792)]
+    st = t.crop(box).resize((1126, 1544), Image.LANCZOS)
+    d = ImageDraw.Draw(st); d.rounded_rectangle((114, 120, 1012, 1018), radius=80, fill='white')   # quita el QR de ejemplo
+    st = st.convert('RGBA'); tmp = st.convert('RGB')
+    for p in ((0, 0), (st.width - 1, 0), (0, st.height - 1), (st.width - 1, st.height - 1)):
+        ImageDraw.floodfill(tmp, p, (1, 2, 3), thresh=40)                               # fondo blanco exterior -> transparente
+    a = st.getchannel('A'); tp = tmp.load(); ap = a.load()
+    for y in range(st.height):
+        for x in range(st.width):
+            if tp[x, y] == (1, 2, 3): ap[x, y] = 0
+    st.putalpha(a); st.resize((563, 772), Image.LANCZOS).save(os.path.join(_webimg, 'pegatina_coche.png'), optimize=True)
+sticker_base()
+
 # 3) sonido de sirena (barrido 650-1500 Hz, 1,8 s, se repite en bucle)
 os.makedirs(os.path.join(RES, 'raw'), exist_ok=True)
 sr, dur = 22050, 1.8
@@ -101,7 +165,7 @@ if _sp:
     # icono adaptativo (Android 8+): fondo negro + icono original en alta resolución, sin bordes blancos
     for d, sz in {'mdpi': 108, 'hdpi': 162, 'xhdpi': 216, 'xxhdpi': 324, 'xxxhdpi': 432}.items():
         p = os.path.join(RES, 'mipmap-' + d); os.makedirs(p, exist_ok=True)
-        fg = Image.new('RGBA', (sz, sz), (0, 0, 0, 0)); side = int(sz * 0.64)
+        fg = Image.new('RGBA', (sz, sz), (0, 0, 0, 0)); side = int(sz * 0.50)  # entero dentro del círculo visible
         ic = icon.resize((side, int(side * icon.height / icon.width)), Image.LANCZOS)
         fg.paste(ic, ((sz - ic.width) // 2, (sz - ic.height) // 2)); fg.save(os.path.join(p, 'ic_launcher_foreground.png'))
     ad = os.path.join(RES, 'mipmap-anydpi-v26'); os.makedirs(ad, exist_ok=True)

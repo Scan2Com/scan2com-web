@@ -289,58 +289,171 @@ if os.path.exists(ks) and os.environ.get('ANDROID_KEY_PASS'):
     print('firma fija: ok')
 else: print('AVISO: sin release.p12 o sin ANDROID_KEY_PASS: firma temporal')
 def relieve(src):
-    """Relieve al estilo de la S de 2014: marco negro con degradado, bisel y sombra; check con bisel."""
+    """Relieve en el rectángulo negro (degradado, bisel, brillo y sombra) y bisel en el check; respeta la transparencia."""
     import numpy as np
     from PIL import ImageFilter
     src = src.convert('RGBA').resize((1024, 1024), Image.LANCZOS)
-    A = np.asarray(src).astype(float); rgb = A[..., :3]; W = 1024
-    mx = rgb.max(-1); mn = rgb.min(-1); yy, xx = np.mgrid[0:W, 0:W]
-    center = (xx > 190) & (xx < 830) & (yy > 190) & (yy < 830)
+    A = np.asarray(src).astype(float); rgb = A[..., :3]; al = A[..., 3]; W = 1024
+    mx = rgb.max(-1); yy, xx = np.mgrid[0:W, 0:W]
     im_ = lambda m: Image.fromarray((m * 255).astype('uint8'))
     arr = lambda i: np.asarray(i).astype(float) / 255
     blur = lambda m, r: arr(im_(m).filter(ImageFilter.GaussianBlur(r)))
-    dark = ((mx < 90) & center).astype(float)
-    shape = (arr(im_(dark).filter(ImageFilter.MaxFilter(31)).filter(ImageFilter.MinFilter(31))) > 0.5) & center
-    green = (rgb[..., 1] > 150) & (rgb[..., 0] < 140) & (rgb[..., 2] < 140) & (xx > 380) & (xx < 650) & (yy > 440) & (yy < 620)
+    dark = ((mx < 90) & (al > 200)).astype(float)
+    shape = arr(im_(dark).filter(ImageFilter.MaxFilter(31)).filter(ImageFilter.MinFilter(31))) > 0.5
+    ys, xs = np.where(shape); y0, y1, x0, x1 = ys.min(), ys.max(), xs.min(), xs.max()
+    box = (xx >= x0) & (xx <= x1) & (yy >= y0) & (yy <= y1)
+    shape &= box
+    green = (rgb[..., 1] > 150) & (rgb[..., 0] < 160) & (rgb[..., 2] < 160) & box & (al > 200)
     def bevel(m, r, amp):
         h = blur(m.astype(float), r); gy, gx = np.gradient(h); L = -(gx + gy); L /= (np.abs(L).max() + 1e-6); return L * amp
-    out = rgb.copy()
+    out = rgb.copy(); a2 = al.copy()
+    # sombra del rectángulo: sobre el blanco interior y, fuera, como sombra semitransparente
     sh = blur(np.roll(np.roll(shape | green, 10, 0), 7, 1).astype(float), 14)
-    white = (mn > 235) & center
+    white = (rgb.min(-1) > 235) & (al > 200) & box
     out[white] *= (1 - 0.28 * sh[white])[:, None]
-    g = ((830 - yy) / 640).clip(0, 1); darkness = (1 - mx / 90).clip(0, 1)
+    outside = (al < 30)
+    shs = blur(np.roll(np.roll(shape, 12, 0), 8, 1).astype(float), 16) * 0.45
+    out[outside] = 0; a2[outside] = np.maximum(al, shs * 255)[outside]
+    H = y1 - y0
+    g = ((y1 - yy) / H).clip(0, 1); darkness = (1 - mx / 90).clip(0, 1)
     out += (((14 + 34 * g) * darkness) * shape)[..., None]
     out += (bevel(shape, 6, 95) * shape * darkness)[..., None]
-    out += ((np.exp(-((xx - 300) ** 2 + (yy - 260) ** 2) / (2 * 180 ** 2)) * 35 * darkness) * shape)[..., None]
+    cx, cy = x0 + (x1 - x0) * 0.2, y0 + H * 0.12
+    out += ((np.exp(-((xx - cx) ** 2 + (yy - cy) ** 2) / (2 * (H * 0.3) ** 2)) * 35 * darkness) * shape)[..., None]
     out += (bevel(green, 4, 70) * green)[..., None]
-    return Image.fromarray(np.dstack([out.clip(0, 255), A[..., 3]]).astype('uint8'), 'RGBA')
+    return Image.fromarray(np.dstack([out.clip(0, 255), a2.clip(0, 255)]).astype('uint8'), 'RGBA')
+
+def qr_matrix(text):
+    import qrcode, numpy as np
+    q = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_H, border=0); q.add_data(text); q.make(fit=True)
+    return np.array(q.get_matrix(), bool)
+def pretty(M, p):
+    """QR redondeado como el de la app (módulos unidos con esquinas redondas, ojos redondeados)."""
+    from PIL import ImageDraw
+    n = len(M); ss = 4; P = p * ss
+    im = Image.new('L', (n * P, n * P), 0); d = ImageDraw.Draw(im)
+    on = lambda c, r: 0 <= c < n and 0 <= r < n and M[r][c]
+    D = [(-1, -1), (1, -1), (1, 1), (-1, 1)]
+    def quad(c, r, dx, dy, v):
+        x = c * P + (P // 2 if dx > 0 else 0); y = r * P + (P // 2 if dy > 0 else 0); d.rectangle((x, y, x + P // 2, y + P // 2), fill=v)
+    def dot(c, r, v): d.ellipse((c * P, r * P, c * P + P - 1, r * P + P - 1), fill=v)
+    for r in range(n):
+        for c in range(n):
+            if on(c, r):
+                for dx, dy in D:
+                    if on(c + dx, r) or on(c, r + dy) or on(c + dx, r + dy): quad(c, r, dx, dy, 255)
+                dot(c, r, 255)
+    for r in range(n):
+        for c in range(n):
+            if not on(c, r):
+                for dx, dy in D:
+                    if on(c + dx, r) and on(c, r + dy): quad(c, r, dx, dy, 255)
+                if not any(on(c + dx, r) and on(c, r + dy) for dx, dy in D): pass
+                # hueco redondo
+                tmp = Image.new('L', im.size, 0); ImageDraw.Draw(tmp).ellipse((c * P, r * P, c * P + P - 1, r * P + P - 1), fill=255)
+                im.paste(0, mask=tmp) if False else None
+    # huecos: dibuja de nuevo en negro (0) el círculo de cada módulo claro
+    for r in range(n):
+        for c in range(n):
+            if not on(c, r): d.ellipse((c * P, r * P, c * P + P - 1, r * P + P - 1), fill=0)
+    # ojos
+    def rr(x, y, w, rad, v): d.rounded_rectangle((x, y, x + w - 1, y + w - 1), radius=rad, fill=v)
+    for c, r in [(0, 0), (n - 7, 0), (0, n - 7)]:
+        X, Y = c * P, r * P; d.rectangle((X, Y, X + 7 * P - 1, Y + 7 * P - 1), fill=0)
+        rr(X, Y, 7 * P, int(1.4 * P), 255); rr(X + P, Y + P, 5 * P, int(0.9 * P), 0); rr(X + 2 * P, Y + 2 * P, 3 * P, int(0.8 * P), 255)
+    return im.resize((n * p, n * p), Image.LANCZOS)
+def qr_icon(src, text='https://scan2com.com'):
+    """Icono con un QR real a scan2com.com en lugar del rectángulo negro, con el tick verde original encima; se conservan boomerangs y láser."""
+    import numpy as np
+    from PIL import ImageDraw, ImageFilter
+    src = src.convert('RGBA').resize((1024, 1024), Image.LANCZOS)
+    A = np.asarray(src).astype(float); r, g, b, a = [A[..., i] for i in range(4)]
+    dark = (np.maximum(np.maximum(r, g), b) < 60) & (a > 200)
+    ys, xs = np.where(dark); x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
+    red = (r > 180) & (g < 90) & (b < 90) & (a > 150); ly = int(np.median(np.where(red)[0]))
+    # perfil vertical del láser, tomado fuera del rectángulo (sobre fondo transparente)
+    col = int((x0 + np.where(red)[1].min()) / 2) if np.where(red)[1].min() < x0 else x0 - 30
+    prof = A[ly - 45:ly + 46, col - 2:col + 3].mean(1)       # (91, 4)
+    out = src.copy()
+    # borra el rectángulo negro (y lo que hay dentro)
+    clear = Image.new('L', out.size, 0); ImageDraw.Draw(clear).rounded_rectangle((x0 - 3, y0 - 3, x1 + 3, y1 + 3), radius=int((x1 - x0) * 0.17), fill=255)
+    oa = np.asarray(out).copy(); cm = np.asarray(clear) > 0; oa[cm] = 0; out = Image.fromarray(oa, 'RGBA')
+    # baldosa blanca con relieve suave y sombra
+    w = x1 - x0; rad = int(w * 0.17)
+    sh = Image.new('L', out.size, 0); ImageDraw.Draw(sh).rounded_rectangle((x0 + 8, y0 + 12, x1 + 8, y1 + 12), radius=rad, fill=150)
+    sh = sh.filter(ImageFilter.GaussianBlur(14)); shadow = Image.new('RGBA', out.size, (0, 0, 0, 0)); shadow.putalpha(sh)
+    base = Image.new('RGBA', out.size, (0, 0, 0, 0)); base.alpha_composite(shadow); base.alpha_composite(out); out = base
+    tile = Image.new('RGBA', out.size, (0, 0, 0, 0)); ImageDraw.Draw(tile).rounded_rectangle((x0, y0, x1, y1), radius=rad, fill=(255, 255, 255, 255))
+    ta = np.asarray(tile).astype(float); yy, xx = np.mgrid[0:1024, 0:1024]
+    ta[..., :3] -= (((yy - y0) / w).clip(0, 1) * 18)[..., None]          # degradado: algo más gris abajo
+    m = (ta[..., 3] > 0).astype(float); h = np.asarray(Image.fromarray((m * 255).astype('uint8')).filter(ImageFilter.GaussianBlur(6))).astype(float) / 255
+    gy, gx = np.gradient(h); L = -(gx + gy); L /= np.abs(L).max() + 1e-6
+    ta[..., :3] += (L * 60 * m)[..., None]
+    tile = Image.fromarray(ta.clip(0, 255).astype('uint8'), 'RGBA'); out.alpha_composite(tile)
+    # QR
+    M = qr_matrix(text); n = len(M); p = int(w * 0.84 / n); q = pretty(M, p); qs = q.size[0]
+    qx, qy = x0 + (w - qs) // 2, y0 + (w - qs) // 2
+    ink = Image.new('RGBA', q.size, (20, 20, 20, 255)); ink.putalpha(q); out.alpha_composite(ink, (qx, qy))
+    # el tick verde del icono original, en el mismo sitio, por encima del QR (el QR lleva corrección de errores alta)
+    box = (xx >= x0) & (xx <= x1) & (yy >= y0) & (yy <= y1)
+    gk = ((g - np.maximum(r, b) - 25) / 70).clip(0, 1) * (a / 255) * box
+    tick = np.dstack([r, g, b, gk * 255])
+    out.alpha_composite(Image.fromarray(tick.clip(0, 255).astype('uint8'), 'RGBA'))
+    # láser por encima: perfil repetido a lo ancho del rectángulo + punto brillante
+    lay = np.zeros((1024, 1024, 4)); xs_ = np.arange(x0 - 4, x1 + 5)
+    lay[ly - 45:ly + 46, xs_] = prof[:, None, :]
+    laser = Image.fromarray(lay.clip(0, 255).astype('uint8'), 'RGBA'); out.alpha_composite(laser)
+    dx = int(x0 + w * 0.64)
+    glow = Image.new('L', out.size, 0); ImageDraw.Draw(glow).ellipse((dx - 40, ly - 40, dx + 40, ly + 40), fill=255); glow = glow.filter(ImageFilter.GaussianBlur(16))
+    gl = Image.new('RGBA', out.size, (255, 90, 20, 0)); gl.putalpha(glow); out.alpha_composite(gl)
+    core = Image.new('L', out.size, 0); ImageDraw.Draw(core).ellipse((dx - 17, ly - 17, dx + 17, ly + 17), fill=255); core = core.filter(ImageFilter.GaussianBlur(2.5))
+    cc = Image.new('RGBA', out.size, (255, 255, 215, 0)); cc.putalpha(core); out.alpha_composite(cc); out.alpha_composite(cc)
+    return out
 
 # 9) icono nuevo de Scan2Com (boomerangs verdes, check y láser): el PNG cuadrado más grande que haya en android/
+#    Si hay un .zip con el icono (p. ej. scan2com_icon.zip con scan2com_icon_1024.png, fondo transparente), se usa ese.
 _cands = []
+for z in glob.glob(os.path.join(HERE, '*.zip')):
+    try:
+        zz = zipfile.ZipFile(z)
+        for n in zz.namelist():
+            if n.lower().endswith('.png'):
+                im = Image.open(io.BytesIO(zz.read(n)))
+                if im.width == im.height and im.width >= 512: _cands.append((im.width + 10000, im))
+    except Exception as e: print('AVISO zip icono:', e)
 for f in glob.glob(os.path.join(HERE, '*.png')):
     try:
         w, h = Image.open(f).size
-        if w == h and w >= 512: _cands.append((w, f))
+        if w == h and w >= 512: _cands.append((w, Image.open(f)))
     except Exception: pass
 if _cands:
-    NEW = Image.open(max(_cands)[1]).convert('RGBA')
-    bg = Image.new('RGBA', NEW.size, (255, 255, 255, 255)); bg.alpha_composite(NEW); NEW = bg
-    try: NEW = relieve(NEW)
-    except Exception as e: print('AVISO relieve:', e)
+    from PIL import ImageDraw, ImageFilter
+    import numpy as np
+    NEW = max(_cands, key=lambda c: c[0])[1].convert('RGBA')
+    transparente = NEW.getchannel('A').getextrema()[0] < 128
+    if not transparente:
+        bg = Image.new('RGBA', NEW.size, (255, 255, 255, 255)); bg.alpha_composite(NEW); NEW = bg
+    try: NEW = qr_icon(NEW) if transparente else relieve(NEW)
+    except Exception as e: print('AVISO icono:', e)
+    if not transparente:
+        # fondo blanco exterior transparente (como el logo de 2014): se ve bien sobre las barras oscuras y el negro
+        probe = NEW.convert('RGB').resize((1024, 1024)); W0 = NEW.width
+        for p in [(2, 2), (1021, 2), (2, 1021), (1021, 1021), (512, 2), (512, 1021), (2, 512), (1021, 512)]:
+            ImageDraw.floodfill(probe, p, (255, 0, 255), thresh=70)
+        pa = np.asarray(probe); outer = (pa[..., 0] == 255) & (pa[..., 1] == 0) & (pa[..., 2] == 255)
+        om = Image.fromarray((outer * 255).astype('uint8')).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(1)).resize((W0, W0))
+        NEW.putalpha(Image.fromarray((np.asarray(NEW.getchannel('A')).astype(float) * (1 - np.asarray(om) / 255)).astype('uint8')))
     for root, _, files in os.walk(RES):
         for f in files:
             pth = os.path.join(root, f)
             if f in ('ic_launcher.png', 'ic_launcher_round.png'):
                 w, h = Image.open(pth).size; NEW.resize((w, h), Image.LANCZOS).save(pth)
-            elif f == 'ic_launcher_foreground.png':   # icono adaptativo: entero dentro del círculo, sobre blanco
-                w, h = Image.open(pth).size; fg = Image.new('RGBA', (w, h), (255, 255, 255, 255)); side = int(w * 0.56)
+            elif f == 'ic_launcher_foreground.png':   # icono adaptativo: entero dentro del círculo, sobre negro
+                w, h = Image.open(pth).size; fg = Image.new('RGBA', (w, h), (0, 0, 0, 0)); side = int(w * 0.56)
                 fg.alpha_composite(NEW.resize((side, side), Image.LANCZOS), ((w - side) // 2, (h - side) // 2)); fg.save(pth)
             elif f == 'splash.png':
-                w, h = Image.open(pth).size; out = Image.new('RGB', (w, h), (0, 0, 0)); side = int(min(w, h) * 0.5)
-                out.paste(NEW.resize((side, side), Image.LANCZOS).convert('RGB'), ((w - side) // 2, (h - side) // 2)); out.save(pth)
-    vb = os.path.join(RES, 'values', 'ic_launcher_background.xml')
-    if os.path.exists(vb):
-        _x = open(vb).read(); open(vb, 'w').write(_x.replace('#000000', '#FFFFFF'))
+                w, h = Image.open(pth).size; out = Image.new('RGBA', (w, h), (0, 0, 0, 255)); side = int(min(w, h) * 0.5)
+                out.alpha_composite(NEW.resize((side, side), Image.LANCZOS), ((w - side) // 2, (h - side) // 2)); out.convert('RGB').save(pth)
     for f, sz in (('img2014/icon.png', 192), ('logo.png', 1024), ('icon-192.png', 192), ('icon-512.png', 512)):
         NEW.resize((sz, sz), Image.LANCZOS).save(os.path.join(ROOT, 'app', f))
     print('icono nuevo: ok')

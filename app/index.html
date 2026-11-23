@@ -445,7 +445,7 @@ function renderAuth() {
     <div style="display:flex;justify-content:center;gap:10px;align-items:center;margin:10px 0 24px">${LOGO(60)}<span style="font-family:Comfortaa;font-size:38px;font-weight:700;color:#555">Scan & Pro</span></div>
     <label class="req">Email</label><input id="em" type="email" placeholder="tu@email.com" autocomplete="email">
     ${rec ? '' : `<label class="req">Contraseña</label><input id="pw" type="password" placeholder="${reg ? 'Mínimo 8 caracteres' : ''}" autocomplete="${reg ? 'new-password' : 'current-password'}">`}
-    ${reg ? `<label class="req">Repite la contraseña</label><input id="pw2" type="password" autocomplete="new-password"><label class="chk"><input type="checkbox" id="tc"> <span class="req">He leído y acepto las <a href="/app/condiciones.html" target="_blank" onclick="event.stopPropagation()">condiciones de uso</a></span></label>` : ''}
+    ${reg ? `<label class="req">Repite la contraseña</label><input id="pw2" type="password" autocomplete="new-password"><label class="chk"><input type="checkbox" id="tc"> <span class="req">He leído y acepto las <a href="#" data-terms>condiciones de uso</a></span></label>` : ''}
     ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}${S.info ? `<div class="ok">${esc(S.info)}</div>` : ''}
     <button class="btn" id="go" ${S.busy ? 'disabled' : ''}>${reg ? 'Crear cuenta' : rec ? 'Enviar enlace' : 'Entrar'}</button>
     ${S.screen === 'login' ? `<button class="btn light" style="margin-top:8px;background:none" id="fp">He olvidado mi contraseña</button>` : ''}
@@ -667,8 +667,8 @@ function drawQR(canvas, text, scale = 8) {
 /* QR redondeado (estilo del generador de 2014) y pegatina alta del coche */
 const loadImg = src => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = src; });
 async function prettyQR(text, side) {
-  const q = qrcode(0, 'M'); q.addData(text); q.make(); const n = q.getModuleCount(), p = side / n;
-  const cv = document.createElement('canvas'); cv.width = cv.height = side; const x = cv.getContext('2d');
+  const q = qrcode(0, 'M'); q.addData(text); q.make(); const n = q.getModuleCount(), p = Math.max(4, Math.floor(side / n));
+  const cv = document.createElement('canvas'); cv.width = cv.height = n * p; const x = cv.getContext('2d');
   const on = (c, r) => c >= 0 && r >= 0 && c < n && r < n && q.isDark(r, c);
   const quad = (c, r, dx, dy) => x.fillRect(c * p + (dx > 0 ? p / 2 : 0), r * p + (dy > 0 ? p / 2 : 0), p / 2 + .5, p / 2 + .5);
   const dot = (c, r) => { x.beginPath(); x.arc(c * p + p / 2, r * p + p / 2, p / 2, 0, 7); x.fill(); };
@@ -688,9 +688,10 @@ async function prettyQR(text, side) {
 }
 async function drawSticker(canvas, url) {
   const base = await loadImg('/app/img2014/pegatina_coche.png');
-  canvas.width = 1126; canvas.height = 1544; const x = canvas.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(base, 0, 0, 1126, 1544);
-  const side = 802, qr = await prettyQR(url, side * 2); x.imageSmoothingQuality = 'high';
-  x.drawImage(qr, 563 - side / 2, 569 - side / 2, side, side);
+  canvas.width = base.width; canvas.height = base.height; const x = canvas.getContext('2d'); x.drawImage(base, 0, 0);
+  // recuadro blanco de la pegatina: x 107-1018, y 113-1024 (en una base de 1124 x 1532)
+  const k = base.width / 1124, side = 784 * k, qr = await prettyQR(url, Math.round(side * 2)); x.imageSmoothingQuality = 'high';
+  x.drawImage(qr, 562.5 * k - side / 2, 568.5 * k - side / 2, side, side);
 }
 const isCar = c => !!c?.style?.car;
 function renderQR() {
@@ -915,6 +916,27 @@ function policeSheet(id) {
   };
 }
 /* ---------- condiciones de uso ---------- */
+function showTerms() {
+  const d = document.createElement('div'); d.id = 'tview';
+  d.style.cssText = 'position:fixed;inset:0;z-index:60;background:#fff;display:flex;flex-direction:column';
+  d.innerHTML = `<div class="bar"><button class="back" id="tvb">${IC.back(24)}</button><span class="name" style="font-size:16px;font-family:Inter">Condiciones de uso</span></div><iframe src="/app/condiciones.html" style="flex:1;border:0;width:100%"></iframe>`;
+  document.body.appendChild(d); d.querySelector('#tvb').onclick = () => d.remove();
+}
+document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('[data-terms]'); if (a) { e.preventDefault(); e.stopPropagation(); showTerms(); } }, true);
+/* gesto o botón "atrás" de Android: vuelve a la pantalla anterior en vez de salir de la app */
+function appBack() {
+  if ($('#tview')) { $('#tview').remove(); return true; }
+  if (S.alarm) return true;
+  const ov = $('#overlay');
+  if (ov && ov.innerHTML.trim()) { if (!ov.querySelector('#trm')) ov.innerHTML = ''; return true; }
+  const bk = $('#bk');
+  if ((S.view || (!S.user && S.screen && S.screen !== 'welcome')) && bk) { bk.click(); return true; }
+  if (S.user && S.tab && S.tab !== 'codes') { S.tab = 'codes'; render(); return true; }
+  return false;
+}
+history.pushState({ sa: 1 }, '');
+addEventListener('popstate', () => { if (appBack()) history.pushState({ sa: 1 }, ''); });
+if (NATIVE && window.Capacitor.Plugins.App) window.Capacitor.Plugins.App.addListener('backButton', () => { if (!appBack()) window.Capacitor.Plugins.App.minimizeApp(); });
 const TERMS_V = '2026-11-23';
 async function checkTerms() {
   if (S.terms === TERMS_V) return;
@@ -922,7 +944,7 @@ async function checkTerms() {
   $('#overlay').innerHTML = `<div class="sheet keep" id="trm"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
     <div style="font-weight:700;font-size:18px;margin-bottom:6px">Condiciones de uso</div>
     <div style="font-size:14px;color:#555;margin-bottom:12px">Hemos actualizado las condiciones de uso de Scan & Pro. Entre otras cosas, recogen los <b>avisos de la Policía</b>: en los códigos de coche y Alert, la policía puede enviarte un aviso aunque tengas el código apagado.</div>
-    <a href="/app/condiciones.html" target="_blank" class="btn light" style="text-decoration:none">Leer las condiciones</a>
+    <a href="#" data-terms class="btn light" style="text-decoration:none">Leer las condiciones</a>
     <label class="chk" style="margin:14px 0 6px"><input type="checkbox" id="tca"> He leído y acepto las condiciones de uso</label>
     <button class="btn" id="tok" style="margin-top:6px">Aceptar y continuar</button></div></div>`;
   $('#tok').onclick = async () => { if (!$('#tca').checked) return toast('Marca la casilla para aceptar las condiciones.');

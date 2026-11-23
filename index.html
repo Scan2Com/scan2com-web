@@ -114,6 +114,8 @@ async function rpc(fn, args) {
 
 async function load() {
   if (!id) { app.innerHTML = `<div class="center">${LOGO}<h2>Scan2Com</h2><p>Escanea un código Scan2Com con la cámara de tu móvil.</p></div>`; return; }
+  // dentro de la app Android con sesión iniciada: el código se abre en la propia app (chat en los dos móviles)
+  if (window.Capacitor?.isNativePlatform?.() && !new URLSearchParams(location.search).has('web') && Object.keys(localStorage).some(k => /^sb-.*-auth-token$/.test(k))) { location.replace('/app/?open=' + encodeURIComponent(id)); return; }
   [code] = await Promise.all([rpc('public_code', { p_id: id }), loadAuthority()]);
   if (chat) linkChat();
   if (!code || code.status === 'not_found' || code.ok === false) { app.innerHTML = `<div class="center">${LOGO}<h2>Código no encontrado</h2><p>Revisa que el QR se haya leído bien.</p></div>`; return; }

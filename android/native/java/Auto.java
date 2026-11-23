@@ -1,4 +1,4 @@
-package com.scanand.pro;
+package com.scan2com.app;
 
 import android.Manifest;
 import android.app.NotificationManager;

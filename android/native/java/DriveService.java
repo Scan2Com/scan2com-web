@@ -1,4 +1,4 @@
-package com.scanand.pro;
+package com.scan2com.app;
 
 import android.app.Notification;
 import android.app.Service;
@@ -31,7 +31,7 @@ public class DriveService extends Service implements LocationListener {
     public int onStartCommand(Intent i, int flags, int id) {
         AlarmService.channels(this);
         Notification n = new NotificationCompat.Builder(this, AlarmService.CH_MSG).setSmallIcon(R.drawable.ic_notif)
-            .setContentTitle("Scan & Pro").setContentText("Comprobando si vas conduciendo…").setPriority(NotificationCompat.PRIORITY_LOW).setOngoing(true).build();
+            .setContentTitle("Scan2Com").setContentText("Comprobando si vas conduciendo…").setPriority(NotificationCompat.PRIORITY_LOW).setOngoing(true).build();
         try {
             if (Build.VERSION.SDK_INT >= 29) startForeground(NID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION); else startForeground(NID, n);
         } catch (Exception e) { stopSelf(); return START_NOT_STICKY; }

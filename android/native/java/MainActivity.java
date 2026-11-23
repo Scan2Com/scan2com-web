@@ -1,4 +1,4 @@
-package com.scanand.pro;
+package com.scan2com.app;
 
 import android.Manifest;
 import android.app.NotificationManager;
@@ -11,7 +11,7 @@ import android.provider.Settings;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
-    private static final String SITE = "https://scan.originalbim.com";
+    private static final String SITE = "https://scan2com.com";
 
     @Override
     public void onCreate(Bundle b) {

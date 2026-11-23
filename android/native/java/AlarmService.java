@@ -1,4 +1,4 @@
-package com.scanand.pro;
+package com.scan2com.app;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -16,14 +16,14 @@ import java.util.Map;
 
 /** Recibe los avisos de Firebase. Si es una alerta, lanza la sirena a pantalla completa. */
 public class AlarmService extends MessagingService {
-    public static final String CH_ALARM = "scanand_alarm_v1";
-    public static final String CH_MSG = "scanand_msg_v1";
+    public static final String CH_ALARM = "scan2com_alarm_v1";
+    public static final String CH_MSG = "scan2com_msg_v1";
 
     @Override
     public void onMessageReceived(@NonNull RemoteMessage msg) {
         super.onMessageReceived(msg);
         Map<String, String> d = msg.getData();
-        String title = d.containsKey("title") ? d.get("title") : "Scan & Pro";
+        String title = d.containsKey("title") ? d.get("title") : "Scan2Com";
         String body = d.containsKey("body") ? d.get("body") : "";
         String url = d.containsKey("url") ? d.get("url") : "/app/";
         if ("1".equals(d.get("alarm"))) showAlarm(this, title, body, d.get("ev"), url);

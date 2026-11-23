@@ -1,4 +1,4 @@
-package com.scanand.pro;
+package com.scan2com.app;
 
 import android.app.Activity;
 import android.app.KeyguardManager;

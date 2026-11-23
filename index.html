@@ -64,6 +64,25 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const sb = createClient('https://kbkyosyenotqjcgujbmn.supabase.co', 'sb_publishable_Ac2fFMZTIWXMGfEURbVc8Q_Z2gcpujt', { auth: { persistSession: false } });
 
+// Scan & Police: si en este navegador hay un agente con sesión iniciada en la app, puede enviar avisos de autoridad
+let AUTH = null, sbA = null;
+async function loadAuthority() {
+  try {
+    if (!Object.keys(localStorage).some(k => /^sb-.*-auth-token$/.test(k))) return;
+    sbA = createClient('https://kbkyosyenotqjcgujbmn.supabase.co', 'sb_publishable_Ac2fFMZTIWXMGfEURbVc8Q_Z2gcpujt');
+    const { data } = await sbA.rpc('my_authority'); AUTH = data || null;
+  } catch (e) {}
+}
+async function policeAlert() {
+  if (busy) return; busy = true; status = ''; render();
+  const t = wsText() || 'Su vehículo está mal estacionado. Acuda inmediatamente.';
+  let pos = null; try { pos = await new Promise((ok, ko) => navigator.geolocation.getCurrentPosition(p => ok(p.coords), ko, { timeout: 5000, maximumAge: 60000 })); } catch (e) {}
+  const { data } = await sbA.rpc('police_alert', { p_id: id, p_body: t, p_lat: pos?.latitude ?? null, p_lng: pos?.longitude ?? null });
+  busy = false;
+  if (data?.ok) { status = 'Aviso de autoridad enviado 🚓'; statusErr = false; }
+  else { status = { not_eligible: 'Este código no es de coche ni de Alert.', rate_limited: 'Demasiados avisos seguidos. Espera unos minutos.' }[data?.error] || 'No se ha podido enviar el aviso.'; statusErr = true; }
+  render();
+}
 const LOGO = `<img src="/app/logo.png" width="28" height="28" alt="Scan & Pro">`;
 const I = {
   mail: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z" opacity=".25"/><path d="M3 5h18v2l-9 6-9-6zM3 9l9 6 9-6v10H3z"/></svg>',
@@ -95,7 +114,7 @@ async function rpc(fn, args) {
 
 async function load() {
   if (!id) { app.innerHTML = `<div class="center">${LOGO}<h2>Scan & Pro</h2><p>Escanea un código Scan & Pro con la cámara de tu móvil.</p></div>`; return; }
-  code = await rpc('public_code', { p_id: id });
+  [code] = await Promise.all([rpc('public_code', { p_id: id }), loadAuthority()]);
   if (!code || code.status === 'not_found' || code.ok === false) { app.innerHTML = `<div class="center">${LOGO}<h2>Código no encontrado</h2><p>Revisa que el QR se haya leído bien.</p></div>`; return; }
   if (code.status === 'unclaimed') { app.innerHTML = `<div class="center">${LOGO}<h2>Pegatina sin activar</h2><p>Esta pegatina Scan & Pro aún no tiene dueño. Si es tuya, vincúlala desde la app escaneando el QR maestro de tu pack.</p></div>`; return; }
   if (code.status === 'redirect' && /^https?:\/\//i.test(code.url)) { app.innerHTML = `<div class="center">${LOGO}<p>Abriendo <a href="${esc(code.url)}" rel="noopener">${esc(code.url.replace(/^https?:\/\//, ''))}</a>…</p></div>`; location.replace(code.url); return; }
@@ -113,7 +132,7 @@ function render() {
   if (view === 'chat') return renderChat();
   if (view === 'mail') return renderMail();
   const off = code.status === 'off', ch = code.channels || {};
-  const any = !off && (ch.mail || ch.alert || ch.chat);
+  const any = (!off && (ch.mail || ch.alert || ch.chat)) || !!AUTH;
   app.innerHTML = `
     <div class="brand">${LOGO} Scan & Pro</div>
     <div class="card"><h1>${esc(code.public_name || 'Scan & Pro')}</h1><p>${off ? 'El dueño ha desactivado este código temporalmente.' : esc(code.public_desc || '')}</p></div>
@@ -125,8 +144,10 @@ function render() {
       <button class="act alert ${off || !ch.alert ? 'hidden' : ''} ${busy ? 'busy' : ''}" id="bAlert">${busy ? I.spin : I.alert}Alert</button>
       <button class="act chat ${(off && !chat) || !ch.chat ? 'hidden' : ''}" id="bChat">${I.chat}Chat${chat ? ' ·' : ''}</button>
     </div>
+    ${AUTH ? `<button class="act" id="bPol" style="background:#0b2a6b;color:#fff;width:100%;height:64px;margin-top:10px;flex-direction:row;gap:10px;justify-content:center"><img src="/app/img2014/police.png" width="26" height="30" alt="">Aviso de autoridad</button><div style="font-size:12px;color:#777;text-align:center;margin-top:4px">${esc(AUTH.body)} · agente ${esc(AUTH.badge)}. Suena aunque el código esté apagado.</div>` : ''}
     <div class="foot">Ni el dueño ni tú veis el teléfono o el email del otro.</div>`;
   $('#bAlert').onclick = () => sendEvent('alert');
+  if ($('#bPol')) $('#bPol').onclick = policeAlert;
   $('#bMail').onclick = () => { view = 'mail'; render(); };
   $('#bChat').onclick = openChat;
 }

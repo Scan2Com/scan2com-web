@@ -145,7 +145,7 @@ label{font-size:13px;color:var(--mut)}
 .camwrap canvas.pts{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .section{font-size:12px;font-weight:700;color:var(--mut);letter-spacing:.06em;margin:18px 0 4px}
 .grp{display:flex;align-items:center;gap:8px;padding:12px 16px 6px;font-size:15px;font-weight:600;color:#3a3a3a;border-top:1px solid #e6e6e6}
-.grp .n{margin-left:auto;font-size:12px;font-weight:500;color:#8a8a8a}
+.grp .n{margin-left:auto;font-size:12px;font-weight:500;color:#8a8a8a;white-space:nowrap}
 .req::after{content:' *';color:#e8352b;font-weight:700}
 .bad{border-color:#e8352b!important;background:#fff6f5}
 .hint{font-size:12px;color:var(--mut);margin:-4px 0 10px}
@@ -396,7 +396,7 @@ async function avInit() {
 }
 // al volver de los ajustes del sistema se sigue con el siguiente paso
 const avResume = () => { if (S.avOpen) setTimeout(avNext, 500); else if (S.av) avStatus().then(() => render(true)); };
-try { if (NATIVE && window.Capacitor.Plugins.App) window.Capacitor.Plugins.App.addListener('resume', avResume); } catch (e) {}
+try { if (NATIVE && window.Capacitor.Plugins.App) { window.Capacitor.Plugins.App.addListener('resume', () => { S.paused = false; avResume(); }); window.Capacitor.Plugins.App.addListener('pause', () => { S.paused = true; }); } } catch (e) {}
 function openUrl(u) {
   const q = new URL(u, location.href).searchParams;
   if (q.get('chat')) S.view = { t: 'chat', id: q.get('chat') };
@@ -545,7 +545,10 @@ function subscribe() {
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, ({ new: e }) => {
       S.events.unshift(e); const code = codeOf(e.code_id);
-      if (e.kind === 'alert' || e.kind === 'call' || e.kind === 'police') { if (!(NATIVE && notifOn())) { S.alarm = e; sirenOn(); } notify((e.kind === 'police' ? '🚓 Aviso de la Policía · ' : '🔔 Alerta · ') + (code?.name || 'Scan2Com'), e.body || 'Alguien ha escaneado tu código y te avisa'); }
+      if (e.kind === 'alert' || e.kind === 'call' || e.kind === 'police') {
+        // con la app en pantalla suena aquí mismo; en la app Android se espera un momento por si ya salió la sirena nativa a pantalla completa
+        const ring = () => { if (S.alarm?.id === e.id || e.read_at) return; S.alarm = e; sirenOn(); render(true); };
+        if (!NATIVE) ring(); else if (!document.hidden && !S.paused) setTimeout(() => { if (!document.hidden && !S.paused) ring(); }, 2500); else if (!notifOn()) ring(); notify((e.kind === 'police' ? '🚓 Aviso de la Policía · ' : '🔔 Alerta · ') + (code?.name || 'Scan2Com'), e.body || 'Alguien ha escaneado tu código y te avisa'); }
       else { toast(`✉️ Mensaje en “${code?.name || ''}”: ${e.body || ''}`, () => { S.tab = 'alerts'; S.view = null; render(); }); notify('✉️ Mensaje · ' + (code?.name || ''), e.body || ''); }
       render(true);
     })
@@ -652,23 +655,31 @@ function renderHome() {
     const list = S.chats.filter(c => match(c.name, codeOf(c.code_id)?.name, lastMsg(c.id)?.body)).sort((a, b) => new Date(lastMsg(b.id)?.created_at || b.created_at) - new Date(lastMsg(a.id)?.created_at || a.created_at));
     const vlist = (S.vchats || []).filter(v => match(v.name, v.public_name, v.last?.body));
     const favs = list.filter(c => S.favs.has(c.id)), rest = list.filter(c => !S.favs.has(c.id));
+    const tr = ls.get('sa_trace', false);
+    const tline = t => tr ? `<div style="font-size:12px;color:#1f86e0;margin-top:2px">${t}</div>` : '';
     const vrow = v => { const u = S.unread['v' + v.id]; return `<div class="item ${v.alive ? '' : 'off'}" data-vchat="${v.id}"><div style="flex:none">${face(false, 54)}</div>
-      <div class="grow"><div class="t">${esc(v.name || v.public_name || 'Chat')}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(v.last ? (v.last.mine ? 'Tú: ' : '') + v.last.body : (v.public_name || ''))}</div></div>
+      <div class="grow"><div class="t">${esc(v.name || v.public_name || 'Chat')}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(v.last ? (v.last.mine ? 'Tú: ' : '') + v.last.body : (v.public_name || ''))}</div>${tline(v.name && v.name !== v.public_name && v.name !== 'Chat' ? 'Nombre del chat: puesto por ti' : 'Nombre del chat: el nombre público del código')}</div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;white-space:nowrap">${ago(v.last?.at || v.created_at)}</div></div>`; };
     const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div style="flex:none">${face(c.blocked, 54)}</div>
-      <div class="grow"><div class="t">${esc(c.name)}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + lm.body : (code?.name || c.code_name || ''))}</div></div>
+      <div class="grow"><div class="t">${esc(c.name)}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + lm.body : (code?.name || c.code_name || ''))}</div>${tline(/^Chat \d+$/.test(c.name || '') ? 'Nombre del chat: automático' : 'Nombre del chat: puesto por ti')}</div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><button class="star" data-fav="${c.id}" title="Favorito" style="padding:0">${IC.star(26, S.favs.has(c.id))}</button><div style="white-space:nowrap">${ago(lm?.created_at || c.created_at)}</div></div></div>`; };
     // agrupados por código: los míos con su nombre privado; los escaneados con el nombre público que tenía el código
-    const grpHead = (name, n) => `<div class="grp">${LOGO(20)}<span>${esc(name)}</span><span class="n">${n} chat${n === 1 ? '' : 's'}</span></div>`;
+    const grpHead = (name, n, origin) => `<div class="grp">${LOGO(20)}<div style="min-width:0"><div>${esc(name)}</div>${origin ? `<div style="font-size:12px;font-weight:400;color:#8a8a8a">${origin}</div>` : ''}</div><span class="n">${n} chat${n === 1 ? '' : 's'}</span></div>`;
+    const mineOrigin = c => { const code = codeOf(c.code_id); return !code ? 'Código borrado · nombre que tenía' : code.name ? `Tu código ${esc(code.id)} · tu nombre privado` : code.public_name ? `Tu código ${esc(code.id)} · su nombre público (no tiene privado)` : `Tu código ${esc(code.id)} · sin nombre`; };
+    const vOrigin = v => v.code_id ? (v.public_name ? `Código ${esc(v.code_id)} · nombre público al escanearlo` : `Código ${esc(v.code_id)} · no tenía nombre público`) : 'Código borrado';
     const groupBy = (arr, keyOf) => { const m = new Map(); arr.forEach(x => { const k = keyOf(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }); return [...m.values()]; };
     const mineName = c => { const code = codeOf(c.code_id); return code ? (code.name || code.public_name || 'Código ' + code.id) : (c.code_name ? c.code_name + ' (código borrado)' : 'Código borrado'); };
     const mineGroups = groupBy(rest, c => c.code_id || 'del:' + (c.code_name || ''));
     const vtime = v => new Date(v.last?.at || v.created_at);
     const vGroups = groupBy([...vlist].sort((a, b) => vtime(b) - vtime(a)), v => v.code_id);
-    const mineHTML = list.length ? (favs.length ? `<div class="pad section" style="padding-bottom:0">FAVORITOS</div>${favs.map(row).join('')}` : '') + (rest.length ? `<div class="pad section" style="padding-bottom:0">CHATS DE MIS CÓDIGOS</div>${mineGroups.map(g => grpHead(mineName(g[0]), g.length) + g.map(row).join('')).join('')}` : '')
+    const mineHTML = list.length ? (favs.length ? `<div class="pad section" style="padding-bottom:0">FAVORITOS</div>${favs.map(row).join('')}` : '') + (rest.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON MIS CÓDIGOS</div>${mineGroups.map(g => grpHead(mineName(g[0]), g.length, mineOrigin(g[0])) + g.map(row).join('')).join('')}` : '')
       : '';
-    body = (mineHTML || vlist.length) ? mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">CÓDIGOS QUE HE ESCANEADO</div>${vGroups.map(g => grpHead(g[0].public_name || (g[0].code_id ? 'Código ' + g[0].code_id : 'Código borrado'), g.length) + g.map(vrow).join('')).join('')}` : '')
+    const when = x => x.token ? vtime(x) : new Date(lastMsg(x.id)?.created_at || x.created_at);
+    const flat = [...rest, ...vlist].sort((a, b) => when(b) - when(a)).map(x => x.token ? vrow(x) : row(x)).join('');
+    const simple = favs.map(row).join('') + flat;   // como los contactos de WhatsApp: todos juntos, los favoritos arriba
+    body = (mineHTML || vlist.length) ? !tr ? simple : mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].public_name || (g[0].code_id ? 'Código ' + g[0].code_id : 'Código borrado'), g.length, vOrigin(g[0])) + g.map(vrow).join('')).join('')}` : '')
       : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.<br><br>Y si tú escaneas el código de otra persona con la app y le escribes, el chat también aparecerá aquí.</div>`;
+    body += '<div style="height:90px"></div>';   // hueco para la barra fija de trazabilidad
   } else {
     const seen = S.seenEv;
     body = S.events.length ? S.events.map(e => { const c = codeOf(e.code_id); const ic = { alert: IC.alert(22), mail: IC.mail(22), call: IC.phone(22), police: '<img src="/app/img2014/police.png" width="30" height="34" alt="Policía" style="display:block">' }[e.kind];
@@ -686,7 +697,7 @@ function renderHome() {
   const keepScroll = {}; app.querySelectorAll('[data-page]').forEach(p => keepScroll[p.dataset.page] = p.scrollTop);
   app.innerHTML = `<div class="bar">${LOGO(38)}${S.searching ? `<input id="sq" class="searchin" placeholder="Buscar…" value="${esc(S.q || '')}">` : `<span class="name">${S.auth ? 'Scan2Com Police' : 'Scan2Com'}</span>`}<button class="ib dark" id="bSearch" title="Buscar">${IC.search(26)}</button><button class="ib dark" id="bScan" title="Escanear"><img src="/app/img2014/camera.png" width="32" height="32" alt="Escanear" style="display:block" onerror="this.style.display='none'"></button><button class="ib dark" id="bMenu" title="Menú">${IC.dots(24)}</button></div>
     <div class="tabs">${tabs.map(([k, l, n]) => `<button class="${S.tab === k ? 'on' : ''}" data-tab="${k}">${l}${n && S.tab !== k ? `<span class="badge">${n}</span>` : ''}</button>`).join('')}<i class="ind" id="ind" style="transform:translateX(${idx * 100}%)"></i></div>
-    <div class="pager" id="pg"><div class="track" id="tr" style="transform:translateX(${-idx * 100}%)">${TABS.map(t => `<div class="page body" data-page="${t}">${page(t)}</div>`).join('')}</div></div>${S.tab === 'codes' ? `<button class="fab" id="fab" style="display:grid;place-items:center">${IC.plus(28)}</button><div class="buybar" id="buy">Quiero pegatinas <b>impresas</b></div>` : ''}`;
+    <div class="pager" id="pg"><div class="track" id="tr" style="transform:translateX(${-idx * 100}%)">${TABS.map(t => `<div class="page body" data-page="${t}">${page(t)}</div>`).join('')}</div></div>${S.tab === 'codes' ? `<button class="fab" id="fab" style="display:grid;place-items:center">${IC.plus(28)}</button><div class="buybar" id="buy">Quiero pegatinas <b>impresas</b></div>` : S.tab === 'chats' ? `<label class="buybar" id="trc" style="display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer"><input type="checkbox" id="trcb" ${ls.get('sa_trace', false) ? 'checked' : ''} style="width:20px;height:20px;margin:0"><span>Mostrar <b>trazabilidad</b></span></label>` : ''}`;
   app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { const i = TABS.indexOf(b.dataset.tab); $('#tr').style.transform = `translateX(${-i * 100}%)`; $('#ind').style.transform = `translateX(${i * 100}%)`; setTimeout(() => { S.tab = b.dataset.tab; render(); }, 290); });
   app.querySelectorAll('[data-page]').forEach(p => { if (keepScroll[p.dataset.page]) p.scrollTop = keepScroll[p.dataset.page]; });
   app.querySelectorAll('[data-pw]').forEach(b => b.onclick = e => { e.stopPropagation(); togglePower(b.dataset.pw); });
@@ -696,6 +707,7 @@ function renderHome() {
   app.querySelectorAll('[data-chat]').forEach(b => b.onclick = () => { S.view = { t: 'chat', id: b.dataset.chat }; render(); });
   app.querySelectorAll('[data-vchat]').forEach(b => b.onclick = () => { S.view = { t: 'vchat', id: b.dataset.vchat }; render(); });
   app.querySelectorAll('[data-fav]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleFav(b.dataset.fav); });
+  if ($('#trcb')) $('#trcb').onchange = e => { ls.set('sa_trace', e.target.checked); render(); };
   if ($('#fab')) $('#fab').onclick = () => { S.view = { t: 'pack' }; render(); };
   $('#bScan').onclick = () => { S.view = { t: 'pack', scan: true, only: true }; render(); };
   $('#bMenu').onclick = accountMenu;
@@ -1005,6 +1017,7 @@ async function openScanned(id) {
   if (c.status !== 'on') { location.href = web; return; }   // sin dueño, apagado… lo explica la página del código
   const ch = c.channels || {}, others = ch.alert || ch.mail || ch.call || S.auth;
   if (ch.chat && !others) return startVChat(id);
+  if (!ch.chat) { location.href = web; return; }   // sin chat: directamente a la pantalla de Alert / Mail / Llamada
   S.view = null; S.tab = 'codes'; render();
   $('#overlay').innerHTML = `<div class="sheet keep" id="scs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
     <div style="font-size:20px;font-weight:700;margin-bottom:4px">${esc(c.public_name || 'Código Scan2Com')}</div>

@@ -1,0 +1,25 @@
+name: Versión web
+# cada vez que se sube la web, apunta su fecha (la app la muestra en "Última versión instalada")
+on:
+  push:
+    branches: [main]
+    paths: ['app/index.html', 'index.html']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: { group: webver, cancel-in-progress: false }
+jobs:
+  stamp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fecha y versión de la web
+        run: |
+          D=$(date -u +%Y-%m-%dT%H:%M:%SZ); B=${GITHUB_SHA::8}
+          sed -i "s|^const WEB_BUILD = .*|const WEB_BUILD = { id: '$B', date: '$D' };|" app/index.html
+          echo "{\"id\": \"$B\", \"date\": \"$D\"}" > app/version-web.json
+          git config user.name "scan2com-bot"
+          git config user.email "scan2com-bot@users.noreply.github.com"
+          git add app/index.html app/version-web.json
+          git commit -m "Versión web $D" || exit 0
+          git pull --rebase && git push

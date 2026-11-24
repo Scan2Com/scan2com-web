@@ -164,6 +164,8 @@ label{font-size:13px;color:var(--mut)}
 .tour{margin:12px;background:#fff;border-radius:16px;box-shadow:0 4px 18px rgba(0,0,0,.12);padding:16px;display:flex;gap:14px;align-items:center}
 .tour .play{flex:none;width:64px;height:64px;border-radius:50%;border:0;background:#33b5e5;color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 10px rgba(51,181,229,.4)}
 .tour .cap{font-size:15px;color:#333;line-height:1.4;min-height:42px}
+.tourmini{display:flex;gap:6px;align-items:center;margin:10px 16px 2px;background:none;border:1px solid #cfe3fb;color:#1f6fc5;border-radius:18px;padding:6px 12px;font-size:13px;cursor:pointer}
+.pdfb{background:#e8352b!important;color:#fff!important;border-radius:12px;padding:6px 10px!important;display:flex;align-items:center;gap:4px;font-weight:700;font-size:14px}
 .tour .x{background:none;border:0;color:#999;font-size:13px;cursor:pointer;padding:4px 0 0}
 .hl{z-index:1;box-shadow:0 0 0 3px #33b5e5,0 0 18px 4px rgba(51,181,229,.55)!important;transition:box-shadow .3s}
 .item.hl,.ib.hl{position:relative;border-radius:12px}
@@ -683,7 +685,7 @@ function renderHome() {
     const when = x => x.token ? vtime(x) : new Date(lastMsg(x.id)?.created_at || x.created_at);
     const flat = [...rest, ...vlist].sort((a, b) => when(b) - when(a)).map(x => x.token ? vrow(x) : row(x)).join('');
     const simple = favs.map(row).join('') + flat;   // como los contactos de WhatsApp: todos juntos, los favoritos arriba
-    body = howto('chats') + ((mineHTML || vlist.length) ? !tr ? simple : mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].public_name || (g[0].code_id ? 'Código ' + g[0].code_id : 'Código borrado'), g.length, vOrigin(g[0])) + g.map(vrow).join('')).join('')}` : '')
+    body = screenTour('chats') + ((mineHTML || vlist.length) ? !tr ? simple : mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].public_name || (g[0].code_id ? 'Código ' + g[0].code_id : 'Código borrado'), g.length, vOrigin(g[0])) + g.map(vrow).join('')).join('')}` : '')
       : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.<br><br>Y si tú escaneas el código de otra persona con la app y le escribes, el chat también aparecerá aquí.</div>`);
     body += '<div style="height:90px"></div>';   // hueco para la barra fija de trazabilidad
   } else {
@@ -757,7 +759,7 @@ async function renderEdit() {
   const printed = c.style?.printed ?? !!c.pack_id;
   const mem = S.members[c.id] || [];
   app.innerHTML = `<div class="bar"><button class="back" id="bk">${IC.back(24)}</button><span class="name" style="font-size:16px;font-family:Inter">${isNew ? 'Nuevo código' : 'Ajustes del código'}</span></div><div class="body pad">
-    <div style="margin:0 -16px 8px">${howto('edit')}</div>
+    <div style="margin:0 -16px 8px">${screenTour('edit')}</div>
     <div class="hint"><span style="color:#e8352b;font-weight:700">*</span> Obligatorio</div>
     <label class="req">Nombre (solo lo ves tú)</label><input id="f1" value="${esc(c.name)}" placeholder="Ej. Coche rojo" maxlength="60">
     <label>Información privada (solo tú)</label><input id="f5" value="${esc(c.private_info)}" placeholder="Ej. matrícula, nº de serie…" maxlength="200">
@@ -812,6 +814,7 @@ async function renderEdit() {
   app.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { await sb.from('code_members').delete().eq('code_id', c.id).eq('user_id', b.dataset.rm); await loadMembers(c.id); });
   if ($('#addm')) $('#addm').onclick = async () => { const em = $('#f6').value.trim(); if (!em) return; const { data } = await sb.rpc('add_member', { p_code: c.id, p_email: em }); if (data?.ok) { toast('Usuario vinculado'); loadMembers(c.id); } else toast(data?.error === 'user_not_found' ? 'Ese email no tiene cuenta en Scan2Com. Pídele que se registre primero.' : 'No se ha podido vincular.'); };
   if ($('#del')) $('#del').onclick = async () => { if ($('#del').dataset.sure) { await sb.from('codes').delete().eq('id', c.id); S.codes = S.codes.filter(x => x.id !== c.id); S.view = null; toast('Código borrado'); render(); } else { $('#del').dataset.sure = 1; $('#del').textContent = 'Pulsa otra vez para borrar definitivamente'; } };
+  bindScreenTour('edit');
   $('#sv').onclick = async () => {
     const name = $('#f1').value.trim(), pub = $('#f2').value.trim(), chans = ['c0', 'c1', 'c2', 'c3', 'c4', 'c7'].some(i => $('#' + i).checked);
     let url = ($('#f7').value || '').trim(); if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
@@ -919,14 +922,14 @@ function renderQR() {
   const url = `${SITE}/s/${c.id}`, own = c.owner_id === S.user.id;
   const chans = [c.ch_info && IC.info(14) + ' Info', c.ch_mail && IC.mail(14) + ' Mail', c.ch_alert && (IC.alert(14) + ' Alert' + (c.auto_alert ? ' (al abrir)' : '')), c.ch_chat && IC.chat(14) + ' Chat', c.ch_call && IC.phone(14) + ' Llamada', c.ch_redirect && c.redirect_url && IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean);
   const nChats = S.chats.filter(x => x.code_id === c.id).length;
-  app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(24)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button>${isCar(c) ? `<button class="ib qrbar-ib" id="pdf" title="PDF para imprimir (4 pegatinas, tamaño real)">${IC.pdf(26)}</button>` : ''}</div>
+  app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(24)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes del código">${IC.sliders(24)}</button>` : ''}${isCar(c) ? `<button class="ib pdfb" id="pdf" title="PDF para imprimir (4 pegatinas, tamaño real)">${IC.pdf(22)}PDF</button>` : ''}</div>
     <div class="namebar">${esc(c.name).toUpperCase()}</div>
     <div class="body"><div class="qrbox"><canvas id="cv"></canvas><div class="link">${url}</div>
       <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><div class="pw ${c.is_on ? 'on' : ''}" id="pw">${IC.power(20)}</div><span style="font-size:14px;color:${c.is_on ? '#1a7a1a' : '#999'}">${c.is_on ? 'Activo' : 'Desactivado'}</span></div></div>
       <div class="pad" style="padding-top:4px">
         ${own && isCar(c) && c.bt_auto && !c.bt_addr ? `<button class="btn" id="btset" style="margin-bottom:10px;background:#e8352b">${IC.lock(20)}${NATIVE ? 'Elige el Bluetooth de tu coche' : 'Instala la app Android para activarlo al bajar del coche'}</button>` : ''}
         <button class="btn teal" id="op">${IC.eye(20)}Ver lo que ve quien escanea</button>
-        <div style="margin:10px -16px 0">${howto('qr')}</div>
+        <div style="margin:10px -16px 0">${screenTour('qr')}</div>
         <div class="section">CONFIGURACIÓN</div>
         <div style="font-size:14px;line-height:1.7"><b>${esc(c.public_name)}</b><br><span style="white-space:pre-line;color:#555">${esc(c.public_desc || '—')}</span></div>
         <div style="margin-top:8px">${chans.map(x => `<span class="pill">${x}</span>`).join('') || '<span class="pill">Sin medios activos</span>'}</div>
@@ -943,6 +946,7 @@ function renderQR() {
   if ($('#pdf')) $('#pdf').onclick = () => carSheetAsk(c, url);
   $('#dl').onclick = async () => { const a = document.createElement('a'); a.href = await codeImage(c, url); a.download = `scan2com-${isCar(c) ? 'coche-' : ''}${c.id}.png`; a.click(); };
   if ($('#gc')) $('#gc').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
+  bindScreenTour('qr');
 }
 
 /* ---------- ayuda "¿Cómo se usa?" (plegable; se recuerda si la abres) ---------- */
@@ -955,12 +959,13 @@ const howto = k => { const [t, items] = HOWTO[k]; return `<details class="howto"
 document.addEventListener('toggle', e => { const k = e.target?.dataset?.howto; if (k) ls.set('sa_howto_' + k, e.target.open); }, true);
 
 /* ---------- hoja de pegatinas de coche en PDF (210 x 100 mm, tamaño real) ---------- */
-function pdfFromJpeg(jpgDataUrl, pw, ph, wmm, hmm) {
-  const img = atob(jpgDataUrl.split(',')[1]), W = (wmm * 72 / 25.4).toFixed(2), H = (hmm * 72 / 25.4).toFixed(2);
+function pdfFromJpeg(jpgDataUrl, pw, ph, wmm, hmm, pagew = 210, pageh = 297) {
+  // la imagen va a tamaño real (wmm x hmm) centrada en una hoja A4
+  const img = atob(jpgDataUrl.split(',')[1]), pt = v => (v * 72 / 25.4).toFixed(2), W = pt(wmm), H = pt(hmm), PW = pt(pagew), PH = pt(pageh), X = pt((pagew - wmm) / 2), Y = pt((pageh - hmm) / 2);
   const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`,
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`,
     `<< /Type /XObject /Subtype /Image /Width ${pw} /Height ${ph} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.length} >>\nstream\n${img}\nendstream`];
-  const cs = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`; objs.push(`<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`);
+  const cs = `q ${W} 0 0 ${H} ${X} ${Y} cm /Im0 Do Q`; objs.push(`<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`);
   let out = '%PDF-1.4\n%\xe2\xe3\xcf\xd3\n'; const off = [];
   objs.forEach((o, i) => { off.push(out.length); out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
   const xr = out.length; out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + off.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('');
@@ -971,7 +976,7 @@ function pdfFromJpeg(jpgDataUrl, pw, ph, wmm, hmm) {
 function carSheetAsk(c, url) {
   $('#overlay').innerHTML = `<div class="sheet keep" id="pdfs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
     <div style="font-size:19px;font-weight:700;margin-bottom:4px">PDF de pegatinas de coche</div>
-    <div style="font-size:14px;color:#555;margin-bottom:14px">Hoja de 4 pegatinas a tamaño real (210 × 100 mm). Imprime al 100 %, sin "ajustar a la página".</div>
+    <div style="font-size:14px;color:#555;margin-bottom:14px">Hoja A4 con las 4 pegatinas a tamaño real (210 × 100 mm), giradas y centradas con margen. Imprime al 100 %, sin "ajustar a la página".</div>
     <button class="btn" id="pdfn" style="margin-bottom:8px">${IC.pdf(20)} Normal <span style="font-weight:400;opacity:.85">· papel de pegatina, se pega por fuera</span></button>
     <button class="btn light" id="pdfm">${IC.pdf(20)} En espejo <span style="font-weight:400;opacity:.8">· vinilo transparente, se pega por dentro del cristal</span></button>
   </div></div>`;
@@ -980,6 +985,7 @@ function carSheetAsk(c, url) {
   $('#pdfn').onclick = () => { close(); carSheetPdf(c, url, false); };
   $('#pdfm').onclick = () => { close(); carSheetPdf(c, url, true); };
 }
+const BMP = '4,2 3,7 2,8 2,26 1,27 1,73 2,74 3,91 4,92 5,102 6,103 6,106 7,107 7,110 8,111 8,114 9,115 10,120 18,134 25,141 29,144 39,149 41,149 48,152 51,152 56,154 60,154 61,155 66,155 67,156 73,156 74,157 85,157 86,158 126,158 127,157 149,157 150,156 154,156 158,153 157,149 149,141 146,140 144,138 141,138 140,137 129,137 128,136 115,136 114,135 105,135 104,134 97,134 96,133 84,132 83,131 79,131 78,130 74,130 66,127 63,127 52,122 48,119 37,107 31,92 31,89 30,88 30,85 28,80 28,76 27,75 26,63 25,62 24,45 23,44 23,30 22,29 22,19 21,18 21,15 19,11 14,6 14,5 8,1';   // contorno del boomerang del logo, en 160×160 (vértice abajo a la izquierda)
 async function carSheetPdf(c, url, mirror) {
   busy(true);
   try {
@@ -987,14 +993,35 @@ async function carSheetPdf(c, url, mirror) {
     const cv = document.createElement('canvas'); cv.width = base.width; cv.height = base.height;
     const x = cv.getContext('2d'); x.drawImage(base, 0, 0); x.imageSmoothingQuality = 'high';
     const big = Math.max(...spec.panels.map(p => p[2])), q = await prettyQR(url, Math.round(big * 2));
-    for (const [px, py, pw, ph] of spec.panels) { const side = Math.min(pw, ph) * 0.86; x.drawImage(q, px + pw / 2 - side / 2, py + ph / 2 - side / 2, side, side); }
+    for (const [px, py, pw, ph] of spec.panels) {
+      if (pw === big) {   // centro: código de vinculación entre los 4 boomerangs del logo original (azul, verde, rojo y amarillo)
+        // fuera el logo de arriba y el marco cuadrado de la plantilla
+        x.fillStyle = '#fff'; x.fillRect(px - 60, 20, pw + 120, py + ph + 60 - 20); x.fillRect(px - 180, 20, pw + 180 + 330, py - 40);   // la franja de arriba es la del logo, más ancha
+        const F = Math.round(pw * 0.95), fx = Math.round(px + pw / 2 - F / 2), fy = 130, side = Math.round(F * 0.74);
+        x.drawImage(q, fx + (F - side) / 2, fy + (F - side) / 2, side, side);
+        const cs = Math.round(F * 0.3);
+        const tint = col => { const t = document.createElement('canvas'); t.width = t.height = cs; const g = t.getContext('2d'); g.scale(cs / 160, cs / 160); g.beginPath(); BMP.split(' ').forEach((v, k) => { const [a, b] = v.split(',').map(Number); k ? g.lineTo(a, b) : g.moveTo(a, b); }); g.closePath(); g.fillStyle = col; g.fill(); return t; };
+        // el boomerang tiene el vértice abajo a la izquierda; se gira para cada esquina
+        for (const [col, ang, cx, cy] of [['#5fa5de', 90, fx, fy], ['#82de36', 180, fx + F - cs, fy], ['#c40101', 0, fx, fy + F - cs], ['#d9d032', 270, fx + F - cs, fy + F - cs]]) {
+          x.save(); x.translate(cx + cs / 2, cy + cs / 2); x.rotate(ang * Math.PI / 180); x.drawImage(tint(col), -cs / 2, -cs / 2); x.restore();
+        }
+        x.fillStyle = '#222'; x.textAlign = 'center'; x.textBaseline = 'middle'; const fs = Math.round(pw * 0.066);
+        x.font = `700 ${fs}px Inter, Arial, sans-serif`; x.fillText('Escanea este código', px + pw / 2, fy + F + fs * 1.0);
+        x.font = `400 ${Math.round(fs * 0.86)}px Inter, Arial, sans-serif`; x.fillText('para vincular la pegatina a tu app', px + pw / 2, fy + F + fs * 2.15);
+        continue;
+      }
+      const side = Math.min(pw, ph) * 0.86; x.drawImage(q, px + pw / 2 - side / 2, py + ph / 2 - side / 2, side, side);
+    }
     let out = cv;
     if (mirror) { out = document.createElement('canvas'); out.width = cv.width; out.height = cv.height; const m = out.getContext('2d'); m.translate(cv.width, 0); m.scale(-1, 1); m.drawImage(cv, 0, 0); }
-    const bin = pdfFromJpeg(out.toDataURL('image/jpeg', 0.95), cv.width, cv.height, spec.mm[0], spec.mm[1]);
+    // girada 90° y centrada en el A4 vertical: deja ~4 cm de margen por todos lados (las impresoras no imprimen hasta el borde)
+    const rot = document.createElement('canvas'); rot.width = out.height; rot.height = out.width;
+    const r2 = rot.getContext('2d'); r2.translate(rot.width, 0); r2.rotate(Math.PI / 2); r2.drawImage(out, 0, 0);
+    const bin = pdfFromJpeg(rot.toDataURL('image/jpeg', 0.95), rot.width, rot.height, spec.mm[1], spec.mm[0]);
     const name = `scan2com-pegatinas-coche-${c.id}${mirror ? '-espejo' : ''}.pdf`, P = window.Capacitor?.Plugins;
     if (NATIVE && P?.Share && P?.Filesystem) {
       const f = await P.Filesystem.writeFile({ path: name, data: btoa(bin), directory: 'CACHE' });
-      busy(false); return await P.Share.share({ title: 'Pegatinas de coche Scan2Com', text: 'Hoja de 4 pegatinas (210 × 100 mm). Imprime al 100 %, sin ajustar a la página.', files: [f.uri], dialogTitle: 'Enviar PDF' });
+      busy(false); return await P.Share.share({ title: 'Pegatinas de coche Scan2Com', text: 'Hoja A4 con 4 pegatinas de coche a tamaño real. Imprime al 100 %, sin ajustar a la página.', files: [f.uri], dialogTitle: 'Enviar PDF' });
     }
     const blob = new Blob([Uint8Array.from(bin, ch => ch.charCodeAt(0))], { type: 'application/pdf' }), file = new File([blob], name, { type: 'application/pdf' });
     busy(false);
@@ -1305,7 +1332,7 @@ async function claim(id) {
 
 /* ---------- primer código + explicación hablada ---------- */
 const TOUR = [
-  ['', 'Bienvenido a Scan and Pro. Te explico en medio minuto cómo funciona.'],
+  ['', 'Bienvenido a Scan2Com. Te explico en medio minuto cómo funciona.'],
   ['item', 'Este es tu primer código. Ya está listo para chatear.'],
   ['item', 'Cuando alguien lo escanee con la cámara de su móvil, podrá escribirte sin ver tu teléfono ni tu email.'],
   ['pw', 'Con el botón verde lo enciendes o lo apagas cuando no quieras que te molesten.'],
@@ -1313,21 +1340,51 @@ const TOUR = [
   ['qr', 'Con las flechas ves el código, para imprimirlo, pegarlo donde quieras o compartirlo.'],
   ['fab', 'Y con el botón más creas nuevos códigos o vinculas tus pegatinas. Eso es todo.']
 ];
+// recorridos hablados del resto de pantallas: [selector a resaltar, texto]; los pasos cuyo botón no está se saltan
+const TOURS = {
+  chats: [
+    ['', 'Esta es la pantalla de chats. Te explico cómo funciona.'],
+    ['.page[data-page="chats"] [data-chat], .page[data-page="chats"] [data-vchat]', 'Cada fila es una conversación. Tócala para escribir. Nadie ve tu teléfono ni tu email.'],
+    ['.page[data-page="chats"] [data-fav]', 'Con la estrella la marcas como favorita: sigue abierta aunque apagues o borres el código.'],
+    ['', 'Cuando envías un mensaje, un boomerang gris sale hacia la izquierda. Cuando lo leen, vuelve y se convierte en un tic verde.'],
+    ['#bScan', 'Con la cámara de arriba escaneas el código de otra persona y empiezas un chat con ella.'],
+    ['#trc', 'Y abajo, mostrar trazabilidad agrupa los chats por código y te dice de dónde sale cada nombre.']
+  ],
+  qr: [
+    ['#cv', 'Este es tu código. Quien lo escanee con la cámara del móvil podrá contactarte por los medios que tengas activos.'],
+    ['#pw', 'Con este botón lo enciendes o lo apagas al momento.'],
+    ['#op', 'Aquí ves exactamente lo que verá quien lo escanee.'],
+    ['#ed', 'Con este botón cambias su configuración: nombre, diseño y medios de contacto.'],
+    ['#sh', 'Con este lo compartes por WhatsApp, por correo o donde quieras.'],
+    ['#dl', 'Con este guardas la imagen en tu móvil.'],
+    ['#pdf', 'Y con el botón rojo de PDF creas la hoja para imprimir cuatro pegatinas de coche a tamaño real.']
+  ],
+  edit: [
+    ['#f1', 'Pon un nombre para reconocer el código. Solo lo ves tú.'],
+    ['#f5', 'Aquí puedes apuntar información privada, como la matrícula. También solo para ti.'],
+    ['.dsg', 'Elige el diseño del código: clásico, redondeado o pegatina de coche.'],
+    ['#c0', 'Marca los medios por los que te pueden contactar: info, mail, alerta, chat, llamada o una web.'],
+    ['#c0', 'Con info marcado escribes el nombre público y el texto que verá quien escanee.'],
+    ['#sv', 'Cuando termines, pulsa guardar.']
+  ]
+};
 const tourKey = () => 'sa_tour_' + S.user.id;
 function pickVoice() { const vs = speechSynthesis.getVoices(); return vs.find(v => /^es[-_]ES/i.test(v.lang)) || vs.find(v => /^es/i.test(v.lang)) || null; }
 function highlight(k) {
   app.querySelectorAll('.hl').forEach(e => e.classList.remove('hl'));
+  if (k && /[#.\[]/.test(k[0])) { const el = app.querySelector(k); if (el) { el.classList.add('hl'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
   const first = app.querySelector('[data-code]'); if (!k || !first) return;
   const el = k === 'item' ? first : k === 'pw' ? first.querySelector('[data-pw]') : k === 'edit' ? first.querySelector('[data-edit]') : k === 'qr' ? first.querySelector('[data-qr]') : k === 'fab' ? $('#fab') : null;
   if (el) { el.classList.add('hl'); el.scrollIntoView({ block: 'nearest' }); }
 }
-function playTour() {
+function playTour(name) {
+  const steps = name ? TOURS[name].filter(([k]) => !k || app.querySelector(k)) : TOUR; S.tourName = name || '';
   const NT = NATIVE && window.Capacitor.Plugins.TextToSpeech;
   const tts = !NT && 'speechSynthesis' in window; if (tts) speechSynthesis.cancel(); S.touring = true; let i = 0; const voice = tts ? pickVoice() : null;
   const next = () => {
     if (!S.touring) return;
-    if (i >= TOUR.length) { S.touring = false; highlight(null); ls.set(tourKey(), 1); S.tourDone = true; render(); return; }
-    const [k, t] = TOUR[i++]; S.tourKeyNow = k; S.tourCap = t; const cap = $('#tcap'); if (cap) cap.textContent = t; highlight(k);
+    if (i >= steps.length) { S.touring = false; highlight(null); if (!name) { ls.set(tourKey(), 1); S.tourDone = true; render(); } else { const pb = $('#tplay'); if (pb) pb.innerHTML = IC.play(30); const cap = $('#tcap'); if (cap) cap.textContent = 'Pulsa ▶ para volver a escucharlo.'; } return; }
+    const [k, t] = steps[i++]; S.tourKeyNow = k; S.tourCap = t; const cap = $('#tcap'); if (cap) cap.textContent = t; highlight(k);
     if (NT) { NT.speak({ text: t, lang: 'es-ES', rate: 1.0, volume: 1.0 }).then(() => setTimeout(next, 250)).catch(() => setTimeout(next, 3500)); return; }
     if (!tts) return setTimeout(next, 3500);
     const u = new SpeechSynthesisUtterance(t); u.lang = 'es-ES'; if (voice) u.voice = voice; u.rate = 1.02;
@@ -1342,7 +1399,20 @@ function tourHTML() {
   return `<div class="tour"><button class="play" id="tplay" title="Escuchar">${S.touring ? IC.stop(30) : IC.play(30)}</button>
     <div style="flex:1"><div class="cap" id="tcap">${S.touring ? esc(S.tourCap || '') : 'Pulsa ▶ para escuchar cómo funciona (30 s). Sube el volumen.'}</div><button class="x" id="tclose">${S.touring ? '' : 'Ahora no'}</button></div></div>`;
 }
+// tarjeta de explicación hablada de cada pantalla (chats, ver código, ajustes); plegada a un botón si la cierras
+function screenTour(name) {
+  if (name === 'chats' && (S.tab !== 'chats' || S.view)) return '';
+  if (ls.get('sa_tour_' + name, 0)) return `<button class="tourmini" id="tmini">${IC.play(16)} Cómo funciona esta pantalla</button>`;
+  return `<div class="tour"><button class="play" id="tplay" title="Escuchar">${S.touring && S.tourName === name ? IC.stop(30) : IC.play(30)}</button>
+    <div style="flex:1"><div class="cap" id="tcap">${S.touring && S.tourName === name ? esc(S.tourCap || '') : 'Pulsa ▶ para escuchar cómo funciona esta pantalla. Sube el volumen.'}</div><button class="x" id="tclose" data-tour="${name}">Ocultar</button></div></div>`;
+}
+function bindScreenTour(name) {
+  if ($('#tplay')) $('#tplay').onclick = () => S.touring ? stopTour() : playTour(name);
+  if ($('#tclose')) $('#tclose').onclick = () => { stopTour(); ls.set('sa_tour_' + name, 1); render(); };
+  if ($('#tmini')) $('#tmini').onclick = () => { ls.set('sa_tour_' + name, 0); render(); setTimeout(() => playTour(name), 150); };
+}
 function bindTour() {
+  if (S.tab === 'chats' && !S.view) return bindScreenTour('chats');
   if ($('#tplay')) $('#tplay').onclick = () => S.touring ? stopTour() : playTour();
   if ($('#tclose')) $('#tclose').onclick = () => { stopTour(); ls.set(tourKey(), 1); S.tourForce = false; render(); };
 }

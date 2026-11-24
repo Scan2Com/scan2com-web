@@ -168,6 +168,11 @@ label{font-size:13px;color:var(--mut)}
 .hl{z-index:1;box-shadow:0 0 0 3px #33b5e5,0 0 18px 4px rgba(51,181,229,.55)!important;transition:box-shadow .3s}
 .item.hl,.ib.hl{position:relative;border-radius:12px}
 .pw.hl,.fab.hl{border-radius:50%}
+.howto{margin:10px 16px 4px;background:#eef6ff;border:1px solid #cfe3fb;border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.5;color:#33475b}
+.howto summary{cursor:pointer;font-weight:600;color:#1f6fc5;list-style:none}
+.howto summary::-webkit-details-marker{display:none}
+.howto summary::before{content:'ⓘ  '}
+.howto ul{margin:6px 0 2px;padding-left:18px}
 .pill{font-size:12px;background:#eef0f2;border-radius:8px;padding:3px 8px;display:inline-flex;gap:6px;align-items:center;margin:2px 4px 2px 0}
 .nbar{display:flex;gap:12px;align-items:center;margin:10px 12px 0;padding:12px 14px;background:#fff4f3;border:1px solid #f3c2bd;border-left:5px solid #e8352b;border-radius:12px;color:#5a1a14;font-size:14px;line-height:1.35;cursor:pointer}
 .nbar svg{color:#e8352b;flex:none}
@@ -200,6 +205,7 @@ const IC = {
   mail: s => SV('<rect x="2.5" y="5" width="19" height="14" rx="1.5" fill="currentColor" stroke="none"/><path d="M3 6.5l9 6.5 9-6.5" stroke="#fff"/>', s),
   grid: s => SV('<rect x="3" y="3" width="8" height="8" fill="currentColor"/><rect x="13" y="3" width="8" height="8" fill="currentColor"/><rect x="3" y="13" width="8" height="8" fill="currentColor"/><rect x="13" y="13" width="8" height="8" fill="currentColor"/>', s),
   mailL: s => SV('<rect x="3" y="5.5" width="18" height="13" rx="1.5"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/>', s),
+  pdf: s => SV('<path d="M6 2.5h9l4 4v15H6z"/><path d="M15 2.5v4h4"/><text x="12.5" y="17" font-size="6.2" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="Arial">PDF</text>', s),
   saveL: s => SV('<path d="M4.5 3.5h12l3 3v14h-15z"/><path d="M8 3.5v5h7v-5M7.5 20.5v-6h9v6"/>', s),
   save: s => SV('<path d="M4 3h13l3 3v15H4z" fill="currentColor" stroke="none"/><rect x="7" y="4" width="9" height="5" fill="#fff" stroke="none"/><rect x="7" y="13" width="10" height="6" fill="#fff" stroke="none"/>', s),
   camera: s => SV('<path d="M3 8h4l2-3h6l2 3h4v12H3z" fill="currentColor" stroke="none"/><circle cx="12" cy="13.5" r="4" fill="#fff" stroke="none"/><circle cx="12" cy="13.5" r="2.4" fill="currentColor" stroke="none"/>', s),
@@ -677,8 +683,8 @@ function renderHome() {
     const when = x => x.token ? vtime(x) : new Date(lastMsg(x.id)?.created_at || x.created_at);
     const flat = [...rest, ...vlist].sort((a, b) => when(b) - when(a)).map(x => x.token ? vrow(x) : row(x)).join('');
     const simple = favs.map(row).join('') + flat;   // como los contactos de WhatsApp: todos juntos, los favoritos arriba
-    body = (mineHTML || vlist.length) ? !tr ? simple : mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].public_name || (g[0].code_id ? 'Código ' + g[0].code_id : 'Código borrado'), g.length, vOrigin(g[0])) + g.map(vrow).join('')).join('')}` : '')
-      : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.<br><br>Y si tú escaneas el código de otra persona con la app y le escribes, el chat también aparecerá aquí.</div>`;
+    body = howto('chats') + ((mineHTML || vlist.length) ? !tr ? simple : mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].public_name || (g[0].code_id ? 'Código ' + g[0].code_id : 'Código borrado'), g.length, vOrigin(g[0])) + g.map(vrow).join('')).join('')}` : '')
+      : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.<br><br>Y si tú escaneas el código de otra persona con la app y le escribes, el chat también aparecerá aquí.</div>`);
     body += '<div style="height:90px"></div>';   // hueco para la barra fija de trazabilidad
   } else {
     const seen = S.seenEv;
@@ -751,6 +757,7 @@ async function renderEdit() {
   const printed = c.style?.printed ?? !!c.pack_id;
   const mem = S.members[c.id] || [];
   app.innerHTML = `<div class="bar"><button class="back" id="bk">${IC.back(24)}</button><span class="name" style="font-size:16px;font-family:Inter">${isNew ? 'Nuevo código' : 'Ajustes del código'}</span></div><div class="body pad">
+    <div style="margin:0 -16px 8px">${howto('edit')}</div>
     <div class="hint"><span style="color:#e8352b;font-weight:700">*</span> Obligatorio</div>
     <label class="req">Nombre (solo lo ves tú)</label><input id="f1" value="${esc(c.name)}" placeholder="Ej. Coche rojo" maxlength="60">
     <label>Información privada (solo tú)</label><input id="f5" value="${esc(c.private_info)}" placeholder="Ej. matrícula, nº de serie…" maxlength="200">
@@ -912,13 +919,14 @@ function renderQR() {
   const url = `${SITE}/s/${c.id}`, own = c.owner_id === S.user.id;
   const chans = [c.ch_info && IC.info(14) + ' Info', c.ch_mail && IC.mail(14) + ' Mail', c.ch_alert && (IC.alert(14) + ' Alert' + (c.auto_alert ? ' (al abrir)' : '')), c.ch_chat && IC.chat(14) + ' Chat', c.ch_call && IC.phone(14) + ' Llamada', c.ch_redirect && c.redirect_url && IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean);
   const nChats = S.chats.filter(x => x.code_id === c.id).length;
-  app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(24)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button></div>
+  app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(24)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button>${isCar(c) ? `<button class="ib qrbar-ib" id="pdf" title="PDF para imprimir (4 pegatinas, tamaño real)">${IC.pdf(26)}</button>` : ''}</div>
     <div class="namebar">${esc(c.name).toUpperCase()}</div>
     <div class="body"><div class="qrbox"><canvas id="cv"></canvas><div class="link">${url}</div>
       <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><div class="pw ${c.is_on ? 'on' : ''}" id="pw">${IC.power(20)}</div><span style="font-size:14px;color:${c.is_on ? '#1a7a1a' : '#999'}">${c.is_on ? 'Activo' : 'Desactivado'}</span></div></div>
       <div class="pad" style="padding-top:4px">
         ${own && isCar(c) && c.bt_auto && !c.bt_addr ? `<button class="btn" id="btset" style="margin-bottom:10px;background:#e8352b">${IC.lock(20)}${NATIVE ? 'Elige el Bluetooth de tu coche' : 'Instala la app Android para activarlo al bajar del coche'}</button>` : ''}
         <button class="btn teal" id="op">${IC.eye(20)}Ver lo que ve quien escanea</button>
+        <div style="margin:10px -16px 0">${howto('qr')}</div>
         <div class="section">CONFIGURACIÓN</div>
         <div style="font-size:14px;line-height:1.7"><b>${esc(c.public_name)}</b><br><span style="white-space:pre-line;color:#555">${esc(c.public_desc || '—')}</span></div>
         <div style="margin-top:8px">${chans.map(x => `<span class="pill">${x}</span>`).join('') || '<span class="pill">Sin medios activos</span>'}</div>
@@ -932,8 +940,67 @@ function renderQR() {
   if ($('#btset')) $('#btset').onclick = () => { if (NATIVE) { S.view = { t: 'edit', id: c.id }; render(); } else location.href = '/app/scan2com.apk'; };
   $('#op').onclick = () => window.open(url, '_blank');
   $('#sh').onclick = () => shareCode(c, url);
+  if ($('#pdf')) $('#pdf').onclick = () => carSheetAsk(c, url);
   $('#dl').onclick = async () => { const a = document.createElement('a'); a.href = await codeImage(c, url); a.download = `scan2com-${isCar(c) ? 'coche-' : ''}${c.id}.png`; a.click(); };
   if ($('#gc')) $('#gc').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
+}
+
+/* ---------- ayuda "¿Cómo se usa?" (plegable; se recuerda si la abres) ---------- */
+const HOWTO = {
+  chats: ['¿Cómo funcionan los chats?', ['Aquí están las conversaciones de <b>tus códigos</b> (alguien escaneó un código tuyo) y de los <b>códigos que tú escaneas</b> con la cámara de la app.', 'Toca un chat para escribir. Nadie ve tu teléfono ni tu email.', 'Boomerang gris a la izquierda: enviado, sin leer. Tic verde: leído.', '★ marca un chat como favorito: sigue abierto aunque apagues o borres el código.', 'Activa <b>Mostrar trazabilidad</b> (abajo) para verlos agrupados por código y saber de dónde sale cada nombre.']],
+  edit: ['¿Cómo se configura un código?', ['<b>Nombre</b> e <b>información privada</b>: solo los ves tú.', '<b>Diseño del QR</b>: Clásico, Redondeado o Pegatina de coche.', '<b>Medios de comunicación</b>: elige cómo te pueden contactar quienes lo escaneen (Info, Mail, Alert, Chat, Llamada o Redirección web).', 'Con <b>Info</b> marcado escribes el nombre público y el texto que verá quien escanee.', 'Pulsa <b>Guardar</b>. Puedes apagar el código cuando quieras con el botón de encendido.']],
+  qr: ['¿Cómo se usa este código?', ['Pégalo o compártelo: quien lo escanee con la cámara del móvil verá tu pantalla pública y podrá contactarte por los medios activos.', '<b>Ver lo que ve quien escanea</b> te enseña esa pantalla.', 'El botón de encendido lo activa o desactiva al momento.', 'Arriba: <b>compartir</b> la imagen, <b>guardarla</b> y, en las pegatinas de coche, <b>PDF</b> para imprimir la hoja de 4 pegatinas a tamaño real.']]
+};
+const howto = k => { const [t, items] = HOWTO[k]; return `<details class="howto" data-howto="${k}" ${ls.get('sa_howto_' + k, false) ? 'open' : ''}><summary>${t}</summary><ul>${items.map(x => `<li>${x}</li>`).join('')}</ul></details>`; };
+document.addEventListener('toggle', e => { const k = e.target?.dataset?.howto; if (k) ls.set('sa_howto_' + k, e.target.open); }, true);
+
+/* ---------- hoja de pegatinas de coche en PDF (210 x 100 mm, tamaño real) ---------- */
+function pdfFromJpeg(jpgDataUrl, pw, ph, wmm, hmm) {
+  const img = atob(jpgDataUrl.split(',')[1]), W = (wmm * 72 / 25.4).toFixed(2), H = (hmm * 72 / 25.4).toFixed(2);
+  const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`,
+    `<< /Type /XObject /Subtype /Image /Width ${pw} /Height ${ph} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.length} >>\nstream\n${img}\nendstream`];
+  const cs = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`; objs.push(`<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`);
+  let out = '%PDF-1.4\n%\xe2\xe3\xcf\xd3\n'; const off = [];
+  objs.forEach((o, i) => { off.push(out.length); out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const xr = out.length; out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + off.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('');
+  out += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF\n`;
+  return out;   // cadena binaria (latin-1)
+}
+// elegir: normal (papel de pegatina normal) o en espejo (vinilo transparente que se pega por dentro del cristal)
+function carSheetAsk(c, url) {
+  $('#overlay').innerHTML = `<div class="sheet keep" id="pdfs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
+    <div style="font-size:19px;font-weight:700;margin-bottom:4px">PDF de pegatinas de coche</div>
+    <div style="font-size:14px;color:#555;margin-bottom:14px">Hoja de 4 pegatinas a tamaño real (210 × 100 mm). Imprime al 100 %, sin "ajustar a la página".</div>
+    <button class="btn" id="pdfn" style="margin-bottom:8px">${IC.pdf(20)} Normal <span style="font-weight:400;opacity:.85">· papel de pegatina, se pega por fuera</span></button>
+    <button class="btn light" id="pdfm">${IC.pdf(20)} En espejo <span style="font-weight:400;opacity:.8">· vinilo transparente, se pega por dentro del cristal</span></button>
+  </div></div>`;
+  const close = () => { $('#overlay').innerHTML = ''; };
+  $('#pdfs').onclick = close;
+  $('#pdfn').onclick = () => { close(); carSheetPdf(c, url, false); };
+  $('#pdfm').onclick = () => { close(); carSheetPdf(c, url, true); };
+}
+async function carSheetPdf(c, url, mirror) {
+  busy(true);
+  try {
+    const [base, spec] = await Promise.all([loadImg('/app/img2014/plantilla_coche.png'), fetch('/app/img2014/plantilla_coche.json').then(r => r.json())]);
+    const cv = document.createElement('canvas'); cv.width = base.width; cv.height = base.height;
+    const x = cv.getContext('2d'); x.drawImage(base, 0, 0); x.imageSmoothingQuality = 'high';
+    const big = Math.max(...spec.panels.map(p => p[2])), q = await prettyQR(url, Math.round(big * 2));
+    for (const [px, py, pw, ph] of spec.panels) { const side = Math.min(pw, ph) * 0.86; x.drawImage(q, px + pw / 2 - side / 2, py + ph / 2 - side / 2, side, side); }
+    let out = cv;
+    if (mirror) { out = document.createElement('canvas'); out.width = cv.width; out.height = cv.height; const m = out.getContext('2d'); m.translate(cv.width, 0); m.scale(-1, 1); m.drawImage(cv, 0, 0); }
+    const bin = pdfFromJpeg(out.toDataURL('image/jpeg', 0.95), cv.width, cv.height, spec.mm[0], spec.mm[1]);
+    const name = `scan2com-pegatinas-coche-${c.id}${mirror ? '-espejo' : ''}.pdf`, P = window.Capacitor?.Plugins;
+    if (NATIVE && P?.Share && P?.Filesystem) {
+      const f = await P.Filesystem.writeFile({ path: name, data: btoa(bin), directory: 'CACHE' });
+      busy(false); return await P.Share.share({ title: 'Pegatinas de coche Scan2Com', text: 'Hoja de 4 pegatinas (210 × 100 mm). Imprime al 100 %, sin ajustar a la página.', files: [f.uri], dialogTitle: 'Enviar PDF' });
+    }
+    const blob = new Blob([Uint8Array.from(bin, ch => ch.charCodeAt(0))], { type: 'application/pdf' }), file = new File([blob], name, { type: 'application/pdf' });
+    busy(false);
+    if (navigator.canShare && navigator.canShare({ files: [file] })) return await navigator.share({ title: 'Pegatinas de coche Scan2Com', files: [file] });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+  } catch (e) { busy(false); if (!/abort|cancel/i.test(String(e?.message || e))) toast('No se ha podido crear el PDF.'); }
 }
 
 /* ---------- chat ---------- */

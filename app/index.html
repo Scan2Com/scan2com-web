@@ -491,20 +491,28 @@ async function loadAll() {
 // acuse de lectura con el boomerang del icono: azul y a la izquierda = enviado sin leer; vuelve a su sitio en verde (forma de tic) = leído
 const BM_SVG = '';
 const bm = (id, read, at) => `<span class="bm" data-bm="${id}" data-read="${read ? 1 : 0}" data-at="${esc(at || '')}" title="${read ? 'Leído' : 'Enviado, sin leer'}"><i></i><b>${IC.check(16)}</b></span>`;
-S.bmPos = {}; S.vread = {};
+S.bmPos = {}; S.vread = {}; S.bmBusy = {};
+// tocar "enviar" no debe quitar el foco del cuadro de texto (si no, el teclado se cierra)
+function keepKb() { const b = $('#os'); if (b) { b.onpointerdown = e => e.preventDefault(); b.onmousedown = e => e.preventDefault(); } }
+function bmPlace(el, p) { el.classList.remove('home', 'left', 'fly'); el.classList.add('now', p); void el.offsetWidth; el.classList.remove('now'); }
+function bmFly(el, from, to) { bmPlace(el, from); el.classList.add('fly'); el.classList.remove(from); el.classList.add(to); setTimeout(() => el.classList.remove('fly'), 1150); }
 function bmSync() {
   const all = [...document.querySelectorAll('.bm')], lastEl = all.at(-1);
   all.forEach(el => {
     const box = el.closest('.msgs'); if (!box) return;
-    const id = el.dataset.bm, want = el.dataset.read === '1' ? 'home' : 'left';
-    let was = S.bmPos[id];
-    if (!was && want === 'left' && Date.now() - new Date(el.dataset.at) < 15000) was = 'home';   // recién enviado: sale volando
+    const id = el.dataset.bm, want = el.dataset.read === '1' ? 'home' : 'left', cur = S.bmPos[id];
     el.style.setProperty('--fly', -Math.max(0, el.parentElement.getBoundingClientRect().right - 18 - box.getBoundingClientRect().left - 6) + 'px');   // se mide desde el sitio fijo (la hora), no desde el boomerang ya movido
-    S.bmPos[id] = want;
-    if (!was || was === want || el !== lastEl) { el.classList.add('now', want); void el.offsetWidth; el.classList.remove('now'); return; }
-    el.classList.add(was); void el.offsetWidth;
-    el.classList.add('fly'); el.classList.remove(was); el.classList.add(want);
-    setTimeout(() => el.classList.remove('fly'), 1150);
+    if (el !== lastEl) { S.bmPos[id] = want; return bmPlace(el, want); }   // solo se mueve el del último mensaje
+    if (!cur && !(Date.now() - (S.bmJustSent || 0) < 15000)) { S.bmPos[id] = want; return bmPlace(el, want); }
+    const wait = (S.bmBusy[id] || 0) - Date.now();
+    if (wait > 0) { bmPlace(el, cur); return setTimeout(bmSync, wait + 40); }   // a medio vuelo: termina el viaje y luego sigue
+    if (!cur) {   // recién enviado: siempre sale volando a la izquierda; si ya está leído, vuelve después
+      S.bmJustSent = 0; S.bmPos[id] = 'left'; S.bmBusy[id] = Date.now() + 1300; bmFly(el, 'home', 'left');
+      if (want === 'home') setTimeout(bmSync, 1350);
+      return;
+    }
+    if (cur === want) return bmPlace(el, want);
+    S.bmPos[id] = want; S.bmBusy[id] = Date.now() + 1300; bmFly(el, cur, want);
   });
 }
 const face = (blocked, s) => `<img src="/app/img2014/${blocked ? 'chat_blocked' : 'chat_ok'}.png" width="${s}" height="${s}" alt="" style="display:block">`;
@@ -547,6 +555,7 @@ function render(soft) {
   if (soft && document.activeElement?.id === 'rn') return;  // no cortar la edición del nombre
   const keep = soft && document.activeElement?.id ? { id: document.activeElement.id, v: document.activeElement.value } : null;
   app.classList.remove('homepg');
+  if (S.view?.t !== 'chat' && S.view?.t !== 'vchat') app.dataset.cv = '';
   if (S.recovery) renderNewPass();
   else if (!S.user) renderAuth();
   else if (S.view?.t === 'edit') renderEdit();
@@ -555,7 +564,7 @@ function render(soft) {
   else if (S.view?.t === 'vchat') renderVChat();
   else if (S.view?.t === 'pack') renderPack();
   else renderHome();
-  if (S.view?.t !== 'chat' && S.view?.t !== 'vchat') app.classList.remove('full');
+  if (S.view?.t !== 'chat' && S.view?.t !== 'vchat') { app.classList.remove('full'); app.dataset.cv = ''; }
   if (S.view?.t !== 'vchat') clearInterval(vPoll);
   if (S.alarm) $('#overlay').innerHTML = alarmHTML(); else if (!$('#overlay .keep')) $('#overlay').innerHTML = '';
   if (S.touring && S.tourKeyNow) highlight(S.tourKeyNow);
@@ -907,19 +916,32 @@ function renderQR() {
 }
 
 /* ---------- chat ---------- */
+const ownerMsgs = (ch, list) => list.map(m => `<div class="m ${m.from_visitor ? 'them' : 'me'}">${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${esc(m.body)}<div class="tm">${ago(m.created_at)}${m.from_visitor ? '' : bm(m.id, m.read_at, m.created_at)}</div></div>`).join('') || '<div class="empty">Sin mensajes todavía.</div>';
+const visitorMsgs = (v, list) => list.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}<div class="tm">${ago(m.at)}${m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, m.id <= S.vread[v.id], m.at) : ''}</div></div>`).join('') || '<div class="empty">Sin mensajes todavía.</div>';
+// el chat ya está en pantalla: solo se actualizan los mensajes (no se cierra el teclado ni se corta la animación)
+function patchMsgs(key, html) {
+  const ms = $('#ms'), cb = $('#cb');
+  if (app.dataset.cv !== key || !ms || !cb) return false;
+  const bottom = cb.scrollHeight - cb.scrollTop - cb.clientHeight < 80;
+  if (S.msHtml !== html) { S.msHtml = html; ms.innerHTML = html; if (bottom) cb.scrollTop = cb.scrollHeight; }
+  bmSync(); return true;
+}
 function renderChat() {
   const ch = S.chats.find(x => x.id === S.view.id); if (!ch) { S.view = null; return render(); }
   const code = codeOf(ch.code_id), list = S.msgs[ch.id] || [], fav = S.favs.has(ch.id), off = chatOff(ch);
   if (S.unread[ch.id]) { delete S.unread[ch.id]; ls.set('sa_unread', S.unread); }
+  const markRead = () => { if (!document.hidden && list.some(m => m.from_visitor && !m.read_at)) { const now = new Date().toISOString(); list.forEach(m => { if (m.from_visitor && !m.read_at) m.read_at = now; }); sb.rpc('mark_chat_read', { p_chat: ch.id }).then(() => {}, () => {}); } };
+  const key = ['c', ch.id, ch.name, ch.blocked, off, fav, code?.name, ch.code_name].join('|');
+  if (patchMsgs(key, ownerMsgs(ch, list))) return markRead();
   app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button>${LOGO(36)}<div class="grow"><div style="font-size:20px" id="nm">${esc(ch.name)}</div><div style="font-size:12px;color:#aaa">${esc(code?.name || (ch.code_name ? ch.code_name + ' (código borrado)' : ''))}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
     <button class="star" id="fv" title="Favorito">${IC.star(28, fav)}</button><button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
     ${ch.blocked ? '<div class="notice" style="background:#eee">Has bloqueado a este contacto: no puede escribirte. Desbloquéalo desde ⋮.</div>' : ''}${off ? `<div class="notice">${code ? 'Este código está apagado' : 'El código de este chat se ha borrado'}: el chat está cerrado. Márcalo como favorito ★ para mantenerlo activo.</div>` : ''}
-    <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${list.map(m => `<div class="m ${m.from_visitor ? 'them' : 'me'}">${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${esc(m.body)}<div class="tm">${ago(m.created_at)}${m.from_visitor ? '' : bm(m.id, m.read_at, m.created_at)}</div></div>`).join('') || '<div class="empty">Sin mensajes todavía.</div>'}</div></div>
+    <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${ownerMsgs(ch, list)}</div></div>
     <div class="compose"><input id="oi" placeholder="Escribe y envía" maxlength="2000" enterkeyhint="send"><button class="sendb" id="os" title="Enviar">${IC.send(34)}</button></div>`;
   app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight;
-  bmSync();
-  // abrir el chat = leer los mensajes del visitante (su boomerang vuelve en verde)
-  if (!document.hidden && list.some(m => m.from_visitor && !m.read_at)) { const now = new Date().toISOString(); list.forEach(m => { if (m.from_visitor && !m.read_at) m.read_at = now; }); sb.rpc('mark_chat_read', { p_chat: ch.id }).then(() => {}, () => {}); }
+  app.dataset.cv = key; S.msHtml = ownerMsgs(ch, list); bmSync();
+  markRead();   // abrir el chat = leer los mensajes del visitante (su boomerang vuelve en verde)
+  keepKb();
   $('#oi').onfocus = () => setTimeout(fitVV, 300);
   $('#bk').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
   $('#ren').onclick = () => $('#nm').onclick();
@@ -948,7 +970,7 @@ function renderChat() {
     $('#bl').onclick = async () => { const v = !ch.blocked; $('#overlay').innerHTML = ''; ch.blocked = v; render(); const { error } = await sb.from('chats').update({ blocked: v }).eq('id', ch.id); if (error) { ch.blocked = !v; render(); toast('No se ha podido cambiar.'); } else toast(v ? 'Contacto bloqueado: ya no puede escribirte' : 'Contacto desbloqueado'); };
     $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { $('#overlay').innerHTML = ''; await sb.from('chats').delete().eq('id', ch.id); S.chats = S.chats.filter(x => x.id !== ch.id); S.view = null; S.tab = 'chats'; toast('Chat borrado'); render(); } else { $('#dc').dataset.sure = 1; $('#dc').textContent = 'Pulsa otra vez para borrar el chat'; } };
   };
-  const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; i.value = ''; const { data, error } = await sb.from('messages').insert({ chat_id: ch.id, from_visitor: false, sender_id: S.user.id, body: t }).select().single(); if (error) return toast('No se ha podido enviar.'); const l = (S.msgs[ch.id] ||= []); if (!l.find(x => x.id === data.id)) l.push(data); render(); $('#oi')?.focus(); };
+  const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; i.value = ''; S.bmJustSent = Date.now(); const { data, error } = await sb.from('messages').insert({ chat_id: ch.id, from_visitor: false, sender_id: S.user.id, body: t }).select().single(); if (error) return toast('No se ha podido enviar.'); const l = (S.msgs[ch.id] ||= []); if (!l.find(x => x.id === data.id)) l.push(data); render(); $('#oi')?.focus(); };
   $('#os').onclick = send; $('#oi').onkeydown = e => { if (e.key === 'Enter') send(); };
 }
 
@@ -1003,12 +1025,14 @@ async function renderVChat() {
   const v = (S.vchats || []).find(x => x.id === S.view.id); if (!v) { S.view = null; return render(); }
   if (S.unread['v' + v.id]) { delete S.unread['v' + v.id]; ls.set('sa_unread', S.unread); }
   const list = S.vmsgs?.[v.id] || [];
+  const key = ['v', v.id, v.name, v.public_name, v.alive].join('|');
+  if (patchMsgs(key, visitorMsgs(v, list))) return;
   app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button>${LOGO(36)}<div class="grow"><div style="font-size:20px" id="nm">${esc(v.name || v.public_name || 'Chat')}</div><div style="font-size:12px;color:#aaa">${esc(v.public_name || '')} · código escaneado</div></div>
     <button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
     ${v.alive ? '' : '<div class="notice">El dueño ha cerrado este chat o ha apagado su código: no puedes escribir ahora.</div>'}
-    <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${list.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}<div class="tm">${ago(m.at)}${m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, m.id <= S.vread[v.id], m.at) : ''}</div></div>`).join('') || '<div class="empty">Sin mensajes todavía.</div>'}</div></div>
+    <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${visitorMsgs(v, list)}</div></div>
     ${v.alive ? `<div class="compose"><input id="oi" placeholder="Escribe y envía" maxlength="2000" enterkeyhint="send"><button class="sendb" id="os" title="Enviar">${IC.send(34)}</button></div>` : ''}`;
-  app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight; bmSync();
+  app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight; app.dataset.cv = key; S.msHtml = visitorMsgs(v, list); bmSync(); keepKb();
   if ($('#oi')) $('#oi').onfocus = () => setTimeout(fitVV, 300);
   $('#bk').onclick = () => { clearInterval(vPoll); S.view = null; S.tab = 'chats'; render(); };
   $('#ren').onclick = () => $('#nm').onclick();
@@ -1036,7 +1060,7 @@ async function renderVChat() {
     $('#og').onclick = () => { location.href = `${SITE}/s/${v.code_id}`; };
     $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { $('#overlay').innerHTML = ''; await sb.rpc('visitor_forget', { p_chat: v.id }); S.vchats = S.vchats.filter(x => x.id !== v.id); S.view = null; S.tab = 'chats'; toast('Chat quitado de tu lista'); render(); } else { $('#dc').dataset.sure = 1; $('#dc').textContent = 'Pulsa otra vez para quitarlo'; } };
   };
-  const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; i.value = ''; const { data } = await sb.rpc('visitor_send', { p_chat: v.id, p_token: v.token, p_body: t }); if (!data?.ok) return toast(data?.error === 'closed' ? 'El chat está cerrado.' : 'No se ha podido enviar.'); await vFetch(v); $('#oi')?.focus(); };
+  const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; i.value = ''; S.bmJustSent = Date.now(); const { data } = await sb.rpc('visitor_send', { p_chat: v.id, p_token: v.token, p_body: t }); if (!data?.ok) return toast(data?.error === 'closed' ? 'El chat está cerrado.' : 'No se ha podido enviar.'); await vFetch(v); $('#oi')?.focus(); };
   if ($('#os')) { $('#os').onclick = send; $('#oi').onkeydown = e => { if (e.key === 'Enter') send(); }; }
   if (!S.vmsgs?.[v.id] || S.vread[v.id] === undefined) vFetch(v);
   clearInterval(vPoll); vPoll = setInterval(() => { if (S.view?.t === 'vchat' && S.view.id === v.id && !document.hidden) vFetch(v); }, 3000);
@@ -1048,8 +1072,7 @@ async function vFetch(v) {
   const changed = data.messages.length || v.alive !== data.alive || (data.read_upto || 0) !== (S.vread[v.id] || 0); v.alive = data.alive; S.vread[v.id] = data.read_upto || 0;
   data.messages.forEach(m => { if (!l.find(x => x.id === m.id)) l.push(m); });
   if (l.length) v.last = { ...l.at(-1) };
-  if (changed && S.view?.t === 'vchat' && S.view.id === v.id && document.activeElement?.id !== 'oi' && document.activeElement?.id !== 'rn') render();
-  else if (changed && S.view?.t === 'vchat' && S.view.id === v.id) { const ms = $('#ms'); if (ms) { ms.innerHTML = l.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}<div class="tm">${ago(m.at)}${m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, m.id <= S.vread[v.id], m.at) : ''}</div></div>`).join(''); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight; bmSync(); } }
+  if (changed && S.view?.t === 'vchat' && S.view.id === v.id && document.activeElement?.id !== 'rn') renderVChat();
 }
 // avisos de respuestas en chats de códigos escaneados (con la app abierta): consulta cada 20 s
 setInterval(async () => {

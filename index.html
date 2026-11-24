@@ -231,7 +231,7 @@ function renderChat() {
 }
 
 async function fetchMsgs() {
-  const r = await rpc('visitor_messages', { p_chat: chat.id, p_token: chat.token, p_after: lastMsg });
+  const r = await rpc('visitor_messages', { p_chat: chat.id, p_token: chat.token, p_after: lastMsg, p_seen: !document.hidden });
   if (!r.ok) { if (r.error === 'forbidden') { localStorage.removeItem(chatKey()); chat = null; view = 'home'; clearInterval(poll); render(); } return; }
   const changed = r.messages.length || r.alive !== alive;
   alive = r.alive; msgs.push(...r.messages); if (r.messages.length) lastMsg = r.messages.at(-1).id;

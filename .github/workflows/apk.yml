@@ -43,10 +43,11 @@ jobs:
       - name: Publicar APK en la web
         run: |
           cp android/android/app/build/outputs/apk/release/app-release.apk app/scan2com.apk
+          echo "{\"build\": $GITHUB_RUN_NUMBER, \"date\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > app/version-apk.json
           git config user.name "scan2com-bot"
           git config user.email "scan2com-bot@users.noreply.github.com"
           git rm -q --ignore-unmatch app/scanandpro.apk
-          git add app/scan2com.apk app/img2014 app/logo.png app/icon-192.png app/icon-512.png
+          git add app/scan2com.apk app/version-apk.json app/img2014 app/logo.png app/icon-192.png app/icon-512.png
           git commit -m "APK Android actualizado" || echo "sin cambios"
           git pull --rebase && git push
       - uses: actions/upload-artifact@v4

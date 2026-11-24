@@ -27,7 +27,7 @@ public class AlarmService extends MessagingService {
         String body = d.containsKey("body") ? d.get("body") : "";
         String url = d.containsKey("url") ? d.get("url") : "/app/";
         if ("1".equals(d.get("alarm"))) showAlarm(this, title, body, d.get("ev"), url);
-        else showMessage(this, title, body, url, d.get("tag"));
+        else if (!MainActivity.visible) showMessage(this, title, body, url, d.get("tag"));   // con la app en pantalla no hace falta la notificación
     }
 
     static void channels(Context c) {

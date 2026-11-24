@@ -22,6 +22,11 @@ public class MainActivity extends BridgeActivity {
         openFrom(getIntent());
     }
 
+    /** la app está en pantalla: los mensajes de chat no se muestran como notificación (la app ya los enseña) */
+    public static volatile boolean visible = false;
+    @Override public void onResume() { super.onResume(); visible = true; }
+    @Override public void onPause() { visible = false; super.onPause(); }
+
     @Override
     protected void onNewIntent(Intent i) { super.onNewIntent(i); openFrom(i); }
 

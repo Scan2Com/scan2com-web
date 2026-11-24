@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#dedfe1">
 <link rel="icon" href="/app/logo.png">
-<title>Scan & Pro</title>
+<title>Scan2Com</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Comfortaa:wght@700&display=swap" rel="stylesheet">
 <style>
@@ -64,7 +64,26 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const sb = createClient('https://kbkyosyenotqjcgujbmn.supabase.co', 'sb_publishable_Ac2fFMZTIWXMGfEURbVc8Q_Z2gcpujt', { auth: { persistSession: false } });
 
-const LOGO = `<img src="/app/logo.png" width="28" height="28" alt="Scan & Pro">`;
+// Scan2Com Police: si en este navegador hay un agente con sesión iniciada en la app, puede enviar avisos de autoridad
+let AUTH = null, sbA = null;
+async function loadAuthority() {
+  try {
+    if (!Object.keys(localStorage).some(k => /^sb-.*-auth-token$/.test(k))) return;
+    sbA = createClient('https://kbkyosyenotqjcgujbmn.supabase.co', 'sb_publishable_Ac2fFMZTIWXMGfEURbVc8Q_Z2gcpujt');
+    const { data } = await sbA.rpc('my_authority'); AUTH = data || null;
+  } catch (e) {}
+}
+async function policeAlert() {
+  if (busy) return; busy = true; status = ''; render();
+  const t = wsText() || 'Su vehículo está mal estacionado. Acuda inmediatamente.';
+  let pos = null; try { pos = await new Promise((ok, ko) => navigator.geolocation.getCurrentPosition(p => ok(p.coords), ko, { timeout: 5000, maximumAge: 60000 })); } catch (e) {}
+  const { data } = await sbA.rpc('police_alert', { p_id: id, p_body: t, p_lat: pos?.latitude ?? null, p_lng: pos?.longitude ?? null });
+  busy = false;
+  if (data?.ok) { status = 'Aviso de autoridad enviado 🚓'; statusErr = false; }
+  else { status = { not_eligible: 'Este código no es de coche ni de Alert.', rate_limited: 'Demasiados avisos seguidos. Espera unos minutos.' }[data?.error] || 'No se ha podido enviar el aviso.'; statusErr = true; }
+  render();
+}
+const LOGO = `<img src="/app/logo.png" width="28" height="28" alt="Scan2Com">`;
 const I = {
   mail: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z" opacity=".25"/><path d="M3 5h18v2l-9 6-9-6zM3 9l9 6 9-6v10H3z"/></svg>',
   alert: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 4V5L7 9z"/><path d="M15 8.5a4 4 0 0 1 0 7M17.5 6a7.5 7.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
@@ -80,7 +99,7 @@ const app = $('#app');
 // id del código: /s/ABCD1234, ?c=ABCD1234 o #ABCD1234
 const id = (location.pathname.match(/\/s\/([A-Za-z0-9]+)/) || [])[1] || new URLSearchParams(location.search).get('c') || location.hash.slice(1);
 let code = null, status = '', statusErr = false, busy = false, view = 'home';
-const chatKey = () => 'scanand_chat_' + id;
+const chatKey = () => 'scan2com_chat_' + id;
 let chat = null; try { chat = JSON.parse(localStorage.getItem(chatKey())); } catch (e) {}
 let lastMsg = 0, msgs = [], poll = null, alive = true, pending = null, readPoll = null, readKind = '';
 
@@ -94,10 +113,13 @@ async function rpc(fn, args) {
 }
 
 async function load() {
-  if (!id) { app.innerHTML = `<div class="center">${LOGO}<h2>Scan & Pro</h2><p>Escanea un código Scan & Pro con la cámara de tu móvil.</p></div>`; return; }
-  code = await rpc('public_code', { p_id: id });
+  if (!id) { app.innerHTML = `<div class="center">${LOGO}<h2>Scan2Com</h2><p>Escanea un código Scan2Com con la cámara de tu móvil.</p></div>`; return; }
+  // dentro de la app Android con sesión iniciada: el código se abre en la propia app (chat en los dos móviles)
+  if (window.Capacitor?.isNativePlatform?.() && !new URLSearchParams(location.search).has('web') && Object.keys(localStorage).some(k => /^sb-.*-auth-token$/.test(k))) { location.replace('/app/?open=' + encodeURIComponent(id)); return; }
+  [code] = await Promise.all([rpc('public_code', { p_id: id }), loadAuthority()]);
+  if (chat) linkChat();
   if (!code || code.status === 'not_found' || code.ok === false) { app.innerHTML = `<div class="center">${LOGO}<h2>Código no encontrado</h2><p>Revisa que el QR se haya leído bien.</p></div>`; return; }
-  if (code.status === 'unclaimed') { app.innerHTML = `<div class="center">${LOGO}<h2>Pegatina sin activar</h2><p>Esta pegatina Scan & Pro aún no tiene dueño. Si es tuya, vincúlala desde la app escaneando el QR maestro de tu pack.</p></div>`; return; }
+  if (code.status === 'unclaimed') { app.innerHTML = `<div class="center">${LOGO}<h2>Pegatina sin activar</h2><p>Esta pegatina Scan2Com aún no tiene dueño. Si es tuya, vincúlala desde la app escaneando el QR maestro de tu pack.</p></div>`; return; }
   if (code.status === 'redirect' && /^https?:\/\//i.test(code.url)) { app.innerHTML = `<div class="center">${LOGO}<p>Abriendo <a href="${esc(code.url)}" rel="noopener">${esc(code.url.replace(/^https?:\/\//, ''))}</a>…</p></div>`; location.replace(code.url); return; }
   if (chat && code.status === 'on') view = 'home';
   render();
@@ -113,10 +135,10 @@ function render() {
   if (view === 'chat') return renderChat();
   if (view === 'mail') return renderMail();
   const off = code.status === 'off', ch = code.channels || {};
-  const any = !off && (ch.mail || ch.alert || ch.chat);
+  const any = (!off && (ch.mail || ch.alert || ch.chat)) || !!AUTH;
   app.innerHTML = `
-    <div class="brand">${LOGO} Scan & Pro</div>
-    <div class="card"><h1>${esc(code.public_name || 'Scan & Pro')}</h1><p>${off ? 'El dueño ha desactivado este código temporalmente.' : esc(code.public_desc || '')}</p></div>
+    <div class="brand">${LOGO} Scan2Com</div>
+    <div class="card"><h1>${esc(code.public_name || 'Scan2Com')}</h1><p>${off ? 'El dueño ha desactivado este código temporalmente.' : esc(code.public_desc || '')}</p></div>
     ${any ? `<div class="ws"><input id="ws" placeholder="Write & Send" maxlength="1000"></div>` : ''}
     <div class="status ${statusErr ? 'err' : ''}">${esc(status)}${pending && !statusErr ? '<div style="font-size:14px;margin-top:4px">Esperando a que el dueño lo lea<span class="wait"></span></div>' : ''}</div>
     ${!off && ch.call && code.phone ? `<div class="callrow"><a class="act call" href="tel:${esc(code.phone)}">${I.call}${esc(code.phone)}</a></div>` : ''}
@@ -125,8 +147,10 @@ function render() {
       <button class="act alert ${off || !ch.alert ? 'hidden' : ''} ${busy ? 'busy' : ''}" id="bAlert">${busy ? I.spin : I.alert}Alert</button>
       <button class="act chat ${(off && !chat) || !ch.chat ? 'hidden' : ''}" id="bChat">${I.chat}Chat${chat ? ' ·' : ''}</button>
     </div>
+    ${AUTH ? `<button class="act" id="bPol" style="background:#0b2a6b;color:#fff;width:100%;height:64px;margin-top:10px;flex-direction:row;gap:10px;justify-content:center"><img src="/app/img2014/police.png" width="26" height="30" alt="">Aviso de autoridad</button><div style="font-size:12px;color:#777;text-align:center;margin-top:4px">${esc(AUTH.body)} · agente ${esc(AUTH.badge)}. Suena aunque el código esté apagado.</div>` : ''}
     <div class="foot">Ni el dueño ni tú veis el teléfono o el email del otro.</div>`;
   $('#bAlert').onclick = () => sendEvent('alert');
+  if ($('#bPol')) $('#bPol').onclick = policeAlert;
   $('#bMail').onclick = () => { view = 'mail'; render(); };
   $('#bChat').onclick = openChat;
 }
@@ -152,7 +176,7 @@ function watchRead(eventId, token, kind) {
   }, 4000);
 }
 function renderRead() {
-  app.innerHTML = `<div class="brand">${LOGO} Scan & Pro</div>
+  app.innerHTML = `<div class="brand">${LOGO} Scan2Com</div>
     <div class="tick"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="56" fill="#2fc23a"/><path d="M34 62l17 17 36-38" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <h2>${readKind === 'alert' ? 'Alerta recibida' : 'Mensaje leído'}</h2>
       <p style="margin:0;color:#555">El dueño de “${esc(code.public_name)}” ya lo ha visto. ¡Gracias por avisar!</p></div>
@@ -172,6 +196,9 @@ function renderMail() {
 }
 
 async function openChat() {
+  if (!chat) {   // con sesión de Scan2Com: si ya tengo chat con este código, se reutiliza (un chat por código y persona)
+    try { if (!sbA) await loadAuthority(); if (sbA) { const { data } = await sbA.rpc('my_chat_for_code', { p_id: id }); if (data?.ok) { chat = { id: data.chat_id, token: data.token }; try { localStorage.setItem(chatKey(), JSON.stringify(chat)); } catch (e) {} } } } catch (e) {}
+  }
   if (!chat) {
     const first = wsText();
     const r = await rpc('start_chat', { p_id: id, p_first: first || null });
@@ -182,11 +209,16 @@ async function openChat() {
     await rpc('visitor_send', { p_chat: chat.id, p_token: chat.token, p_body: wsText() });
   }
   view = 'chat'; renderChat(); fetchMsgs(); clearInterval(poll); poll = setInterval(fetchMsgs, 3000);
+  linkChat();
+}
+// si quien escanea tiene sesión de Scan2Com en este navegador o en la app, el chat queda también en su lista de chats
+async function linkChat() {
+  try { if (!sbA) await loadAuthority(); if (sbA && chat) await sbA.rpc('link_visitor_chat', { p_chat: chat.id, p_token: chat.token }); } catch (e) {}
 }
 
 function renderChat() {
   app.innerHTML = `
-    <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div><span style="font-size:12px;color:#777">chat anónimo</span></div>
+    <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div>${sbA ? `<a href="/app/?vchat=${chat.id}" style="font-size:13px;color:#0a8f8f;font-weight:600;text-decoration:none">Mis chats ›</a>` : '<span style="font-size:12px;color:#777">chat anónimo</span>'}</div>
     <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
     ${alive ? `<div class="ws"><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs">Enviar</button></div>` : ''}`;
   $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };
@@ -199,7 +231,7 @@ function renderChat() {
 }
 
 async function fetchMsgs() {
-  const r = await rpc('visitor_messages', { p_chat: chat.id, p_token: chat.token, p_after: lastMsg });
+  const r = await rpc('visitor_messages', { p_chat: chat.id, p_token: chat.token, p_after: lastMsg, p_seen: !document.hidden });
   if (!r.ok) { if (r.error === 'forbidden') { localStorage.removeItem(chatKey()); chat = null; view = 'home'; clearInterval(poll); render(); } return; }
   const changed = r.messages.length || r.alive !== alive;
   alive = r.alive; msgs.push(...r.messages); if (r.messages.length) lastMsg = r.messages.at(-1).id;

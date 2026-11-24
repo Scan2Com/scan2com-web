@@ -925,7 +925,7 @@ async function openScanned(id) {
   busy(true);
   let c = null;
   try {
-    const [l, p] = await Promise.all([sb.rpc('my_visitor_chats').catch(() => ({})), sb.rpc('public_code', { p_id: id })]);
+    const [l, p] = await Promise.all([(async () => { try { return await sb.rpc('my_visitor_chats'); } catch (e) { return {}; } })(), sb.rpc('public_code', { p_id: id })]);
     if (l.data) S.vchats = l.data; c = p.data;
   } finally { busy(false); }
   const v = (S.vchats || []).find(x => x.code_id === id);

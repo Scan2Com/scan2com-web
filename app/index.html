@@ -223,6 +223,10 @@ const STICKER = { alert: { l: 'Alert', bg: 'linear-gradient(135deg,#ff2a1a,#b70c
 const TYPES = { alert: ['', 'Alert (rojo)'], chat: ['', 'Chat (amarillo)'], contact: ['', 'Contact (azul)'], link: ['', 'Link (gris)'] };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const $ = s => document.querySelector(s);
+// versión de esta página: la escribe GitHub (workflow "Versión web") cada vez que se sube la app
+const WEB_BUILD = { id: 'dev', date: '' };
+addEventListener('error', e => { try { toast('Error: ' + (e.message || e) + (e.lineno ? ' (l.' + e.lineno + ')' : '')); } catch (x) {} });
+addEventListener('unhandledrejection', e => { try { toast('Error: ' + (e.reason?.message || e.reason)); } catch (x) {} });
 const ago = d => { const s = (Date.now() - new Date(d)) / 1000, pl = (n, w) => `Hace ${n} ${w}${n === 1 ? '' : (w.endsWith('n') ? 'es' : 's')}`;
   if (s < 60) return 'Ahora'; if (s < 3600) return pl(Math.floor(s / 60), 'minuto'); if (s < 86400) return pl(Math.floor(s / 3600), 'hora'); if (s < 7 * 86400) return pl(Math.floor(s / 86400), 'día');
   return new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', ''); };
@@ -654,12 +658,13 @@ function accountMenu() {
     <button class="btn light" id="nt" style="margin-bottom:8px">${IC.bell(20)}${NATIVE && S.av ? (avMissing() ? 'Configurar avisos' : 'Avisos configurados ✓') : notifOn() ? 'Notificaciones activadas ✓' : 'Activar notificaciones'}</button>
     <button class="btn light" id="sp" style="margin-bottom:8px">${IC.lock(20)}Lugares seguros (${(S.places || []).length})</button>
     <button class="btn light" id="how" style="margin-bottom:8px">${IC.play(20)}Cómo funciona</button>
-    ${NATIVE ? `<a class="btn light" href="https://www.scan2com.com/app/scan2com.apk" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.refresh(20)}Actualizar la app</a>` : ''}
+    ${NATIVE ? (S.ver?.old ? `<a class="btn red" href="${APK_URL}" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.refresh(20)}Actualizar a la última versión<div style="font-size:12px;font-weight:400;opacity:.85">${fmtD(S.ver.apk?.date)}</div></a>` : `<button class="btn light" id="ver" style="margin-bottom:8px">${IC.refresh(20)}${S.ver?.ok ? 'Última versión instalada' : 'Comprobar actualización'}${S.ver?.last ? `<div style="font-size:12px;font-weight:400;color:#777">${fmtD(S.ver.last)}</div>` : ''}</button>`) : ''}
     ${/android/i.test(navigator.userAgent) && !NATIVE ? `<a class="btn red" href="/app/scan2com.apk" download style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.alert(20)}Descargar app Android (sirena a pantalla completa)</a>` : ''}
     <button class="btn light" id="ins" style="margin-bottom:8px">${IC.vibrate(20)}Cómo instalar en el móvil</button>
     <button class="btn red" id="lo">Cerrar sesión</button></div></div>`;
   $('#am').onclick = () => { $('#overlay').innerHTML = ''; };
   $('#sp').onclick = placesSheet;
+  if ($('#ver')) $('#ver').onclick = async () => { $('#overlay').innerHTML = ''; await checkVersion(true); };
   $('#how').onclick = () => { $('#overlay').innerHTML = ''; S.tourForce = true; S.tab = 'codes'; S.view = null; render(); setTimeout(playTour, 100); };
   $('#lo').onclick = async () => { await sb.auth.signOut(); location.reload(); };
   $('#nt').onclick = async () => { $('#overlay').innerHTML = ''; if (NATIVE && S.av) return avOpen(true); if (notifOn()) return toast('Las notificaciones ya están activadas en este móvil.'); await enablePush(true); };
@@ -1110,7 +1115,13 @@ async function startScan() {
     const L = r.location, P = [L.topLeftFinderPattern, L.topRightFinderPattern, L.bottomLeftFinderPattern, L.bottomRightAlignmentPattern].filter(Boolean);
     const t0 = performance.now(); let done = false;
     // pase lo que pase con el dibujo, a los 0,8 s se abre el código
-    const go = () => { if (done) return; done = true; stopCam(); $('#cw')?.classList.remove('found'); handleScan(r.data); };
+    const go = () => {
+      if (done) return; done = true; stopCam(); $('#cw')?.classList.remove('found'); busy(true);
+      // si algo falla al abrir el código, no se queda la cámara congelada: aviso y vuelta a la lista
+      const fail = e => { console.error(e); busy(false); toast('No se ha podido abrir el código' + (e?.message ? ': ' + e.message : '.')); if (S.view?.t === 'pack') { S.view = null; render(); } };
+      const wd = setTimeout(() => fail(new Error('tiempo agotado')), 15000);
+      Promise.resolve().then(() => handleScan(r.data)).then(() => { clearTimeout(wd); busy(false); }, e => { clearTimeout(wd); fail(e); });
+    };
     setTimeout(go, 800);
     const draw = now => { try { draw2(now); } catch (e) { go(); } };
     const draw2 = now => {
@@ -1130,7 +1141,7 @@ function handleScan(t) {
   const pack = t.match(/\/(?:link|p)\/([A-Z0-9]+)/i), code = t.match(/\/s\/([A-Z0-9]+)/i);
   if (pack) return claim(pack[1]);
   if (code && S.auth) { S.view = null; render(); return policeSheet(code[1].toUpperCase()); }
-  if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: 'qr', id: c.id }; return render(); } stopCam(); app.classList.remove('full'); if (/^https:\/\/(www\.)?scan2com\.com\//i.test(t)) { openScanned(code[1].toUpperCase()); return; } window.open(t, '_blank'); S.view = null; return render(); }
+  if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: 'qr', id: c.id }; return render(); } stopCam(); app.classList.remove('full'); if (/^https:\/\/(www\.)?scan2com\.com\//i.test(t)) return openScanned(code[1].toUpperCase()); window.open(t, '_blank'); S.view = null; return render(); }
   toast('Ese QR no es de Scan2Com: ' + t.slice(0, 60)); if (S.view?.only) S.view.scan = true; renderPack();
 }
 async function claim(id) {
@@ -1293,6 +1304,25 @@ document.addEventListener('pointerdown', () => { if (siren && siren.a.state === 
 document.addEventListener('click', e => { if (e.target.id === 'aok') { sirenOff(); const id = S.alarm?.id; S.alarm = null; S.tab = 'alerts'; S.view = null; render(); if (id) markRead([id]); } });
 async function markRead(ids) { ids = ids.filter(Boolean); if (!ids.length) return; const now = new Date().toISOString(); S.events.forEach(e => { if (ids.includes(e.id)) e.read_at = e.read_at || now; }); await sb.rpc('mark_events_read', { p_ids: ids }); }
 
+/* ---------- versión: ¿está instalada la última? ---------- */
+const APK_URL = 'https://www.scan2com.com/app/scan2com.apk';
+const fmtD = d => { if (!d) return ''; const x = new Date(d); return isNaN(x) ? '' : x.toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+async function checkVersion(manual) {
+  const g = async f => { try { const r = await fetch(`/app/${f}?t=${Date.now()}`, { cache: 'no-store' }); return r.ok ? await r.json() : null; } catch (e) { return null; } };
+  const [web, apk] = await Promise.all([g('version-web.json'), g('version-apk.json')]);
+  let build = null; try { if (NATIVE && window.Capacitor.Plugins.App) build = Number((await window.Capacitor.Plugins.App.getInfo()).build) || null; } catch (e) {}
+  // la página cargada es antigua (caché del móvil): se recarga una vez con la nueva
+  if (web && WEB_BUILD.id !== 'dev' && web.id !== WEB_BUILD.id) {
+    const k = 'sa_reload_' + web.id;
+    if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, 1); location.replace('/app/?v=' + web.id); return; }
+  }
+  const old = !!(NATIVE && apk && build && build < apk.build);
+  const last = [web?.date, apk?.date].filter(Boolean).sort().pop() || WEB_BUILD.date;
+  S.ver = { web, apk, build, old, last, ok: !!(web || apk) };
+  if (old) toast('Hay una versión nueva de Scan2Com. Toca aquí para actualizar.', () => { location.href = APK_URL; });
+  else if (manual) toast(S.ver.ok ? 'Tienes la última versión (' + fmtD(last) + ').' : 'No se ha podido comprobar la versión. Revisa la conexión.');
+}
+
 /* ---------- arranque ---------- */
 async function start(session) {
   S.user = session?.user || null;
@@ -1300,6 +1330,7 @@ async function start(session) {
   app.innerHTML = `<div style="position:fixed;inset:0;background:#000;display:grid;place-items:center;z-index:30"><img src="/app/img2014/icon.png" width="170" height="170" alt="Scan2Com" onerror="this.src='/app/icon-192.png'"></div>`;
   await loadAll(); await ensureStarter(); await ensureCar(); subscribe(); render(); syncAuto(); checkTerms();
   if (location.search) { openUrl(location.href); history.replaceState(null, '', '/app/'); }
+  checkVersion();
   if (NATIVE) { await Promise.race([enableNativePush(false), new Promise(r => setTimeout(r, 5000))]); avInit(); } else if (pushOK() && Notification.permission === 'granted') enablePush(false);
 }
 /* ---------- vídeo de bienvenida: solo la primera vez que se abre la app ---------- */

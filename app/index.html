@@ -144,6 +144,8 @@ label{font-size:13px;color:var(--mut)}
 .camwrap.found .laser{animation-play-state:paused;opacity:.35}
 .camwrap canvas.pts{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .section{font-size:12px;font-weight:700;color:var(--mut);letter-spacing:.06em;margin:18px 0 4px}
+.grp{display:flex;align-items:center;gap:8px;padding:12px 16px 6px;font-size:15px;font-weight:600;color:#3a3a3a;border-top:1px solid #e6e6e6}
+.grp .n{margin-left:auto;font-size:12px;font-weight:500;color:#8a8a8a}
 .req::after{content:' *';color:#e8352b;font-weight:700}
 .bad{border-color:#e8352b!important;background:#fff6f5}
 .hint{font-size:12px;color:var(--mut);margin:-4px 0 10px}
@@ -656,9 +658,16 @@ function renderHome() {
     const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div style="flex:none">${face(c.blocked, 54)}</div>
       <div class="grow"><div class="t">${esc(c.name)}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + lm.body : (code?.name || c.code_name || ''))}</div></div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><button class="star" data-fav="${c.id}" title="Favorito" style="padding:0">${IC.star(26, S.favs.has(c.id))}</button><div style="white-space:nowrap">${ago(lm?.created_at || c.created_at)}</div></div></div>`; };
-    const mineHTML = list.length ? (favs.length ? `<div class="pad section" style="padding-bottom:0">FAVORITOS</div>${favs.map(row).join('')}` : '') + (rest.length ? `${favs.length ? '<div class="pad section" style="padding-bottom:0">TODOS</div>' : ''}${rest.map(row).join('')}` : '')
+    // agrupados por código: los míos con su nombre privado; los escaneados con el nombre público que tenía el código
+    const grpHead = (name, n) => `<div class="grp">${LOGO(20)}<span>${esc(name)}</span><span class="n">${n} chat${n === 1 ? '' : 's'}</span></div>`;
+    const groupBy = (arr, keyOf) => { const m = new Map(); arr.forEach(x => { const k = keyOf(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }); return [...m.values()]; };
+    const mineName = c => { const code = codeOf(c.code_id); return code ? (code.name || code.public_name || 'Código ' + code.id) : (c.code_name ? c.code_name + ' (código borrado)' : 'Código borrado'); };
+    const mineGroups = groupBy(rest, c => c.code_id || 'del:' + (c.code_name || ''));
+    const vtime = v => new Date(v.last?.at || v.created_at);
+    const vGroups = groupBy([...vlist].sort((a, b) => vtime(b) - vtime(a)), v => v.code_id);
+    const mineHTML = list.length ? (favs.length ? `<div class="pad section" style="padding-bottom:0">FAVORITOS</div>${favs.map(row).join('')}` : '') + (rest.length ? `<div class="pad section" style="padding-bottom:0">CHATS DE MIS CÓDIGOS</div>${mineGroups.map(g => grpHead(mineName(g[0]), g.length) + g.map(row).join('')).join('')}` : '')
       : '';
-    body = (mineHTML || vlist.length) ? mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">CÓDIGOS QUE HE ESCANEADO</div>${vlist.map(vrow).join('')}` : '')
+    body = (mineHTML || vlist.length) ? mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">CÓDIGOS QUE HE ESCANEADO</div>${vGroups.map(g => grpHead(g[0].public_name || (g[0].code_id ? 'Código ' + g[0].code_id : 'Código borrado'), g.length) + g.map(vrow).join('')).join('')}` : '')
       : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.<br><br>Y si tú escaneas el código de otra persona con la app y le escribes, el chat también aparecerá aquí.</div>`;
   } else {
     const seen = S.seenEv;

@@ -977,7 +977,7 @@ function carSheetAsk(c, url) {
   $('#overlay').innerHTML = `<div class="sheet keep" id="pdfs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
     <div style="font-size:19px;font-weight:700;margin-bottom:4px">PDF de pegatinas de coche</div>
     <div style="font-size:14px;color:#555;margin-bottom:14px">Hoja A4 con las 4 pegatinas a tamaño real (210 × 100 mm), giradas y centradas con margen. Imprime al 100 %, sin "ajustar a la página".</div>
-    <button class="btn" id="pdfn" style="margin-bottom:8px">${IC.pdf(20)} Normal <span style="font-weight:400;opacity:.85">· papel de pegatina, se pega por fuera</span></button>
+    <button class="btn" id="pdfn" style="margin-bottom:8px">${IC.pdf(20)} Normal <span style="font-weight:400;opacity:.85">· en papel de pegatina, se pega por fuera; o en papel normal, por dentro del cristal sujeto con celo</span></button>
     <button class="btn light" id="pdfm">${IC.pdf(20)} En espejo <span style="font-weight:400;opacity:.8">· vinilo transparente, se pega por dentro del cristal</span></button>
   </div></div>`;
   const close = () => { $('#overlay').innerHTML = ''; };

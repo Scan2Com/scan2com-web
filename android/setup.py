@@ -123,6 +123,105 @@ def sticker_base():
     big.save(os.path.join(_webimg, 'pegatina_coche.png'), optimize=True)
 sticker_base()
 
+import json
+def scan2_at(img, s, ox, oy):
+    """Como scan2, pero con la pegatina en cualquier sitio y tamaño: coordenada de referencia X -> ox + X*s."""
+    import numpy as np
+    from PIL import ImageDraw, ImageFilter
+    s, ox, oy = float(s), float(ox), float(oy)
+    a = np.asarray(img).astype(float).copy()
+    X = lambda v: ox + v * s; Y = lambda v: oy + v * s
+    x0, x1, y0, y1 = int(X(642)), int(X(742)), int(Y(1086)), int(Y(1192)); m = max(2, int(4 * s))
+    for y in range(y0, y1):
+        L = a[y, x0 - m:x0].mean(0); R = a[y, x1:x1 + m].mean(0)
+        for x in range(x0, x1):
+            t = (x - x0) / (x1 - x0); a[y, x] = L * (1 - t) + R * t
+    sc = 92 / 764 * 1.06 * s; base = Y(1183)
+    xs = [x for c in DOS for x, _ in c]; left = X(662) - min(xs) * sc; ss = 4
+    # solo se dibuja en una ventana alrededor del 2 (la imagen entera sería enorme a 4x)
+    bx0, by0, bx1, by1 = int(X(600)), int(Y(1040)), int(X(800)), int(Y(1230))
+    W, H = bx1 - bx0, by1 - by0
+    msk = Image.new('L', (W * ss, H * ss), 0); d = ImageDraw.Draw(msk)
+    for c in DOS: d.polygon([((left - bx0 + x * sc) * ss, (base - by0 - y * sc) * ss) for x, y in c], fill=255)
+    bl = np.asarray(msk.filter(ImageFilter.GaussianBlur(RND * s * ss))).astype(float) / 255
+    alpha = ((bl - THR) / 0.12 + 0.5).clip(0, 1)
+    msk = Image.fromarray((alpha * 255).astype('uint8')).resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(0.5 * s))
+    msk = np.asarray(msk).astype(float)[..., None] / 255
+    a[by0:by1, bx0:bx1, :3] = a[by0:by1, bx0:bx1, :3] * (1 - msk) + 255 * msk
+    return Image.fromarray(a.clip(0, 255).astype('uint8'), img.mode)
+
+def plantilla(src, logo, outdir, Z=2):
+    """Hoja de pegatinas de coche (210 x 100 mm a 300 ppp en el original) lista para poner el QR:
+    recuadros en blanco, "Scan 2 Alert" en las cuatro pegatinas y el logo de Scan2Com en vez del antiguo."""
+    import numpy as np
+    from PIL import ImageDraw, ImageFont
+    from scipy import ndimage
+    import cv2
+    t0 = Image.open(src).convert('RGB')
+    k0 = t0.width / 2480
+    t = t0.resize((round(2480 * Z), round(1181 * Z)), Image.LANCZOS)
+    a = np.asarray(t).astype(np.uint8).copy()
+    # 1) recuadros blancos del QR (los dos verticales, los dos horizontales y el grande del centro)
+    white = a.min(2) > 215
+    lab, n = ndimage.label(white)
+    panels = []
+    for i, sl in enumerate(ndimage.find_objects(lab)):
+        h = sl[0].stop - sl[0].start; w = sl[1].stop - sl[1].start
+        if 150 * Z < w < 900 * Z and 150 * Z < h < 900 * Z and 0.85 < w / h < 1.15:
+            shape = ndimage.binary_fill_holes(lab[sl] == i + 1)
+            a[sl][shape] = 255
+            panels.append([sl[1].start, sl[0].start, w, h])
+    # 2) "&" -> "2" en las cuatro pegatinas: se busca el & copiando el de la pegatina vertical izquierda
+    s0 = 0.5 * Z; ox0 = oy0 = 20 * Z
+    tx0, ty0, tx1, ty1 = int(ox0 + 642 * s0), int(oy0 + 1086 * s0), int(ox0 + 742 * s0), int(oy0 + 1192 * s0)
+    gray = cv2.cvtColor(np.asarray(t), cv2.COLOR_RGB2GRAY)
+    tmpl = gray[ty0:ty1, tx0:tx1]
+    found = []
+    for f in np.arange(0.9, 1.8, 0.02):
+        tp = cv2.resize(tmpl, None, fx=f, fy=f, interpolation=cv2.INTER_AREA)
+        r = cv2.matchTemplate(gray, tp, cv2.TM_CCOEFF_NORMED)
+        ys, xs = np.where(r > 0.75)
+        for y, x in zip(ys, xs): found.append((r[y, x], x, y, f))
+    found.sort(reverse=True); hits = []
+    for sc_, x, y, f in found:
+        if all(abs(x - hx) > 100 * Z or abs(y - hy) > 100 * Z for _, hx, hy, _ in hits): hits.append((sc_, x, y, f))
+        if len(hits) == 4: break
+    img = Image.fromarray(a).convert('RGBA')
+    for sc_, x, y, f in hits:
+        s = s0 * f
+        img = scan2_at(img, s, x - 642 * s, y - 1086 * s)
+    print('pegatinas con "2":', [(round(float(h[0]), 2), int(h[1]), int(h[2]), round(float(h[3]), 2)) for h in hits])
+    # 3) logo: el antiguo "Scan &" de encima del recuadro central se cambia por el de Scan2Com
+    mid = max(panels, key=lambda p: p[2])
+    d = ImageDraw.Draw(img)
+    d.rectangle([mid[0] - 30 * Z, 15 * Z, mid[0] + mid[2] + 30 * Z, mid[1] - 8 * Z], fill=(255, 255, 255, 255))
+    try:
+        lg = Image.open(logo).convert('RGBA'); hgt = int(150 * Z); lg = lg.resize((hgt, hgt), Image.LANCZOS)
+        font = None
+        for fp in ('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', '/usr/share/fonts/truetype/freefont/FreeSans.ttf'):
+            if os.path.exists(fp): font = ImageFont.truetype(fp, int(92 * Z)); break
+        txt = 'Scan2Com'; tw = d.textlength(txt, font=font) if font else 0
+        total = hgt + 20 * Z + tw; x0 = int(mid[0] + mid[2] / 2 - total / 2); y0 = int((mid[1] - 8 * Z + 15 * Z) / 2 - hgt / 2)
+        img.alpha_composite(lg, (x0, y0))
+        if font: d.text((x0 + hgt + 20 * Z, y0 + hgt / 2), txt, font=font, fill=(40, 40, 40, 255), anchor='lm')
+    except Exception as e: print('AVISO logo plantilla:', e)
+    img.convert('RGB').save(os.path.join(outdir, 'plantilla_coche.png'), optimize=True)
+    # recuadros para el QR (en píxeles de esta imagen) y tamaño real de la hoja
+    json.dump({'w': img.width, 'h': img.height, 'mm': [210, 100], 'panels': panels}, open(os.path.join(outdir, 'plantilla_coche.json'), 'w'))
+
+# 2d) hoja de pegatinas de coche para imprimir (PDF desde la app): 210 x 100 mm, 4 pegatinas
+def plantilla_coche():
+    src = None
+    for f in sorted(os.listdir(HERE)):
+        if f.lower().endswith('.png'):
+            with Image.open(os.path.join(HERE, f)) as im:
+                if im.width >= 1200 and 2.0 < im.width / im.height < 2.2: src = os.path.join(HERE, f)
+    if not src: return
+    logo = os.path.join(ROOT, 'app', 'logo.png')
+    try: plantilla(src, logo, _webimg)
+    except Exception as e: print('AVISO plantilla de coche:', e)
+plantilla_coche()
+
 # 3) sonido de sirena (barrido 650-1500 Hz, 1,8 s, se repite en bucle)
 os.makedirs(os.path.join(RES, 'raw'), exist_ok=True)
 sr, dur = 22050, 1.8

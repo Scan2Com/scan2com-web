@@ -102,6 +102,13 @@ label{font-size:13px;color:var(--mut)}
 .m.me::after{right:-13px;border-left-color:#ebf8df}
 .m.me{align-self:flex-end;background:#ebf8df;color:#222;margin-right:8px}
 .m.them{align-self:flex-start;background:#f6fbe2;color:#222;margin-left:8px}
+.bm{display:inline-block;width:18px;height:18px;color:#2fc23a;transition:transform 1.1s cubic-bezier(.5,.05,.3,1),color .3s .85s}
+.bm.left{transform:translateX(var(--fly,0));color:#1e88e5;transition:transform 1.1s cubic-bezier(.5,.05,.3,1),color .2s}
+.bm i{display:block;width:18px;height:18px;transition:transform .35s}
+.bm.left i{transform:rotate(90deg)}
+.bm.now,.bm.now i{transition:none!important}
+.bm.fly i{animation:bmspin .3s linear infinite}
+@keyframes bmspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 .m .who{font-size:11px;opacity:.8;margin-bottom:2px}
 .notice{background:#fff4d6;font-size:13px;padding:9px 14px}
 .compose{display:flex;gap:6px;align-items:center;padding:10px 10px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #ddd;background:#fff;position:sticky;bottom:0}
@@ -476,6 +483,24 @@ async function loadAll() {
     S.msgs = {}; (data || []).forEach(m => (S.msgs[m.chat_id] ||= []).push(m));
   }
 }
+// acuse de lectura con el boomerang del icono: azul y a la izquierda = enviado sin leer; vuelve a su sitio en verde (forma de tic) = leído
+const BM_SVG = '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M3.6 12.6Q6.6 15.4 9.3 18.5Q13.6 10.6 20.6 5.3" fill="none" stroke="currentColor" stroke-width="4.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const bm = (id, read, at) => `<span class="bm" data-bm="${id}" data-read="${read ? 1 : 0}" data-at="${esc(at || '')}" title="${read ? 'Leído' : 'Enviado, sin leer'}"><i>${BM_SVG}</i></span>`;
+S.bmPos = {};
+function bmSync() {
+  document.querySelectorAll('.bm').forEach(el => {
+    const box = el.closest('.msgs'); if (!box) return;
+    const id = el.dataset.bm, want = el.dataset.read === '1' ? 'home' : 'left';
+    let was = S.bmPos[id];
+    if (!was && want === 'left' && Date.now() - new Date(el.dataset.at) < 15000) was = 'home';   // recién enviado: sale volando
+    el.style.setProperty('--fly', -Math.max(0, el.parentElement.getBoundingClientRect().right - 18 - box.getBoundingClientRect().left - 6) + 'px');   // se mide desde el sitio fijo (la hora), no desde el boomerang ya movido
+    S.bmPos[id] = want;
+    if (!was || was === want) { el.classList.add('now', want); void el.offsetWidth; el.classList.remove('now'); return; }
+    el.classList.add(was); void el.offsetWidth;
+    el.classList.add('fly'); el.classList.remove(was); el.classList.add(want);
+    setTimeout(() => el.classList.remove('fly'), 1150);
+  });
+}
 const face = (blocked, s) => `<img src="/app/img2014/${blocked ? 'chat_blocked' : 'chat_ok'}.png" width="${s}" height="${s}" alt="" style="display:block">`;
 const codeOf = id => S.codes.find(c => c.id === id);
 const lastMsg = cid => (S.msgs[cid] || []).at(-1);
@@ -497,6 +522,10 @@ function subscribe() {
         if (!viewing) { toast(`💬 ${ch?.name || 'Chat'} · ${code?.name || ''}: ${m.body}`, () => { S.view = { t: 'chat', id: m.chat_id }; render(); }); notify('Nuevo mensaje · ' + (code?.name || 'Scan2Com'), m.body); beep(); }
       }
       render(true);
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, ({ new: m }) => {
+      const x = (S.msgs[m.chat_id] || []).find(y => y.id === m.id); if (!x || x.read_at === m.read_at) return;
+      x.read_at = m.read_at; if (S.view?.t === 'chat' && S.view.id === m.chat_id) render(true);
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, ({ new: e }) => {
       S.events.unshift(e); const code = codeOf(e.code_id);
@@ -879,9 +908,12 @@ function renderChat() {
   app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button>${LOGO(36)}<div class="grow"><div style="font-size:20px" id="nm">${esc(ch.name)}</div><div style="font-size:12px;color:#aaa">${esc(code?.name || (ch.code_name ? ch.code_name + ' (código borrado)' : ''))}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
     <button class="star" id="fv" title="Favorito">${IC.star(28, fav)}</button><button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
     ${ch.blocked ? '<div class="notice" style="background:#eee">Has bloqueado a este contacto: no puede escribirte. Desbloquéalo desde ⋮.</div>' : ''}${off ? `<div class="notice">${code ? 'Este código está apagado' : 'El código de este chat se ha borrado'}: el chat está cerrado. Márcalo como favorito ★ para mantenerlo activo.</div>` : ''}
-    <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${list.map(m => `<div class="m ${m.from_visitor ? 'them' : 'me'}">${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${esc(m.body)}<div class="tm">${ago(m.created_at)}${m.from_visitor ? '' : IC.check(16)}</div></div>`).join('') || '<div class="empty">Sin mensajes todavía.</div>'}</div></div>
+    <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${list.map(m => `<div class="m ${m.from_visitor ? 'them' : 'me'}">${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${esc(m.body)}<div class="tm">${ago(m.created_at)}${m.from_visitor ? '' : bm(m.id, m.read_at, m.created_at)}</div></div>`).join('') || '<div class="empty">Sin mensajes todavía.</div>'}</div></div>
     <div class="compose"><input id="oi" placeholder="Escribe y envía" maxlength="2000" enterkeyhint="send"><button class="sendb" id="os" title="Enviar">${IC.send(34)}</button></div>`;
   app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight;
+  bmSync();
+  // abrir el chat = leer los mensajes del visitante (su boomerang vuelve en verde)
+  if (!document.hidden && list.some(m => m.from_visitor && !m.read_at)) { const now = new Date().toISOString(); list.forEach(m => { if (m.from_visitor && !m.read_at) m.read_at = now; }); sb.rpc('mark_chat_read', { p_chat: ch.id }).then(() => {}, () => {}); }
   $('#oi').onfocus = () => setTimeout(fitVV, 300);
   $('#bk').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
   $('#ren').onclick = () => $('#nm').onclick();
@@ -968,9 +1000,9 @@ async function renderVChat() {
   app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button>${LOGO(36)}<div class="grow"><div style="font-size:20px" id="nm">${esc(v.name || v.public_name || 'Chat')}</div><div style="font-size:12px;color:#aaa">${esc(v.public_name || '')} · código escaneado</div></div>
     <button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
     ${v.alive ? '' : '<div class="notice">El dueño ha cerrado este chat o ha apagado su código: no puedes escribir ahora.</div>'}
-    <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${list.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}<div class="tm">${ago(m.at)}${m.mine ? IC.check(16) : ''}</div></div>`).join('') || '<div class="empty">Sin mensajes todavía.</div>'}</div></div>
+    <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${list.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}<div class="tm">${ago(m.at)}${m.mine ? bm('v' + m.id, m.id <= (v.readUpto || 0), m.at) : ''}</div></div>`).join('') || '<div class="empty">Sin mensajes todavía.</div>'}</div></div>
     ${v.alive ? `<div class="compose"><input id="oi" placeholder="Escribe y envía" maxlength="2000" enterkeyhint="send"><button class="sendb" id="os" title="Enviar">${IC.send(34)}</button></div>` : ''}`;
-  app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight;
+  app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight; bmSync();
   if ($('#oi')) $('#oi').onfocus = () => setTimeout(fitVV, 300);
   $('#bk').onclick = () => { clearInterval(vPoll); S.view = null; S.tab = 'chats'; render(); };
   $('#ren').onclick = () => $('#nm').onclick();
@@ -1005,13 +1037,13 @@ async function renderVChat() {
 }
 async function vFetch(v) {
   S.vmsgs ||= {}; const l = S.vmsgs[v.id] ||= [];
-  const { data } = await sb.rpc('visitor_messages', { p_chat: v.id, p_token: v.token, p_after: l.at(-1)?.id || 0 });
+  const { data } = await sb.rpc('visitor_messages', { p_chat: v.id, p_token: v.token, p_after: l.at(-1)?.id || 0, p_seen: !document.hidden });
   if (!data?.ok) return;
-  const changed = data.messages.length || v.alive !== data.alive; v.alive = data.alive;
+  const changed = data.messages.length || v.alive !== data.alive || (data.read_upto || 0) !== (v.readUpto || 0); v.alive = data.alive; v.readUpto = data.read_upto || 0;
   data.messages.forEach(m => { if (!l.find(x => x.id === m.id)) l.push(m); });
   if (l.length) v.last = { ...l.at(-1) };
   if (changed && S.view?.t === 'vchat' && S.view.id === v.id && document.activeElement?.id !== 'oi' && document.activeElement?.id !== 'rn') render();
-  else if (changed && S.view?.t === 'vchat' && S.view.id === v.id) { const ms = $('#ms'); if (ms) { ms.innerHTML = l.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}<div class="tm">${ago(m.at)}${m.mine ? IC.check(16) : ''}</div></div>`).join(''); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight; } }
+  else if (changed && S.view?.t === 'vchat' && S.view.id === v.id) { const ms = $('#ms'); if (ms) { ms.innerHTML = l.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}<div class="tm">${ago(m.at)}${m.mine ? bm('v' + m.id, m.id <= (v.readUpto || 0), m.at) : ''}</div></div>`).join(''); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight; bmSync(); } }
 }
 // avisos de respuestas en chats de códigos escaneados (con la app abierta): consulta cada 20 s
 setInterval(async () => {

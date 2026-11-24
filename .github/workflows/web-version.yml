@@ -3,7 +3,7 @@ name: Versión web
 on:
   push:
     branches: [main]
-    paths: ['app/index.html', 'index.html']
+    paths: ['app/index.html', 'index.html', '404.html', '.github/workflows/web-version.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -18,8 +18,10 @@ jobs:
           D=$(date -u +%Y-%m-%dT%H:%M:%SZ); B=${GITHUB_SHA::8}
           sed -i "s|^const WEB_BUILD = .*|const WEB_BUILD = { id: '$B', date: '$D' };|" app/index.html
           echo "{\"id\": \"$B\", \"date\": \"$D\"}" > app/version-web.json
+          # los enlaces scan2com.com/s/CÓDIGO los sirve 404.html: siempre igual que la página de escaneo
+          cp index.html 404.html
           git config user.name "scan2com-bot"
           git config user.email "scan2com-bot@users.noreply.github.com"
-          git add app/index.html app/version-web.json
+          git add app/index.html app/version-web.json 404.html
           git commit -m "Versión web $D" || exit 0
           git pull --rebase && git push

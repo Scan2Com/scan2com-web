@@ -998,7 +998,7 @@ function carSheetAsk(c, url, mode) {
   // primero: generar el PDF en la app o enviarlo por email; después, normal o en espejo
   $('#overlay').innerHTML = mode ? box(`
     <button class="btn" id="pdfn" style="margin-bottom:8px">${IC.pdf(20)} Normal <span style="font-weight:400;opacity:.85">· en papel de pegatina, se pega por fuera; o en papel normal, por dentro del cristal sujeto con celo</span></button>
-    <button class="btn light" id="pdfm">${IC.pdf(20)} En espejo <span style="font-weight:400;opacity:.8">· vinilo transparente, se pega por dentro del cristal</span></button>`) : box(`
+    <button class="btn light" id="pdfm">${IC.pdf(20)} En espejo <span style="font-weight:400;opacity:.8">· vinilo transparente, se pega por dentro del cristal (como la de la ITV)</span></button>`) : box(`
     <button class="btn" id="pdfg" style="margin-bottom:8px">${IC.pdf(20)} Generar PDF en mi móvil</button>
     <button class="btn light" id="pdfe">✉️ Generar PDF y enviar a mi email</button>`);
   const close = () => { $('#overlay').innerHTML = ''; };
@@ -1039,9 +1039,9 @@ async function carSheetBin(c, url, mirror) {
     // girada 90° y centrada en el A4 vertical: deja ~4 cm de margen por todos lados (las impresoras no imprimen hasta el borde)
     const rot = document.createElement('canvas'); rot.width = out.height; rot.height = out.width;
     const r2 = rot.getContext('2d'); r2.translate(rot.width, 0); r2.rotate(Math.PI / 2); r2.drawImage(out, 0, 0);
-    const note = mirror ? 'Imprime al 100 % (sin «ajustar a la página») en vinilo transparente y pégalo por dentro del cristal.'
+    const note = mirror ? 'Imprime al 100 % (sin «ajustar a la página») en vinilo transparente y pégalo por dentro del cristal (como la de la ITV).'
       : 'Imprime al 100 % (sin «ajustar a la página»). En papel de pegatina, por fuera; o en papel normal, por dentro del cristal con celo.';
-    const shop = 'También puedes comprar las pegatinas en vinilo transparente, para pegar por el interior, en scan2com.com';
+    const shop = 'También puedes comprar las pegatinas en vinilo transparente, para pegar por el interior (como la de la ITV), en scan2com.com';
     return { bin: pdfFromJpeg(rot.toDataURL('image/jpeg', 0.95), rot.width, rot.height, spec.mm[1], spec.mm[0], 210, 297, [note, shop]), name: `scan2com-pegatinas-coche-${c.id}${mirror ? '-espejo' : ''}.pdf` };
 }
 async function carSheetPdf(c, url, mirror) {

@@ -675,7 +675,7 @@ function renderHome() {
     // cabecera de grupo: si el código existe, al tocarla se muestra su QR (para compartirlo)
     const grpHead = (name, n, origin, cid) => `<div class="grp"${cid ? ` data-qrc="${esc(cid)}" data-qrn="${esc(name)}" style="cursor:pointer"` : ''}>${LOGO(20)}<div style="min-width:0"><div>${esc(name)}</div>${origin ? `<div style="font-size:12px;font-weight:400;color:#8a8a8a">${origin}${cid ? ' · toca para ver el código' : ''}</div>` : ''}</div><span class="n">${n} chat${n === 1 ? '' : 's'}</span></div>`;
     const mineOrigin = c => { const code = codeOf(c.code_id); return !code ? 'Código borrado · nombre que tenía' : code.name ? `Tu código ${esc(code.id)} · tu nombre privado` : code.public_name ? `Tu código ${esc(code.id)} · su nombre público (no tiene privado)` : `Tu código ${esc(code.id)} · sin nombre`; };
-    const vOrigin = v => v.hidden ? 'Código de trazabilidad oculta' : v.code_id ? (v.public_name ? `Código ${esc(v.code_id)} · nombre público al escanearlo` : `Código ${esc(v.code_id)} · no tenía nombre público`) : 'Código borrado';
+    const vOrigin = v => v.hidden ? 'El propietario ha ocultado su trazabilidad' : v.code_id ? (v.public_name ? `Código ${esc(v.code_id)} · nombre público al escanearlo` : `Código ${esc(v.code_id)} · no tenía nombre público`) : 'Código borrado';
     const groupBy = (arr, keyOf) => { const m = new Map(); arr.forEach(x => { const k = keyOf(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }); return [...m.values()]; };
     const mineName = c => { const code = codeOf(c.code_id); return code ? (code.name || code.public_name || 'Código ' + code.id) : (c.code_name ? c.code_name + ' (código borrado)' : 'Código borrado'); };
     const mineGroups = groupBy(rest, c => c.code_id || 'del:' + (c.code_name || ''));
@@ -686,7 +686,7 @@ function renderHome() {
     const when = x => x.token ? vtime(x) : new Date(lastMsg(x.id)?.created_at || x.created_at);
     const flat = [...rest, ...vlist].sort((a, b) => when(b) - when(a)).map(x => x.token ? vrow(x) : row(x)).join('');
     const simple = favs.map(row).join('') + flat;   // como los contactos de WhatsApp: todos juntos, los favoritos arriba
-    body = screenTour('chats') + ((mineHTML || vlist.length) ? !tr ? simple : mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].hidden ? (g[0].public_name || 'Trazabilidad oculta') : g[0].code_id ? (g[0].public_name || 'Código ' + g[0].code_id) : (g[0].public_name ? g[0].public_name + ' (código borrado)' : 'Código borrado'), g.length, vOrigin(g[0]), g[0].code_id || '') + g.map(vrow).join('')).join('')}` : '')
+    body = screenTour('chats') + ((mineHTML || vlist.length) ? !tr ? simple : mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].hidden ? 'Código con trazabilidad oculta' : g[0].code_id ? (g[0].public_name || 'Código ' + g[0].code_id) : (g[0].public_name ? g[0].public_name + ' (código borrado)' : 'Código borrado'), g.length, vOrigin(g[0]), g[0].code_id || '') + g.map(vrow).join('')).join('')}` : '')
       : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.<br><br>Y si tú escaneas el código de otra persona con la app y le escribes, el chat también aparecerá aquí.</div>`);
     body += '<div style="height:90px"></div>';   // hueco para la barra fija de trazabilidad
   } else {
@@ -796,7 +796,7 @@ async function renderEdit() {
     ${isNew ? '' : `<div class="section">USUARIOS VINCULADOS</div><div style="font-size:13px;color:#777">También reciben las alertas y los chats de este código.</div>
       <div>${mem.map(m => `<span class="pill">${IC.avatar(16, true)} ${esc(m.display_name || 'usuario')}<button class="back" style="font-size:13px" data-rm="${m.user_id}">✕</button></span>`).join('') || '<div style="font-size:13px;color:#999;margin:6px 0">Nadie vinculado.</div>'}</div>
       <div style="display:flex;gap:6px;align-items:center"><input id="f6" type="email" placeholder="Email de otro usuario de Scan2Com" style="margin:6px 0"><button class="btn sm light" id="addm">Vincular</button></div>`}
-    <label class="chk" style="margin-top:12px"><input type="checkbox" id="ht" ${c.style?.hide_trace ? 'checked' : ''}> Ocultar trazabilidad <span style="font-size:12px;color:#888">· quien escanee no verá el número de este código en sus chats (verá «código de trazabilidad oculta»)</span></label>
+    <label class="chk" style="margin-top:12px"><input type="checkbox" id="ht" ${c.style?.hide_trace ? 'checked' : ''}> Ocultar trazabilidad <span style="font-size:12px;color:#888">· quien escanee no verá el número de este código en sus chats (verá «Código con trazabilidad oculta»)</span></label>
     ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}
     <button class="btn" style="margin-top:14px" id="sv" ${S.busy ? 'disabled' : ''}>Guardar</button>
     ${isNew ? '' : `<button class="btn light" style="margin-top:10px;color:var(--red)" id="del">Borrar código</button>`}</div>`;
@@ -1062,7 +1062,15 @@ async function carSheetBin(c, url, mirror) {
     const g = pg.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, pg.width, pg.height);
     const ox = Math.round((pg.width - rot.width) / 2), oy = Math.round((pg.height - rot.height) / 2); g.drawImage(rot, ox, oy);
     g.fillStyle = '#444'; g.textAlign = 'center'; g.textBaseline = 'top';
-    [note, shop].forEach((t, i) => { let f = Math.round(3.1 * k); g.font = `${f}px Inter, Arial, sans-serif`; while (g.measureText(t).width > pg.width - 24 * k && f > 8) g.font = `${--f}px Inter, Arial, sans-serif`; g.fillText(t, pg.width / 2, oy + rot.height + 7 * k + i * 5 * k); });
+    // palabra a palabra con hueco fijo: en algunos móviles el espacio de la fuente sale con ancho 0 y las palabras se juntan
+    g.textAlign = 'left';
+    [note, shop].forEach((t, i) => {
+      const words = t.split(' '); let f = Math.round(3.1 * k), gap, wd;
+      const fit = () => { g.font = `${f}px Arial, Helvetica, sans-serif`; gap = f * 0.32; wd = words.map(w => g.measureText(w).width); return wd.reduce((a, b) => a + b, 0) + gap * (words.length - 1); };
+      let tot = fit(); while (tot > pg.width - 24 * k && f > 8) { f--; tot = fit(); }
+      let x = (pg.width - tot) / 2; const y = oy + rot.height + 7 * k + i * 5 * k;
+      words.forEach((w, j) => { g.fillText(w, x, y); x += wd[j] + gap; });
+    });
     return { bin: pdfFromJpeg(pg.toDataURL('image/jpeg', 0.92), pg.width, pg.height, 210, 297), name: `scan2com-pegatinas-coche-${c.id}${mirror ? '-espejo' : ''}.pdf` };
 }
 async function carSheetPdf(c, url, mirror) {

@@ -96,7 +96,7 @@ const H20 = [['alert', 92, 92, 278], ['alert', 854, 59, 115], ['alert', 1058, 64
   ['chat', 92, 670, 278], ['chat', 507, 648, 166], ['chat', 793, 648, 166], ['chat', 854, 1007, 115], ['chat', 1058, 365, 130],
   ['link', 1292, 64, 130], ['link', 1870, 59, 115], ['link', 2110, 92, 278], ['link', 1522, 283, 166], ['link', 1808, 283, 166],
   ['contact', 1522, 648, 166], ['contact', 1808, 648, 166], ['contact', 2110, 670, 278], ['contact', 1292, 365, 130], ['contact', 1870, 1007, 115]];
-const COCHE = { kind: 'single', stickers: [{ type: 'alert', positions: [P(147, 148, 335, 1), P(89, 882, 180, 1), P(1997, 148, 335, 1), P(1640, 882, 180, 1)] }], validation: P(1347, 294, 442) };
+const COCHE = { kind: 'single', stickers: [{ type: 'alert', positions: [P(147, 148, 335, 1), P(89, 882, 180, 1), P(1997, 148, 335, 1), P(1640, 882, 180, 1)] }], validation: { ...P(1347, 249, 442), gap: 50 } };
 // color: clave de color de la pegatina de coche en la app (rojo, azul, verde, gris, grafito…)
 const coche = (color, file, txt = color) => ({ ...COCHE, nombre: `Pack coche ${txt} (vinilo transparente)`, base: `bases/${file}.png`, style: { design: 'car', car_color: color } });
 // diseño "Pegatina impresa" que verá la app para cada posición de la hoja de 20 (recorte de la misma base)
@@ -145,7 +145,7 @@ async function renderCard(tk, pack, codes, style, muestra) {
   const v = t.validation;
   g.drawImage(qrCanvas(`${SITE}/p/${pack}`, v.size, 'classic', 'H', eye), v.x, v.y, v.size, v.size);
   g.fillStyle = '#3c3c3c'; g.font = `700 ${Math.max(18, v.size / 14 | 0)}px Inter, Arial`; g.textAlign = 'center'; g.textBaseline = 'top';
-  g.fillText(pack, v.x + v.size / 2, v.y + v.size + 30);
+  g.fillText(pack, v.x + v.size / 2, v.y + v.size + (v.gap || 30));
   if (muestra) { g.save(); g.translate(c.width / 2, c.height / 2); g.rotate(-0.21); g.fillStyle = 'rgba(230,0,0,.43)'; g.font = `700 ${c.height / 9 | 0}px Inter, Arial`; g.textBaseline = 'middle'; g.fillText('MUESTRA · NO VÁLIDO', 0, 0); g.restore(); }
   return c;
 }

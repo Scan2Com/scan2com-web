@@ -775,7 +775,7 @@ async function renderEdit() {
       <label>Información pública</label><textarea id="f3" rows="3" placeholder="Ej. Si mi coche molesta, avísame con Alert. ¡Gracias!" maxlength="1000">${esc(c.public_desc)}</textarea>
       <div class="hint">Es lo primero que verá quien escanee el código.</div></div>
     <label class="chk"><input type="checkbox" id="c1" ${c.ch_mail ? 'checked' : ''}> <span style="color:#1f86e0">${IC.mail(20)}</span> Mail</label>
-    <label class="chk"><input type="checkbox" id="c2" ${c.ch_alert ? 'checked' : ''}> <span style="color:#e8352b">${IC.alert(20)}</span> Alert</label>
+    <label class="chk"><input type="checkbox" id="c2" ${c.ch_alert || designOf(c) === 'car' ? 'checked' : ''} ${designOf(c) === 'car' ? 'disabled' : ''}> <span style="color:#e8352b">${IC.alert(20)}</span> Alert <span id="c2a" style="font-size:13px;color:#888;display:${designOf(c) === 'car' ? 'inline' : 'none'}">(siempre activo)</span></label>
     <label class="chk sub"><input type="checkbox" id="c5" ${c.auto_alert ? 'checked' : ''}> Sonar solo con abrir la web</label>
     <div id="btbox" class="sub" style="display:${c.ch_alert && designOf(c) === 'car' ? 'block' : 'none'}">
       <label class="chk" style="margin-left:0"><input type="checkbox" id="c8" ${c.bt_auto ? 'checked' : ''} ${NATIVE ? '' : 'disabled'}> <span style="color:#555">${IC.lock(16)}</span> Activar al bajar del coche</label>
@@ -809,7 +809,8 @@ async function renderEdit() {
   });
   app.querySelectorAll('[data-ccol]').forEach(b => b.onclick = () => { selCol = b.dataset.ccol; app.querySelectorAll('[data-ccol]').forEach(x => x.style.borderColor = x === b ? '#2fc23a' : '#fff'); carPrev(); });
   // "Activar al bajar del coche" solo con Alerta y diseño pegatina de coche
-  const updBt = () => { if ($('#btbox')) $('#btbox').style.display = $('#c2')?.checked && selDsg === 'car' ? 'block' : 'none'; };
+  // con la pegatina de coche, Alert queda siempre activo
+  const updBt = () => { const car = selDsg === 'car', a = $('#c2'); if (a) { if (car) a.checked = true; a.disabled = car; } if ($('#c2a')) $('#c2a').style.display = car ? 'inline' : 'none'; if ($('#btbox')) $('#btbox').style.display = a?.checked && car ? 'block' : 'none'; };
   if ($('#c2')) $('#c2').addEventListener('change', updBt);
   if (NATIVE && $('#c8')) {
     $('#c8').onchange = async () => { $('#btcfg').style.display = $('#c8').checked ? 'block' : 'none'; if ($('#c8').checked) { await autoPermStep(true); loadBonded(); } };
@@ -953,7 +954,7 @@ async function showScannedQR(id, name) {
 function renderQR() {
   const c = codeOf(S.view.id); if (!c) { S.view = null; return render(); }
   const url = `${SITE}/s/${c.id}`, own = c.owner_id === S.user.id;
-  const chans = [c.ch_info && IC.info(14) + ' Info', c.ch_mail && IC.mail(14) + ' Mail', c.ch_alert && (IC.alert(14) + ' Alert' + (c.auto_alert ? ' (al abrir)' : '')), c.ch_chat && IC.chat(14) + ' Chat', c.ch_call && IC.phone(14) + ' Llamada', c.ch_redirect && c.redirect_url && IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean);
+  const chans = [c.ch_info && IC.info(14) + ' Info', c.ch_mail && IC.mail(14) + ' Mail', c.ch_alert && (IC.alert(14) + ' Alert' + (isCar(c) ? ' (siempre activo)' : '') + (c.auto_alert ? ' (al abrir)' : '')), c.ch_chat && IC.chat(14) + ' Chat', c.ch_call && IC.phone(14) + ' Llamada', c.ch_redirect && c.redirect_url && IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean);
   const nChats = S.chats.filter(x => x.code_id === c.id).length;
   app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(24)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes del código">${IC.sliders(24)}</button>` : ''}${isCar(c) ? `<button class="ib pdfb" id="pdf" title="PDF para imprimir (4 pegatinas, tamaño real)">${IC.pdf(22)}PDF</button>` : ''}</div>
     <div class="namebar">${esc(c.name).toUpperCase()}</div>

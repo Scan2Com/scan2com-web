@@ -672,7 +672,8 @@ function renderHome() {
       <div class="grow"><div class="t">${esc(c.name)}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + lm.body : (code?.name || c.code_name || ''))}</div>${tline(/^Chat \d+$/.test(c.name || '') ? 'Nombre del chat: automático' : 'Nombre del chat: puesto por ti')}</div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><button class="star" data-fav="${c.id}" title="Favorito" style="padding:0">${IC.star(26, S.favs.has(c.id))}</button><div style="white-space:nowrap">${ago(lm?.created_at || c.created_at)}</div></div></div>`; };
     // agrupados por código: los míos con su nombre privado; los escaneados con el nombre público que tenía el código
-    const grpHead = (name, n, origin) => `<div class="grp">${LOGO(20)}<div style="min-width:0"><div>${esc(name)}</div>${origin ? `<div style="font-size:12px;font-weight:400;color:#8a8a8a">${origin}</div>` : ''}</div><span class="n">${n} chat${n === 1 ? '' : 's'}</span></div>`;
+    // cabecera de grupo: si el código existe, al tocarla se muestra su QR (para compartirlo)
+    const grpHead = (name, n, origin, cid) => `<div class="grp"${cid ? ` data-qrc="${esc(cid)}" data-qrn="${esc(name)}" style="cursor:pointer"` : ''}>${LOGO(20)}<div style="min-width:0"><div>${esc(name)}</div>${origin ? `<div style="font-size:12px;font-weight:400;color:#8a8a8a">${origin}${cid ? ' · toca para ver el código' : ''}</div>` : ''}</div><span class="n">${n} chat${n === 1 ? '' : 's'}</span></div>`;
     const mineOrigin = c => { const code = codeOf(c.code_id); return !code ? 'Código borrado · nombre que tenía' : code.name ? `Tu código ${esc(code.id)} · tu nombre privado` : code.public_name ? `Tu código ${esc(code.id)} · su nombre público (no tiene privado)` : `Tu código ${esc(code.id)} · sin nombre`; };
     const vOrigin = v => v.code_id ? (v.public_name ? `Código ${esc(v.code_id)} · nombre público al escanearlo` : `Código ${esc(v.code_id)} · no tenía nombre público`) : 'Código borrado';
     const groupBy = (arr, keyOf) => { const m = new Map(); arr.forEach(x => { const k = keyOf(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }); return [...m.values()]; };
@@ -680,12 +681,12 @@ function renderHome() {
     const mineGroups = groupBy(rest, c => c.code_id || 'del:' + (c.code_name || ''));
     const vtime = v => new Date(v.last?.at || v.created_at);
     const vGroups = groupBy([...vlist].sort((a, b) => vtime(b) - vtime(a)), v => v.code_id);
-    const mineHTML = list.length ? (favs.length ? `<div class="pad section" style="padding-bottom:0">FAVORITOS</div>${favs.map(row).join('')}` : '') + (rest.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON MIS CÓDIGOS</div>${mineGroups.map(g => grpHead(mineName(g[0]), g.length, mineOrigin(g[0])) + g.map(row).join('')).join('')}` : '')
+    const mineHTML = list.length ? (favs.length ? `<div class="pad section" style="padding-bottom:0">FAVORITOS</div>${favs.map(row).join('')}` : '') + (rest.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON MIS CÓDIGOS</div>${mineGroups.map(g => grpHead(mineName(g[0]), g.length, mineOrigin(g[0]), codeOf(g[0].code_id) ? g[0].code_id : '') + g.map(row).join('')).join('')}` : '')
       : '';
     const when = x => x.token ? vtime(x) : new Date(lastMsg(x.id)?.created_at || x.created_at);
     const flat = [...rest, ...vlist].sort((a, b) => when(b) - when(a)).map(x => x.token ? vrow(x) : row(x)).join('');
     const simple = favs.map(row).join('') + flat;   // como los contactos de WhatsApp: todos juntos, los favoritos arriba
-    body = screenTour('chats') + ((mineHTML || vlist.length) ? !tr ? simple : mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].code_id ? (g[0].public_name || 'Código ' + g[0].code_id) : (g[0].public_name ? g[0].public_name + ' (código borrado)' : 'Código borrado'), g.length, vOrigin(g[0])) + g.map(vrow).join('')).join('')}` : '')
+    body = screenTour('chats') + ((mineHTML || vlist.length) ? !tr ? simple : mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].code_id ? (g[0].public_name || 'Código ' + g[0].code_id) : (g[0].public_name ? g[0].public_name + ' (código borrado)' : 'Código borrado'), g.length, vOrigin(g[0]), g[0].code_id || '') + g.map(vrow).join('')).join('')}` : '')
       : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.<br><br>Y si tú escaneas el código de otra persona con la app y le escribes, el chat también aparecerá aquí.</div>`);
     body += '<div style="height:90px"></div>';   // hueco para la barra fija de trazabilidad
   } else {
@@ -714,6 +715,7 @@ function renderHome() {
   app.querySelectorAll('[data-code]').forEach(b => b.onclick = () => { S.view = { t: 'qr', id: b.dataset.code }; render(); });
   app.querySelectorAll('[data-chat]').forEach(b => b.onclick = () => { S.view = { t: 'chat', id: b.dataset.chat }; render(); });
   app.querySelectorAll('[data-vchat]').forEach(b => b.onclick = () => { S.view = { t: 'vchat', id: b.dataset.vchat }; render(); });
+  app.querySelectorAll('[data-qrc]').forEach(b => b.onclick = () => codeOf(b.dataset.qrc) ? (S.view = { t: 'qr', id: b.dataset.qrc }, render()) : showScannedQR(b.dataset.qrc, b.dataset.qrn));
   app.querySelectorAll('[data-fav]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleFav(b.dataset.fav); });
   if ($('#trcb')) $('#trcb').onchange = e => { ls.set('sa_trace', e.target.checked); render(); };
   if ($('#fab')) $('#fab').onclick = () => { S.view = { t: 'pack' }; render(); };
@@ -920,7 +922,7 @@ async function codeImage(c, url) {
   const big = document.createElement('canvas'); await drawDesign(big, c, url, true); return big.toDataURL('image/png');
 }
 async function shareCode(c, url) {
-  const title = 'Mi código Scan2Com: ' + (c.public_name || c.name), text = `${c.public_name || c.name}\n${url}`, name = `scan2com-${c.id}.png`;
+  const title = (c.owner_id === S.user?.id ? 'Mi código' : 'Código') + ' Scan2Com: ' + (c.public_name || c.name || c.id), text = `${c.public_name || c.name}\n${url}`, name = `scan2com-${c.id}.png`;
   try {
     const data = await codeImage(c, url), P = window.Capacitor?.Plugins;
     if (NATIVE && P?.Share && P?.Filesystem) {
@@ -932,6 +934,18 @@ async function shareCode(c, url) {
     if (navigator.share) return await navigator.share({ title, text, url });
     await navigator.clipboard.writeText(url); toast('Enlace copiado. Usa el botón de guardar para descargar la imagen.');
   } catch (e) { if (!/abort|cancel/i.test(String(e?.message || e))) toast('No se ha podido compartir.'); }
+}
+// QR de un código escaneado (desde la trazabilidad de chats), para enseñarlo o compartirlo
+async function showScannedQR(id, name) {
+  const url = `${SITE}/s/${id}`, c = { id, public_name: name, style: {} };
+  $('#overlay').innerHTML = `<div class="sheet keep" id="sqr"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));text-align:center" onclick="event.stopPropagation()">
+    <div style="font-size:19px;font-weight:700">${esc(name)}</div><div style="font-size:13px;color:#888;margin-bottom:10px">Código ${esc(id)}</div>
+    <canvas id="sqc" style="width:min(70vw,300px);height:auto"></canvas>
+    <button class="btn" id="sqs" style="margin-top:12px">${IC.shareL(20)} Compartir</button><button class="btn light" id="sqx" style="margin-top:8px">Cerrar</button></div></div>`;
+  const close = () => { $('#overlay').innerHTML = ''; };
+  $('#sqr').onclick = $('#sqx').onclick = close;
+  $('#sqs').onclick = () => shareCode(c, url);
+  await drawRound($('#sqc'), url, 600);
 }
 function renderQR() {
   const c = codeOf(S.view.id); if (!c) { S.view = null; return render(); }

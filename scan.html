@@ -44,7 +44,7 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 .m.sys{align-self:center;background:none;color:#777;font-size:13px;text-align:center}
 .top{display:flex;align-items:center;gap:10px}
 .back{background:none;border:0;font:inherit;font-size:15px;color:#1a7fb0;font-weight:600;cursor:pointer;padding:6px 0}
-.phw{position:relative;display:block}.phsrc{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 7px;border-radius:10px}.phsrc.cam{background:rgba(26,163,217,.9)}.phsheet{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;z-index:50}.phsheet>div{background:#fff;width:100%;padding:18px;border-radius:20px 20px 0 0;display:flex;flex-direction:column;gap:8px}.phsheet .send{padding:14px;font-size:16px}.send.light{background:#eef6fb;color:#1a6fa0}
+.phw{position:relative;display:block}.pview{position:fixed;inset:0;z-index:60;background:#000;display:flex;align-items:center;justify-content:center}.pview img{max-width:100%;max-height:100%;object-fit:contain;display:block}.pvx{position:absolute;top:12px;right:12px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:22px}.phsrc{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 7px;border-radius:10px}.phsrc.cam{background:rgba(26,163,217,.9)}.phsheet{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;z-index:50}.phsheet>div{background:#fff;width:100%;padding:18px;border-radius:20px 20px 0 0;display:flex;flex-direction:column;gap:8px}.phsheet .send{padding:14px;font-size:16px}.send.light{background:#eef6fb;color:#1a6fa0}
 .ws{position:relative}.send .sm{display:none;line-height:0}.send:not(.txt){background:none;color:#1aa3d9;padding:6px 8px;touch-action:none;user-select:none;-webkit-user-select:none}.send:not(.txt) .st{display:none}.send:not(.txt) .sm{display:block}.ws.rec .send{color:#e8352b;transform:scale(1.3)}.ws.rec input,.ws.rec .camb{visibility:hidden}.recst{position:absolute;left:16px;right:60px;top:50%;transform:translateY(-50%);font-size:16px;color:#333;pointer-events:none}.recst b{color:#e8352b}.recst span{color:#999;font-size:12px;margin-left:6px}.aud{display:flex;flex-direction:column;gap:2px}.aud audio{width:230px;max-width:100%;height:40px}.aud span{font-size:12px;opacity:.75}
 .mph{display:block;max-width:220px;max-height:260px;border-radius:12px}.camb{border:0;background:none;padding:4px 8px 4px 0;cursor:pointer;flex:none;display:flex}.camb i{display:block;width:30px;height:30px;background:#1aa3d9;-webkit-mask:url(/app/img2014/camera.png) center/contain no-repeat;mask:url(/app/img2014/camera.png) center/contain no-repeat}.ws .camb{margin-left:-8px}
 .send{border:0;background:var(--green);color:#fff;border-radius:22px;padding:11px 16px;font:inherit;font-weight:600;cursor:pointer}
@@ -109,7 +109,15 @@ function bindMic(send) {
   const end = () => { held = false; if (rec?.state === 'recording') stop(); };
   btn.addEventListener('pointerup', end); btn.addEventListener('pointercancel', end);
 }
-const msgBody = b => isAudio(b) ? audBody(b) : isPhoto(b) ? `<a href="${esc(b.slice(4))}" target="_blank" rel="noopener" class="phw"><img class="mph" src="${esc(b.slice(4))}" loading="lazy" alt="Foto">${photoTag(b)}</a>` : esc(b);
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-photo]'); if (!a) return; e.preventDefault();
+  const v = document.createElement('div'); v.className = 'pview'; v.id = 'pv';
+  v.innerHTML = `<img src="${esc(a.dataset.photo)}" alt="Foto"><button class="pvx" aria-label="Cerrar">✕</button>`;
+  document.body.appendChild(v); history.pushState({ pv: 1 }, '');
+  v.onclick = () => history.back();
+});
+addEventListener('popstate', () => { const v = document.getElementById('pv'); if (v) v.remove(); });
+const msgBody = b => isAudio(b) ? audBody(b) : isPhoto(b) ? `<a href="${esc(b.slice(4))}" data-photo="${esc(b.slice(4))}" class="phw"><img class="mph" src="${esc(b.slice(4))}" loading="lazy" alt="Foto">${photoTag(b)}</a>` : esc(b);
 function pickPhoto() {   // primero se elige: hacer la foto ahora o cogerla de la galería
   return new Promise(res => {
     const box = document.createElement('div'); box.className = 'phsheet';

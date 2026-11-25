@@ -72,7 +72,7 @@ button.red{background:var(--red)}button.light{background:#e6e8eb;color:var(--ink
   <div id="tool2" hidden>
     <div class="box">
       <div class="row" style="margin-top:0">
-        <select id="pdffmt" style="flex:1;margin:0"><option value="card">PDF tamaño tarjeta (210×100 mm)</option><option value="a4">PDF A4 (2 tarjetas por hoja)</option></select>
+        <select id="pdffmt" style="flex:1;margin:0"><option value="card">PDF tamaño tarjeta (210×100 mm)</option><option value="a4">PDF A4 (todas las que quepan por hoja)</option></select>
         <button id="pdf" disabled>Descargar PDF</button><button class="light" id="csv" disabled>CSV</button>
       </div>
       <div class="hint">Las bases llevan sangre de 1,7–2 mm para el troquel de imprenta. Imprimir al 100 %, 300 ppp.</div>
@@ -99,7 +99,7 @@ const TRO = {
   hoja20: { nombre: 'Hoja 20 códigos (opaca)', base: 'bases/hoja20-opaca.png', kind: 'sheet', stickers: H20.map(([type, x, y, s]) => ({ type, positions: [P(x, y, s)] })), validation: P(1071, 502, 336) },
   'coche-rojo': coche('rojo', 'coche-rojo'), 'coche-gris-claro': coche('gris claro', 'coche-gris-claro'), 'coche-gris-oscuro': coche('gris oscuro', 'coche-gris-oscuro'),
   'coche-azul': coche('azul', 'coche-azul'), 'coche-verde': coche('verde', 'coche-verde'),
-  objid: { nombre: 'Tarjeta ID de objeto (1 código)', base: 'bases/objid.png', kind: 'single', stickers: [{ type: 'link', positions: [P(1493, 164, 204)] }], validation: P(863, 69, 397) }
+  flyer: { nombre: 'Tarjeta de muestra / flyer (1 código)', base: 'bases/flyer.png', kind: 'single', stickers: [{ type: 'link', positions: [P(1493, 164, 204)] }], validation: P(863, 69, 397) }
 };
 $('#tro').innerHTML = Object.entries(TRO).map(([k, t]) => `<option value="${k}">${esc(t.nombre)}</option>`).join('');
 
@@ -212,7 +212,12 @@ $('#pdf').onclick = async () => {
   const doc = a4 ? new jsPDF({ unit: 'mm', format: 'a4' }) : new jsPDF({ unit: 'mm', format: [210, 100], orientation: 'landscape' });
   for (const [i, it] of S.items.entries()) {
     const cv = await renderCard(it.tk, it.pack, it.codes, $('#est').value, it.muestra), w = cv.width / 300 * 25.4, h = cv.height / 300 * 25.4;
-    if (a4) { if (i && i % 2 === 0) doc.addPage(); doc.addImage(cv, 'PNG', (210 - w) / 2, 25.4 + (i % 2) * (h + 25.4), w, h, undefined, 'FAST'); }
+    if (a4) {  // tantas como quepan en el A4 (2 hojas de 210×100, 6 tarjetas de muestra…), repartidas con el mismo hueco
+      const g = 3, cols = Math.max(1, Math.floor((210 - g) / (w + g))), rows = Math.max(1, Math.floor((297 - g) / (h + g))), per = cols * rows, k = i % per;
+      if (i && k === 0) doc.addPage();
+      const gx = (210 - cols * w) / (cols + 1), gy = (297 - rows * h) / (rows + 1);
+      doc.addImage(cv, 'PNG', gx + (k % cols) * (w + gx), gy + Math.floor(k / cols) * (h + gy), w, h, undefined, 'FAST');
+    }
     else { if (i) doc.addPage([w, h], w > h ? 'landscape' : 'portrait'); doc.addImage(cv, 'PNG', 0, 0, w, h, undefined, 'FAST'); }
     setProg((i + 1) / S.items.length); setMsg(`PDF: ${i + 1}/${S.items.length}…`);
   }

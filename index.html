@@ -83,7 +83,11 @@ ul.ok li:before{content:"";position:absolute;left:0;top:12px;width:20px;height:2
 .use .tx{padding:22px 26px 26px}.use h3{margin:10px 0 6px;font-size:22px}.use p{margin:0;color:var(--mut)}
 .pill{display:inline-block;color:#fff;font-size:13px;font-weight:600;padding:4px 12px;border-radius:999px}
 @media(max-width:760px){.uses{grid-template-columns:1fr}}
-.carpic svg{width:100%;max-width:520px;display:block;margin:0 auto}
+.carimg{width:100%;max-width:560px;display:block;margin:0 auto}
+.feats{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ft{background:#fff;border-radius:18px;padding:16px;display:flex;gap:12px}
+.ft .fi{font-size:26px;line-height:1}.ft b{display:block;margin-bottom:3px}.ft p{margin:0;color:var(--mut);font-size:15px;line-height:1.5}
+@media(max-width:600px){.feats{grid-template-columns:1fr}}
 .faq details{border-bottom:1px solid var(--line);padding:18px 0}
 .faq summary{font-weight:600;cursor:pointer;font-size:18px}
 .faq p{color:var(--mut);margin:10px 0 0}
@@ -128,38 +132,14 @@ footer a{color:#fff;text-decoration:none}
   </div>
 </div></section>
 
-<section class="bg"><div class="w split">
-  <div>
-    <h2>Un ejemplo: tu coche</h2>
-    <p class="sub" style="margin-bottom:20px">Te has dejado las luces encendidas, el coche mal aparcado o alguien le ha dado un golpe. Con la pegatina en el cristal:</p>
-    <ul class="ok">
-      <li>Cualquiera puede avisarte en segundos, sin buscar tu teléfono.</li>
-      <li>Recibes una alerta con sirena a pantalla completa en tu Android.</li>
-      <li>Puedes contestar por chat sin dar tu número.</li>
-      <li>Pegatina en espejo para poner por dentro del parabrisas y de la ventanilla lateral, como la de la ITV.</li>
-    </ul>
-    <a class="btn" href="#pegatinas">Ver pegatinas</a>
+<section class="bg"><div class="w">
+  <h2>Un ejemplo: tu coche</h2>
+  <p class="sub">Te has dejado las luces encendidas, el coche mal aparcado o alguien le ha dado un golpe. Con la pegatina Scan 2 Alert en el cristal, cualquiera puede avisarte en segundos, sin buscar tu teléfono.</p>
+  <div class="split" style="align-items:start">
+    <img class="carimg" src="/img/coche-alerta.png?v=2" alt="Coche con la pegatina Scan 2 Alert en el parabrisas y la ventanilla lateral, y la sirena de alerta">
+    <div class="feats"><div class="ft"><span class="fi">🔵</span><div><b>Se activa sola al bajar del coche</b><p>Se conecta al Bluetooth de tu coche: cuando te alejas, tu código se enciende. No tienes que acordarte de activarlo ni de apagarlo.</p></div></div><div class="ft"><span class="fi">🚗</span><div><b>Se apaga sola al conducir</b><p>Mientras vas conduciendo (a más de 20 km/h) no recibes avisos.</p></div></div><div class="ft"><span class="fi">🏠</span><div><b>Lugares seguros</b><p>En casa, en tu garaje o donde tú elijas, no se activa.</p></div></div><div class="ft"><span class="fi">🚨</span><div><b>Sirena a pantalla completa</b><p>El aviso suena fuerte y ocupa toda la pantalla de tu Android para que no se te escape.</p></div></div><div class="ft"><span class="fi">💬</span><div><b>Contesta sin dar tu número</b><p>Puedes responder por chat, y quien te avisa ve cuándo lo has leído.</p></div></div><div class="ft"><span class="fi">🪟</span><div><b>Pegatina por dentro del cristal</b><p>En espejo, como la de la ITV: la vertical en el parabrisas y la luna trasera, la horizontal en las ventanillas laterales. También puedes imprimirla gratis desde la app.</p></div></div></div>
   </div>
-  <div class="carpic"><svg viewBox="0 -20 520 320" role="img" aria-label="Coche con la pegatina Scan 2 Alert en el parabrisas y en la ventanilla lateral, y una sirena de alerta">
- <ellipse cx="260" cy="262" rx="230" ry="14" fill="#000" opacity=".12"/>
- <path d="M40 222q-8-48 30-62l70-14 66-56q18-14 44-14h120q26 0 44 18l46 50 40 10q26 8 26 36q0 14-6 22z" fill="#2f6fd0"/>
- <path d="M40 222h436v10q0 10-10 10H50q-10 0-10-10z" fill="#24559f"/>
- <path d="M156 146l58-48q12-10 30-10h52v58z" fill="#cfe4f5" stroke="#1d4c8f" stroke-width="4"/>
- <path d="M310 88h56q18 0 30 14l38 44H310z" fill="#cfe4f5" stroke="#1d4c8f" stroke-width="4"/>
- <path d="M140 146l70-58" stroke="#9cc3e6" stroke-width="10" stroke-linecap="round"/>
- <rect x="302" y="88" width="10" height="60" fill="#1d4c8f"/>
- <path d="M300 160v50" stroke="#24559f" stroke-width="3"/>
- <rect x="276" y="168" width="18" height="5" rx="2" fill="#24559f"/>
- <path d="M44 176h26" stroke="#ffd34d" stroke-width="10" stroke-linecap="round"/>
- <path d="M462 176h10" stroke="#e8352b" stroke-width="10" stroke-linecap="round"/>
- <circle cx="118" cy="226" r="34" fill="#222"/><circle cx="118" cy="226" r="15" fill="#bfc5ca"/>
- <circle cx="396" cy="226" r="34" fill="#222"/><circle cx="396" cy="226" r="15" fill="#bfc5ca"/>
- <image href="/img/pegatina-qr-redondeado.png" x="250" y="102" width="32" height="44"/>
- <image href="/img/pegatina-qr-redondeado.png" x="0" y="0" width="30" height="41" transform="translate(178 104) rotate(-38)"/>
- <image href="/img/sirena.png" x="300" y="-18" width="96" height="100"/>
- <g stroke="#e8352b" stroke-width="5" stroke-linecap="round" fill="none" opacity=".8"><path d="M284 0q-14 16 0 34"/><path d="M270 -10q-22 26 0 54"/><path d="M412 0q14 16 0 34"/><path d="M426 -10q22 26 0 54"/></g>
-</svg>
-</div>
+  <div style="margin-top:30px"><a class="btn" href="#pegatinas">Ver pegatinas</a></div>
 </div></section>
 
 <section><div class="w">
@@ -178,54 +158,7 @@ footer a{color:#fff;text-decoration:none}
   <p class="sub">Cualquier cosa en la que pegues un código se convierte en una forma de contactar contigo.</p>
   <div class="uses">
     <article class="use">
-      <div class="pic" style="background:#fde3e1"><svg viewBox="0 -20 520 320" role="img" style="width:100%;height:100%" aria-label="Coche con la pegatina Scan 2 Alert en el parabrisas y en la ventanilla lateral, y una sirena de alerta">
- <ellipse cx="260" cy="262" rx="230" ry="14" fill="#000" opacity=".12"/>
- <path d="M40 222q-8-48 30-62l70-14 66-56q18-14 44-14h120q26 0 44 18l46 50 40 10q26 8 26 36q0 14-6 22z" fill="#2f6fd0"/>
- <path d="M40 222h436v10q0 10-10 10H50q-10 0-10-10z" fill="#24559f"/>
- <path d="M156 146l58-48q12-10 30-10h52v58z" fill="#cfe4f5" stroke="#1d4c8f" stroke-width="4"/>
- <path d="M310 88h56q18 0 30 14l38 44H310z" fill="#cfe4f5" stroke="#1d4c8f" stroke-width="4"/>
- <path d="M140 146l70-58" stroke="#9cc3e6" stroke-width="10" stroke-linecap="round"/>
- <rect x="302" y="88" width="10" height="60" fill="#1d4c8f"/>
- <path d="M300 160v50" stroke="#24559f" stroke-width="3"/>
- <rect x="276" y="168" width="18" height="5" rx="2" fill="#24559f"/>
- <path d="M44 176h26" stroke="#ffd34d" stroke-width="10" stroke-linecap="round"/>
- <path d="M462 176h10" stroke="#e8352b" stroke-width="10" stroke-linecap="round"/>
- <circle cx="118" cy="226" r="34" fill="#222"/><circle cx="118" cy="226" r="15" fill="#bfc5ca"/>
- <circle cx="396" cy="226" r="34" fill="#222"/><circle cx="396" cy="226" r="15" fill="#bfc5ca"/>
- <image href="/img/pegatina-qr-redondeado.png" x="250" y="102" width="32" height="44"/>
- <image href="/img/pegatina-qr-redondeado.png" x="0" y="0" width="30" height="41" transform="translate(178 104) rotate(-38)"/>
- <image href="/img/sirena.png" x="300" y="-18" width="96" height="100"/>
- <g stroke="#e8352b" stroke-width="5" stroke-linecap="round" fill="none" opacity=".8"><path d="M284 0q-14 16 0 34"/><path d="M270 -10q-22 26 0 54"/><path d="M412 0q14 16 0 34"/><path d="M426 -10q22 26 0 54"/></g>
-</svg>
-</div>
-      <div class="tx"><span class="pill" style="background:var(--red)">Scan 2 Alert</span><h3>Tu coche</h3><p>Luces encendidas, coche mal aparcado, un golpe… Quien lo vea escanea la pegatina del cristal y en tu móvil suena una sirena a pantalla completa.</p></div>
-    </article>
-    <article class="use">
-      <div class="pic" style="background:#fde4ee"><svg viewBox="0 0 400 260" role="img" aria-label="Una chica pega a escondidas una pegatina rosa en la mochila de un chico tímido">
- <ellipse cx="200" cy="238" rx="170" ry="12" fill="#f3d3dd"/>
- <g fill="#ff7aa8" opacity=".85"><path d="M168 40c0-8 12-8 12 0 0-8 12-8 12 0 0 9-12 15-12 18-0-3-12-9-12-18z"/><path d="M196 18c0-6 9-6 9 0 0-6 9-6 9 0 0 7-9 11-9 13 0-2-9-6-9-13z" opacity=".7"/></g>
- <!-- chica -->
- <rect x="104" y="190" width="11" height="44" rx="5" fill="#f2c39d"/><rect x="124" y="190" width="11" height="44" rx="5" fill="#f2c39d"/>
- <path d="M95 112q25-12 50 0l14 86H81z" fill="#f0599b"/>
- <path d="M140 122q40 6 74 14" stroke="#f2c39d" stroke-width="11" stroke-linecap="round" fill="none"/>
- <path d="M86 70q-6 60 8 74h52q14-14 8-74q-34-40-68 0z" fill="#7a3e1d"/>
- <circle cx="120" cy="78" r="27" fill="#f6cfae"/>
- <path d="M93 74q4-30 27-30t27 30q-14-14-27-14t-27 14z" fill="#7a3e1d"/>
- <circle cx="129" cy="78" r="3" fill="#333"/><path d="M128 92q6 3 11-2" stroke="#333" stroke-width="2.4" fill="none" stroke-linecap="round"/>
- <!-- chico -->
- <rect x="252" y="188" width="12" height="46" rx="5" fill="#2d3e5f"/><rect x="274" y="188" width="12" height="46" rx="5" fill="#2d3e5f"/>
- <rect x="240" y="104" width="58" height="92" rx="16" fill="#1f86e0"/>
- <rect x="206" y="112" width="44" height="72" rx="12" fill="#4a5a52"/><rect x="211" y="150" width="34" height="24" rx="6" fill="#5d6f65"/>
- <rect x="218" y="122" width="22" height="22" rx="5" fill="#f0599b" stroke="#fff" stroke-width="2"/>
- <g fill="#fff"><rect x="222" y="126" width="5" height="5" rx="1.5"/><rect x="231" y="126" width="5" height="5" rx="1.5"/><rect x="222" y="135" width="5" height="5" rx="1.5"/><rect x="230" y="134" width="3" height="3"/><rect x="234" y="137" width="3" height="3"/></g>
- <circle cx="216" cy="135" r="7" fill="#f2c39d"/>
- <path d="M298 124q14 30 2 56" stroke="#f6cfae" stroke-width="11" stroke-linecap="round" fill="none"/>
- <circle cx="272" cy="74" r="27" fill="#f6cfae"/>
- <path d="M245 70q2-28 28-28t27 26q-10-8-22-6-14 2-33 8z" fill="#2b2b2b"/>
- <circle cx="284" cy="78" r="3" fill="#333"/><ellipse cx="289" cy="88" rx="7" ry="4" fill="#ff8fa8" opacity=".8"/>
- <path d="M278 94q5 2 9-1" stroke="#333" stroke-width="2.4" fill="none" stroke-linecap="round"/>
- <path d="M308 52l6-6M312 62l8-2" stroke="#f0599b" stroke-width="2.4" stroke-linecap="round"/>
-</svg></div>
+      <div class="pic" style="background:#fde3e1"><img src="/img/coche-alerta.png?v=2" alt="Coche con pegatina Scan 2 Alert y sirena" style="max-width:92%;max-height:225px"></div>
       <div class="tx"><span class="pill" style="background:#f0599b">Para ligar</span><h3>¿Te gusta alguien?</h3><p>Pégale tu código sin que se dé cuenta, en la mochila, en una carpeta o en su libro, o déjaselo escondido donde sepas que lo va a encontrar. Usa un código <b style="color:#0e7fd0">azul si eres chico</b> o <b style="color:#e0407f">rosa si eres chica</b>. Cuando lo vea, te escribe por chat sin saber quién eres, y tú decides cuándo darte a conocer.</p></div>
     </article>
     <article class="use">

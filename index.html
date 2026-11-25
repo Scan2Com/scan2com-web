@@ -95,10 +95,10 @@ ul.ok li:before{content:"";position:absolute;left:0;top:12px;width:20px;height:2
 @media(max-width:760px){.carrow{grid-template-columns:1fr 1fr}.cf.big{grid-column:1/-1}}
 .ph{width:130px;height:250px;margin:0 auto;border:7px solid #1d1f22;border-radius:26px;background:#1d1f22;position:relative;box-shadow:0 10px 24px rgba(0,0,0,.25);animation:shake 1.2s infinite}
 .ph:before{content:"";position:absolute;top:4px;left:50%;width:36px;height:6px;margin-left:-18px;border-radius:4px;background:#000;z-index:2}
-.ph .scr{height:100%;border-radius:19px;background:radial-gradient(circle at 50% 40%,#ff4a3a,#b00d05 70%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden;animation:flash 1.2s infinite}
+.ph .scr{height:100%;border-radius:19px;background:radial-gradient(circle at 50% 40%,#ff4a3a,#b00d05 70%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden;transition:filter .08s}.ph .scr.dim{filter:brightness(.72) saturate(.85)}
 .ph .sir{position:relative;width:82px;height:86px;margin:4px 0}.ph .sir img{position:absolute;inset:0;width:82px;max-height:none}.ph .sir .rj{filter:drop-shadow(0 0 12px #fff8)}.ph .sir .rj.off{opacity:0}
 .ph small{font-size:10px;opacity:.85;font-weight:600}.ph b{font-size:19px;letter-spacing:.04em}.ph span{font-size:13px;font-weight:600}.ph em{font-style:normal;font-size:9.5px;opacity:.85;margin-top:6px}
-@keyframes flash{50%{filter:brightness(1.25)}}@keyframes shake{0%,100%{transform:rotate(0)}5%{transform:rotate(-3deg)}10%{transform:rotate(3deg)}15%{transform:rotate(-2deg)}20%{transform:rotate(0)}}
+@keyframes shake{0%,100%{transform:rotate(0)}5%{transform:rotate(-3deg)}10%{transform:rotate(3deg)}15%{transform:rotate(-2deg)}20%{transform:rotate(0)}}
 @media(prefers-reduced-motion:reduce){.ph,.ph .scr{animation:none}}
 .medios{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:22px}.ml{font-weight:600;margin-right:4px}.md{color:var(--ink);background:#fff;border:3px solid var(--c);font-weight:600;font-size:15px;padding:6px 14px;border-radius:999px}
 .sw{display:inline-flex;gap:5px;vertical-align:middle;margin-left:4px}.swb{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.2);cursor:pointer;padding:0;transition:transform .15s}.swb:hover{transform:scale(1.2)}.swb.on{box-shadow:0 0 0 2px var(--ink)}
@@ -334,7 +334,7 @@ if (PLAY_URL) document.querySelectorAll('.appdl').forEach(a => { a.href = PLAY_U
 </script>
 <script>
 // sirena del móvil de ejemplo: alterna roja / blanco y negro
-setInterval(() => document.querySelectorAll('.ph .sir .rj').forEach(i => i.classList.toggle('off')), 450);
+setInterval(() => document.querySelectorAll('.ph').forEach(ph => { const off = ph.querySelector('.sir .rj').classList.toggle('off'); ph.querySelector('.scr').classList.toggle('dim', off); }), 600);
 </script>
 <script>
 // colores de la pegatina del coche: cambia el rojo de las imágenes por el color elegido (como en la app)

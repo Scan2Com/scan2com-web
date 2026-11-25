@@ -115,7 +115,7 @@ function pickPhoto() {   // primero se elige: hacer la foto ahora o cogerla de l
     const box = document.createElement('div'); box.className = 'phsheet';
     box.innerHTML = '<div><button class="send" id="phc">📷 Hacer foto ahora</button><button class="send light" id="phg">🖼️ Elegir de la galería</button></div>';
     document.body.appendChild(box);
-    const pick = cam => { box.remove(); const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; if (cam) i.capture = 'environment'; i.onchange = () => { const f = i.files[0]; res(f ? { f, cam: cam && Date.now() - f.lastModified < 120e3 } : null); }; i.click(); };
+    const pick = cam => { box.remove(); const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; if (cam) i.setAttribute('capture', 'environment'); i.onchange = () => { const f = i.files[0]; res(f ? { f, cam: cam && Date.now() - f.lastModified < 120e3 } : null); }; i.click(); };
     box.onclick = e => { if (e.target === box) { box.remove(); res(null); } }; box.querySelector('#phc').onclick = () => pick(true); box.querySelector('#phg').onclick = () => pick(false);
   });
 }

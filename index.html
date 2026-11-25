@@ -40,7 +40,8 @@ h1{font-size:clamp(36px,5.4vw,60px);line-height:1.06;letter-spacing:-.02em;margi
 h1 span{color:var(--red)}
 .lead{font-size:20px;color:var(--mut);margin:0 0 30px;max-width:34em}
 .ctas{display:flex;gap:12px;flex-wrap:wrap}
-.hero img{width:100%;max-width:340px;justify-self:center;transform:rotate(4deg);filter:drop-shadow(0 22px 30px rgba(0,0,0,.18))}
+.pila{position:relative;width:310px;height:530px;justify-self:center}
+.pila img{position:absolute;left:calc(var(--i)*34px);top:calc(var(--i)*86px);width:200px;transform:rotate(calc(4deg - var(--i)*2deg));filter:drop-shadow(0 10px 16px rgba(0,0,0,.22))}
 section{padding:76px 0}
 h2{font-size:clamp(28px,3.6vw,40px);line-height:1.15;letter-spacing:-.01em;margin:0 0 14px;font-weight:800}
 .sub{color:var(--mut);margin:0 0 40px;max-width:40em}
@@ -116,7 +117,7 @@ footer a{color:#fff;text-decoration:none}
 @media(max-width:860px){
   nav{display:none}
   .hero .w,.split{grid-template-columns:1fr}
-  .hero img{max-width:240px}
+  .pila{transform:scale(.8);transform-origin:top center;height:430px;margin-bottom:-20px}
   .steps,.plans{grid-template-columns:1fr}
   .kinds{grid-template-columns:1fr 1fr}
 }
@@ -138,7 +139,12 @@ footer a{color:#fff;text-decoration:none}
     <div class="ctas"><a class="btn red" href="#pegatinas">Quiero pegatinas</a><a class="btn light" href="/app/">Crear mi código gratis</a></div>
     <div style="margin-top:18px"><a class="dl appdl" href="/app/scan2com.apk"><svg viewBox="0 0 24 24" fill="#3ddc84"><path d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22a11.4 11.4 0 0 0-9.84 0L5.22 5.92a.38.38 0 0 0-.66.38l1.84 3.18A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg><span><small class="dlsub">Descarga la app para</small><b>Android</b></span></a></div>
   </div>
-  <img src="/img/pegatina-qr-redondeado.png" alt="Pegatina Scan 2 Alert para el coche con código QR">
+  <div class="pila" aria-label="Pegatinas Scan 2 Alert, Chat, Link y Contact">
+    <img src="/img/pila-contact.png" alt="Scan 2 Contact" style="--i:3">
+    <img src="/img/pila-link.png" alt="Scan 2 Link" style="--i:2">
+    <img src="/img/pila-chat.png" alt="Scan 2 Chat" style="--i:1">
+    <img src="/img/pila-alert.png" alt="Scan 2 Alert" style="--i:0">
+  </div>
 </div></div>
 
 <section id="como"><div class="w">

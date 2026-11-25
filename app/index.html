@@ -918,6 +918,7 @@ function accountMenu() {
     <button class="btn light" id="nt" style="margin-bottom:8px">${IC.bell(20)}${NATIVE && S.av ? (avMissing() ? 'Configurar avisos' : 'Avisos configurados ✓') : notifOn() ? 'Notificaciones activadas ✓' : 'Activar notificaciones'}</button>
     <button class="btn light" id="sp" style="margin-bottom:8px">${IC.lock(20)}Lugares seguros (${(S.places || []).length})</button>
     <button class="btn light" id="how" style="margin-bottom:8px">${IC.play(20)}Cómo funciona</button>
+    <button class="btn light" id="rh" style="margin-bottom:8px">${IC.play(20)}Ayudas de cada pantalla</button>
     ${NATIVE ? (S.ver?.old ? `<a class="btn red" href="${APK_URL}" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.refresh(20)}Actualizar a la última versión<div style="font-size:12px;font-weight:400;opacity:.85">${fmtD(S.ver.apk?.date)}</div></a>` : `<button class="btn light" id="ver" style="margin-bottom:8px">${IC.refresh(20)}${S.ver?.ok ? 'Última versión instalada' : 'Comprobar actualización'}${S.ver?.last ? `<div style="font-size:12px;font-weight:400;color:#777">${fmtD(S.ver.last)}</div>` : ''}</button>`) : ''}
     ${/android/i.test(navigator.userAgent) && !NATIVE ? `<a class="btn red" href="/app/scan2com.apk" download style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.alert(20)}Descargar app Android (sirena a pantalla completa)</a>` : ''}
     <button class="btn light" id="thm" style="margin-bottom:8px">${document.documentElement.classList.contains('dark') ? '☀️ Cambiar a modo claro' : '🌙 Cambiar a modo oscuro'}</button>
@@ -927,6 +928,7 @@ function accountMenu() {
   $('#sp').onclick = placesSheet;
   $('#thm').onclick = () => { const d = !document.documentElement.classList.contains('dark'); document.documentElement.classList.toggle('dark', d); try { localStorage.setItem('sa_theme', d ? 'dark' : 'light'); } catch (e) {} accountMenu(); };
   if ($('#ver')) $('#ver').onclick = async () => { $('#overlay').innerHTML = ''; await checkVersion(true); };
+  $('#rh').onclick = helpsMenu;
   $('#how').onclick = () => { $('#overlay').innerHTML = ''; S.tourForce = true; S.tab = 'codes'; S.view = null; render(); setTimeout(playTour, 100); };
   $('#lo').onclick = async () => { await sb.auth.signOut(); location.reload(); };
   $('#nt').onclick = async () => { $('#overlay').innerHTML = ''; if (NATIVE && S.av) return avOpen(true); if (notifOn()) return toast('Las notificaciones ya están activadas en este móvil.'); await enablePush(true); };
@@ -1190,7 +1192,7 @@ function renderQR() {
 
 /* ---------- ayuda "¿Cómo se usa?" (plegable; se recuerda si la abres) ---------- */
 const HOWTO = {
-  chats: ['¿Cómo funcionan los chats?', ['Aquí están las conversaciones de <b>tus códigos</b> (alguien escaneó un código tuyo) y de los <b>códigos que tú escaneas</b> con la cámara de la app.', 'Toca un chat para escribir. Nadie ve tu teléfono ni tu email.', 'Boomerang gris a la izquierda: enviado, sin leer. Tic verde: leído.', '★ marca un chat como favorito: sigue abierto aunque apagues o borres el código.', 'Activa <b>Mostrar trazabilidad</b> (abajo) para verlos agrupados por código y saber de dónde sale cada nombre.']],
+  chats: ['¿Cómo funcionan los chats?', ['Aquí están las conversaciones de <b>tus códigos</b> (alguien escaneó un código tuyo) y de los <b>códigos que tú escaneas</b> con la cámara de la app.', 'Toca un chat para escribir. Nadie ve tu teléfono ni tu email.', '<b>Ponles nombre a tus chats</b>: aquí no hay números de teléfono y el anonimato es total (solo existe el email de tu cuenta, que nadie ve), así que cada chat llega con un nombre genérico. Entra en él y pulsa el lápiz ✎.', '★ marca un chat como favorito: sigue abierto aunque apagues o borres el código.', 'Activa <b>Mostrar trazabilidad</b> (abajo) para verlos agrupados por código y saber de dónde sale cada nombre.']],
   edit: ['¿Cómo se configura un código?', ['<b>Nombre</b> e <b>información privada</b>: solo los ves tú.', '<b>Diseño del QR</b>: Clásico, Redondeado o Pegatina de coche.', '<b>Medios de comunicación</b>: elige cómo te pueden contactar quienes lo escaneen (Info, Mail, Alert, Chat, Llamada o Redirección web).', 'Con <b>Info</b> marcado escribes el nombre público y el texto que verá quien escanee.', 'Pulsa <b>Guardar</b>. Puedes apagar el código cuando quieras con el botón de encendido.']],
   qr: ['¿Cómo se usa este código?', ['Pégalo o compártelo: quien lo escanee con la cámara del móvil verá tu pantalla pública y podrá contactarte por los medios activos.', '<b>Ver lo que ve quien escanea</b> te enseña esa pantalla.', 'El botón de encendido lo activa o desactiva al momento.', 'Arriba: <b>compartir</b> la imagen, <b>guardarla</b> y, en las pegatinas de coche, <b>PDF</b> para imprimir la hoja de 4 pegatinas a tamaño real.']]
 };
@@ -1312,17 +1314,17 @@ function renderChat() {
   const code = codeOf(ch.code_id), list = S.msgs[ch.id] || [], fav = S.favs.has(ch.id), off = chatOff(ch);
   if (S.unread[ch.id]) { delete S.unread[ch.id]; ls.set('sa_unread', S.unread); }
   const markRead = () => { if (!document.hidden && list.some(m => m.from_visitor && !m.read_at)) { const now = new Date().toISOString(); list.forEach(m => { if (m.from_visitor && !m.read_at) m.read_at = now; }); sb.rpc('mark_chat_read', { p_chat: ch.id }).then(() => {}, () => {}); } };
-  const key = ['c', ch.id, ch.name, ch.blocked, off, fav, code?.name, ch.code_name].join('|');
+  const key = ['c', ch.id, ch.name, ch.blocked, off, fav, code?.name, ch.code_name, ls.get('sa_tour_chat', 0)].join('|');
   if (patchMsgs(key, ownerMsgs(ch, list))) return markRead();
   app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button><div class="grow"><div style="font-size:20px" id="nm">${esc(ch.name)}</div><div style="font-size:12px;color:#aaa">${esc(code?.name || (ch.code_name ? ch.code_name + ' (código borrado)' : ''))}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
     <button class="star" id="fv" title="Favorito">${IC.star(28, fav)}</button><button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
     ${ch.blocked ? '<div class="notice" style="background:#eee">Has bloqueado a este contacto: no puede escribirte. Desbloquéalo desde ⋮.</div>' : ''}${off ? `<div class="notice">${code ? 'Este código está apagado' : 'El código de este chat se ha borrado'}: el chat está cerrado. Márcalo como favorito ★ para mantenerlo activo.</div>` : ''}
-    <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${ownerMsgs(ch, list)}</div></div>
+    ${screenTour('chat')}<div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${ownerMsgs(ch, list)}</div></div>
     <div class="compose"><button class="camb" id="ph" title="Enviar foto"><i></i></button><input id="oi" placeholder="Escribe y envía" maxlength="2000" enterkeyhint="send"><button class="sendb" id="os" title="Enviar (mantén pulsado para grabar un audio)"><i class="bmsend"></i><i class="micb"><svg width="30" height="30" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></i></button></div>`;
   app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight;
   app.dataset.cv = key; S.msHtml = ownerMsgs(ch, list); bmSync();
   markRead();   // abrir el chat = leer los mensajes del visitante (su boomerang vuelve en verde)
-  keepKb();
+  keepKb(); bindScreenTour('chat');
   $('#oi').onfocus = () => setTimeout(fitVV, 300);
   $('#bk').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
   $('#ren').onclick = () => $('#nm').onclick();
@@ -1346,8 +1348,10 @@ function renderChat() {
     $('#overlay').innerHTML = `<div class="sheet keep" id="cms"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">${face(ch.blocked, 44)}<div><b>${esc(ch.name)}</b><div style="font-size:13px;color:#777">${ch.blocked ? 'Contacto bloqueado: no puede escribirte' : 'Contacto activo'}</div></div></div>
       <button class="btn light" id="bl" style="margin-bottom:8px">${ch.blocked ? 'Desbloquear contacto' : 'Bloquear contacto'}</button>
-      <button class="btn light" id="dc" style="color:var(--red)">${IC.trash(18)} Borrar chat</button></div></div>`;
+      <button class="btn light" id="dc" style="color:var(--red);margin-bottom:8px">${IC.trash(18)} Borrar chat</button>
+      <button class="btn light" id="hw">${IC.play(16)} Cómo funciona el chat</button></div></div>`;
     $('#cms').onclick = () => { $('#overlay').innerHTML = ''; };
+    $('#hw').onclick = () => chatHelp();
     $('#bl').onclick = async () => { const v = !ch.blocked; $('#overlay').innerHTML = ''; ch.blocked = v; render(); const { error } = await sb.from('chats').update({ blocked: v }).eq('id', ch.id); if (error) { ch.blocked = !v; render(); toast('No se ha podido cambiar.'); } else toast(v ? 'Contacto bloqueado: ya no puede escribirte' : 'Contacto desbloqueado'); };
     $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { $('#overlay').innerHTML = ''; await sb.from('chats').delete().eq('id', ch.id); S.chats = S.chats.filter(x => x.id !== ch.id); S.view = null; S.tab = 'chats'; toast('Chat borrado'); render(); } else { $('#dc').dataset.sure = 1; $('#dc').textContent = 'Pulsa otra vez para borrar el chat'; } };
   };
@@ -1409,14 +1413,14 @@ async function renderVChat() {
   const v = (S.vchats || []).find(x => x.id === S.view.id); if (!v) { S.view = null; return render(); }
   if (S.unread['v' + v.id]) { delete S.unread['v' + v.id]; ls.set('sa_unread', S.unread); }
   const list = S.vmsgs?.[v.id] || [];
-  const key = ['v', v.id, v.name, v.public_name, v.alive].join('|');
+  const key = ['v', v.id, v.name, v.public_name, v.alive, ls.get('sa_tour_chat', 0)].join('|');
   if (patchMsgs(key, visitorMsgs(v, list))) return;
   app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button><div class="grow"><div style="font-size:20px" id="nm">${esc(v.name || v.public_name || 'Chat')}</div><div style="font-size:12px;color:#aaa">${esc(v.public_name || '')} · código escaneado</div></div>
     <button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
     ${v.alive ? '' : '<div class="notice">El dueño ha cerrado este chat: no puedes escribir ahora.</div>'}
-    <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${visitorMsgs(v, list)}</div></div>
+    ${screenTour('chat')}<div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${visitorMsgs(v, list)}</div></div>
     ${v.alive ? `<div class="compose"><button class="camb" id="ph" title="Enviar foto"><i></i></button><input id="oi" placeholder="Escribe y envía" maxlength="2000" enterkeyhint="send"><button class="sendb" id="os" title="Enviar (mantén pulsado para grabar un audio)"><i class="bmsend"></i><i class="micb"><svg width="30" height="30" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></i></button></div>` : ''}`;
-  app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight; app.dataset.cv = key; S.msHtml = visitorMsgs(v, list); bmSync(); keepKb();
+  app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight; app.dataset.cv = key; S.msHtml = visitorMsgs(v, list); bmSync(); keepKb(); bindScreenTour('chat');
   if ($('#oi')) $('#oi').onfocus = () => setTimeout(fitVV, 300);
   $('#bk').onclick = () => { clearInterval(vPoll); S.view = null; S.tab = 'chats'; render(); };
   $('#ren').onclick = () => $('#nm').onclick();
@@ -1439,8 +1443,10 @@ async function renderVChat() {
   $('#cm').onclick = () => {
     $('#overlay').innerHTML = `<div class="sheet keep" id="cms"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
       ${v.code_id ? `<button class="btn light" id="og" style="margin-bottom:8px">${IC.eye(18)} Abrir la página del código</button>` : ''}
-      <button class="btn light" id="dc" style="color:var(--red)">${IC.trash(18)} Quitar de mi lista</button></div></div>`;
+      <button class="btn light" id="dc" style="color:var(--red);margin-bottom:8px">${IC.trash(18)} Quitar de mi lista</button>
+      <button class="btn light" id="hw">${IC.play(16)} Cómo funciona el chat</button></div></div>`;
     $('#cms').onclick = () => { $('#overlay').innerHTML = ''; };
+    $('#hw').onclick = () => chatHelp();
     if ($('#og')) $('#og').onclick = () => { location.href = `${SITE}/s/${v.code_id}`; };
     $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { $('#overlay').innerHTML = ''; await sb.rpc('visitor_forget', { p_chat: v.id }); S.vchats = S.vchats.filter(x => x.id !== v.id); S.view = null; S.tab = 'chats'; toast('Chat quitado de tu lista'); render(); } else { $('#dc').dataset.sure = 1; $('#dc').textContent = 'Pulsa otra vez para quitarlo'; } };
   };
@@ -1616,9 +1622,18 @@ const TOURS = {
     ['', 'Esta es la pantalla de chats. Te explico cómo funciona.'],
     ['.page[data-page="chats"] [data-chat], .page[data-page="chats"] [data-vchat]', 'Cada fila es una conversación. Tócala para escribir. Nadie ve tu teléfono ni tu email.'],
     ['.page[data-page="chats"] [data-fav]', 'Con la estrella la marcas como favorita y sube arriba de la lista.'],
-    ['', 'Cuando envías un mensaje, un boomerang gris sale hacia la izquierda. Cuando lo leen, vuelve y se convierte en un tic verde.'],
+    ['', 'Aquí nadie ve el teléfono de nadie: el anonimato es total y lo único que hay es el email de tu cuenta, que tampoco se muestra. Por eso los chats llegan con un nombre genérico. Ponles tú uno para reconocerlos: entra en el chat y pulsa el lápiz, por ejemplo, vecino del segundo o repartidor.'],
     ['#bScan', 'Con la cámara de arriba escaneas el código de otra persona y empiezas un chat con ella.'],
     ['#trc', 'Y abajo, mostrar trazabilidad agrupa los chats por código y te dice de dónde sale cada nombre.']
+  ],
+  chat: [
+    ['', 'Esto es un chat. Escribe abajo y pulsa enviar.'],
+    ['#ms', 'Cuando envías un mensaje, sale un boomerang gris hacia la izquierda: enviado, sin leer. Cuando el otro lo lee, vuelve y se convierte en un tic verde.'],
+    ['#os', 'Mantén pulsado el micrófono para grabar y enviar un audio.'],
+    ['#ph', 'Con la cámara envías una foto, hecha en el momento o de tu galería. Toca una foto para verla en grande, descargarla o compartirla.'],
+    ['#ren', 'Con el lápiz le pones un nombre a este chat, para reconocerlo en tu lista.'],
+    ['#fv', 'La estrella lo marca como favorito y lo sube arriba de la lista.'],
+    ['#cm', 'Y en los tres puntos tienes más opciones, como borrar el chat o volver a escuchar esta explicación.']
   ],
   qr: [
     ['#cv', 'Este es tu código. Quien lo escanee con la cámara del móvil podrá contactarte por los medios que tengas activos.'],
@@ -1653,7 +1668,7 @@ function playTour(name) {
   const tts = !NT && 'speechSynthesis' in window; if (tts) speechSynthesis.cancel(); S.touring = true; let i = 0; const voice = tts ? pickVoice() : null;
   const next = () => {
     if (!S.touring) return;
-    if (i >= steps.length) { S.touring = false; highlight(null); if (!name) { ls.set(tourKey(), 1); S.tourDone = true; render(); } else { const pb = $('#tplay'); if (pb) pb.innerHTML = IC.play(30); const cap = $('#tcap'); if (cap) cap.textContent = 'Pulsa ▶ para volver a escucharlo.'; } return; }
+    if (i >= steps.length) { S.touring = false; highlight(null); if (!name) { ls.set(tourKey(), 1); S.tourDone = true; render(); } else { ls.set('sa_tour_' + name, 1); render(); } return; }   // al terminar, la tarjeta desaparece
     const [k, t] = steps[i++]; S.tourKeyNow = k; S.tourCap = t; const cap = $('#tcap'); if (cap) cap.textContent = t; highlight(k);
     if (NT) { NT.speak({ text: t, lang: 'es-ES', rate: 1.0, volume: 1.0 }).then(() => setTimeout(next, 250)).catch(() => setTimeout(next, 3500)); return; }
     if (!tts) return setTimeout(next, 3500);
@@ -1672,10 +1687,30 @@ function tourHTML() {
 // tarjeta de explicación hablada de cada pantalla (chats, ver código, ajustes); plegada a un botón si la cierras
 function screenTour(name) {
   if (name === 'chats' && (S.tab !== 'chats' || S.view)) return '';
-  if (ls.get('sa_tour_' + name, 0)) return `<button class="tourmini" id="tmini">${IC.play(16)} Cómo funciona esta pantalla</button>`;
+  if (ls.get('sa_tour_' + name, 0)) return '';   // vista u ocultada: desaparece; se recupera desde ⋮ → Ayudas de cada pantalla
   return `<div class="tour"><button class="play" id="tplay" title="Escuchar">${S.touring && S.tourName === name ? IC.stop(30) : IC.play(30)}</button>
     <div style="flex:1"><div class="cap" id="tcap">${S.touring && S.tourName === name ? esc(S.tourCap || '') : 'Pulsa ▶ para escuchar cómo funciona esta pantalla. Sube el volumen.'}</div><button class="x" id="tclose" data-tour="${name}">Ocultar</button></div></div>`;
 }
+// ⋮ → Ayudas de cada pantalla: eliges una y te lleva a esa pantalla explicándotela en voz alta
+function helpsMenu() {
+  const mine = S.codes.filter(c => c.owner_id === S.user.id), chat = S.chats[0], vchat = (S.vchats || [])[0];
+  const items = [['codes', 'Mis códigos', 'La pantalla principal: tus códigos, encenderlos y crear nuevos'], ['chats', 'Lista de chats', 'Tus conversaciones y cómo ponerles nombre'],
+    ['chat', 'Dentro de un chat', 'Mensajes, leídos, fotos, audios y opciones'], ['qr', 'Ver un código', 'Compartirlo, guardarlo, PDF de pegatinas'], ['edit', 'Ajustes de un código', 'Nombre, diseño y medios de contacto']];
+  $('#overlay').innerHTML = `<div class="sheet" id="hm"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));text-align:left" onclick="event.stopPropagation()">
+    <div style="font-weight:700;font-size:17px;margin-bottom:4px">Ayudas de cada pantalla</div><div style="font-size:13px;color:#777;margin-bottom:12px">Toca una y te llevo a esa pantalla explicándotela. Sube el volumen.</div>
+    ${items.map(([k, t, d]) => `<button class="btn light" data-help="${k}" style="margin-bottom:8px;text-align:left;display:flex;gap:10px;align-items:center">${IC.play(20)}<span><b>${t}</b><div style="font-size:12px;font-weight:400;color:#888">${d}</div></span></button>`).join('')}</div></div>`;
+  $('#hm').onclick = () => { $('#overlay').innerHTML = ''; };
+  $('#hm').querySelectorAll('[data-help]').forEach(b => b.onclick = () => {
+    const k = b.dataset.help; stopTour(); $('#overlay').innerHTML = '';
+    if (k === 'codes') { S.tourForce = true; S.tab = 'codes'; S.view = null; render(); return setTimeout(playTour, 150); }
+    if (k === 'chats') { S.tab = 'chats'; S.view = null; }
+    else if (k === 'chat') { if (chat) S.view = { t: 'chat', id: chat.id }; else if (vchat) S.view = { t: 'vchat', id: vchat.id }; else return toast('Aún no tienes ningún chat. Cuando tengas uno, podrás ver esta ayuda dentro.'); }
+    else { if (!mine[0]) return toast('Aún no tienes ningún código.'); S.view = { t: k, id: mine[0].id }; }
+    ls.set('sa_tour_' + k, 0); render(); setTimeout(() => playTour(k), 350);
+  });
+}
+// volver a ver la explicación del chat desde ⋮ (la tarjeta se ocultó)
+function chatHelp() { $('#overlay').innerHTML = ''; ls.set('sa_tour_chat', 0); render(); setTimeout(() => playTour('chat'), 150); }
 function bindScreenTour(name) {
   if ($('#tplay')) $('#tplay').onclick = () => S.touring ? stopTour() : playTour(name);
   if ($('#tclose')) $('#tclose').onclick = () => { stopTour(); ls.set('sa_tour_' + name, 1); render(); };

@@ -118,7 +118,7 @@ label{font-size:13px;color:var(--mut)}
 @keyframes bmspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 .m .who{font-size:11px;opacity:.8;margin-bottom:2px}
 .notice{background:#fff4d6;font-size:13px;padding:9px 14px}
-.phw{position:relative;display:block}.phsrc{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 7px;border-radius:10px}.phsrc.cam{background:rgba(26,163,217,.9)}
+.phw{position:relative;display:block}.pview{position:fixed;inset:0;z-index:20;background:#000;display:flex;align-items:center;justify-content:center}.pview img{max-width:100%;max-height:100%;object-fit:contain;display:block}.pvx{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:22px;cursor:pointer}.phsrc{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 7px;border-radius:10px}.phsrc.cam{background:rgba(26,163,217,.9)}
 .mph{display:block;max-width:220px;max-height:260px;border-radius:12px;margin:2px 0}.camb{border:0;background:none;padding:4px;cursor:pointer;flex:none;display:flex}.camb i{display:block;width:32px;height:32px;background:#1aa3d9;-webkit-mask:url(/app/img2014/camera.png) center/contain no-repeat;mask:url(/app/img2014/camera.png) center/contain no-repeat}
 .compose{display:flex;gap:6px;align-items:center;padding:10px 10px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #ddd;background:#fff;position:sticky;bottom:0}
 .compose input{margin:0;border:0;border-bottom:2px solid #33b5e5;border-radius:0;padding:10px 4px}
@@ -235,7 +235,13 @@ const prevBody = b => isPhoto(b) ? '📷 Foto' : isAudio(b) ? '🎤 Audio' : (b 
 // marca de origen al final de la dirección: #cam = hecha en el momento con la cámara, #gal = elegida de la galería
 const photoTag = b => /#cam$/.test(b) ? '<span class="phsrc cam">📷 Hecha ahora</span>' : /#gal$/.test(b) ? '<span class="phsrc">🖼️ De la galería</span>' : '';
 const audBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/#(\d+)$/) || [])[1] || 0; return `<div class="aud"><audio controls preload="none" src="${esc(u)}"></audio><span>🎤 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span></div>`; };
-const msgBody = b => isAudio(b) ? audBody(b) : isPhoto(b) ? `<a href="${esc(b.slice(4))}" target="_blank" rel="noopener" class="phw"><img class="mph" src="${esc(b.slice(4))}" loading="lazy" alt="Foto">${photoTag(b)}</a>` : esc(b);
+const msgBody = b => isAudio(b) ? audBody(b) : isPhoto(b) ? `<a href="${esc(b.slice(4))}" data-photo="${esc(b.slice(4))}" class="phw"><img class="mph" src="${esc(b.slice(4))}" loading="lazy" alt="Foto">${photoTag(b)}</a>` : esc(b);
+// al tocar una foto se abre dentro de la app, encajada en la pantalla; atrás o tocarla la cierra y vuelve al chat
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-photo]'); if (!a) return; e.preventDefault();
+  $('#overlay').innerHTML = `<div class="pview" id="pv"><img src="${esc(a.dataset.photo)}" alt="Foto"><button class="pvx" aria-label="Cerrar">✕</button></div>`;
+  $('#pv').onclick = () => { $('#overlay').innerHTML = ''; };
+});
 // primero se elige: hacer la foto ahora o cogerla de la galería
 function pickPhoto() {
   return new Promise(res => {
@@ -769,10 +775,10 @@ function renderHome() {
     const favs = list.filter(c => S.favs.has(c.id)), rest = list.filter(c => !S.favs.has(c.id));
     const tr = ls.get('sa_trace', false);
     const tline = t => tr ? `<div style="font-size:12px;color:#1f86e0;margin-top:2px">${t}</div>` : '';
-    const vrow = v => { const u = S.unread['v' + v.id]; return `<div class="item ${v.alive ? '' : 'off'}" data-vchat="${v.id}"><div style="flex:none">${face(false, 54)}</div>
+    const vrow = v => { const u = S.unread['v' + v.id]; return `<div class="item ${v.alive ? '' : 'off'}" data-vchat="${v.id}"><div style="flex:none">${face(false, 46)}</div>
       <div class="grow"><div class="t">${esc(v.name || v.public_name || 'Chat')}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(v.last ? (v.last.mine ? 'Tú: ' : '') + prevBody(v.last.body) : (v.public_name || ''))}</div>${tline(v.name && v.name !== v.public_name && v.name !== 'Chat' ? 'Nombre del chat: puesto por ti' : 'Nombre del chat: el nombre público del código')}</div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;white-space:nowrap">${ago(v.last?.at || v.created_at)}</div></div>`; };
-    const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div style="flex:none">${face(c.blocked, 54)}</div>
+    const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div style="flex:none">${face(c.blocked, 46)}</div>
       <div class="grow"><div class="t">${esc(c.name)}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + prevBody(lm.body) : (code?.name || c.code_name || ''))}</div>${tline(/^Chat \d+$/.test(c.name || '') ? 'Nombre del chat: automático' : 'Nombre del chat: puesto por ti')}</div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><button class="star" data-fav="${c.id}" title="Favorito" style="padding:0">${IC.star(26, S.favs.has(c.id))}</button><div style="white-space:nowrap">${ago(lm?.created_at || c.created_at)}</div></div></div>`; };
     // agrupados por código: los míos con su nombre privado; los escaneados con el nombre público que tenía el código
@@ -1394,7 +1400,7 @@ function stopCam() { stream?.getTracks().forEach(t => t.stop()); stream = null; 
 function renderPack() {
   if (S.view.only) {   // cámara: solo el escáner a pantalla completa
     app.innerHTML = `<div class="bar"><button class="back" id="bk">${IC.back(24)}</button><span class="name" style="font-size:16px;font-family:Inter">Escanear código</span></div>
-      <div class="camwrap" id="cw" style="flex:1;border-radius:0;display:block"><video id="vd" playsinline muted style="width:100%;height:100%;object-fit:cover"></video><div class="laser"></div><canvas class="pts" id="pts"></canvas></div>`;
+      <div class="camwrap" id="cw" style="flex:1;border-radius:0;display:block"><video poster="data:image/gif;base64,R0lGODlhAQABAAAAACw=" id="vd" playsinline muted style="width:100%;height:100%;object-fit:cover"></video><div class="laser"></div><canvas class="pts" id="pts"></canvas></div>`;
     app.classList.add('full');
     $('#bk').onclick = () => { stopCam(); app.classList.remove('full'); S.view = null; render(); };
     if (S.view.scan) { S.view.scan = false; startScan(); }
@@ -1405,7 +1411,7 @@ function renderPack() {
     <div style="font-size:13px;color:#777;margin:6px 2px 18px">Lo imprimes tú o lo compartes como enlace.</div>
     <div class="section">VINCULAR UN PACK DE PEGATINAS</div>
     <div style="font-size:14px;color:#555;margin-bottom:10px">Escanea el <b>QR maestro</b> de tu pack: todas sus pegatinas quedarán vinculadas a tu cuenta.</div>
-    <div class="camwrap" id="cw" style="display:none"><video id="vd" playsinline muted></video><div class="laser"></div><canvas class="pts" id="pts"></canvas></div>
+    <div class="camwrap" id="cw" style="display:none"><video poster="data:image/gif;base64,R0lGODlhAQABAAAAACw=" id="vd" playsinline muted></video><div class="laser"></div><canvas class="pts" id="pts"></canvas></div>
     <button class="btn teal" id="sc">${IC.camera(20)}Escanear QR maestro</button>
     <div style="display:flex;gap:6px;margin-top:10px"><input id="pk" placeholder="o escribe el código del pack" style="margin:0;text-transform:uppercase"><button class="btn sm light" id="pkb">Vincular</button></div>
     ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}</div>`;
@@ -1758,7 +1764,7 @@ async function start(session) {
   if (ls.get('sa_intro_v1', 0)) return;
   const d = document.createElement('div');
   d.id = 'intro'; d.style.cssText = 'position:fixed;inset:0;background:#000;z-index:60;display:grid;place-items:center;transition:opacity .5s';
-  d.innerHTML = '<video src="/app/scanand_splash_movil.mp4" autoplay muted playsinline preload="auto" style="width:100%;height:100%;object-fit:contain"></video><button style="position:absolute;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:18px;padding:8px 16px;font:inherit;font-size:14px">Saltar ›</button>';
+  d.innerHTML = '<video poster="data:image/gif;base64,R0lGODlhAQABAAAAACw=" src="/app/scanand_splash_movil.mp4" autoplay muted playsinline preload="auto" style="width:100%;height:100%;object-fit:contain"></video><button style="position:absolute;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:18px;padding:8px 16px;font:inherit;font-size:14px">Saltar ›</button>';
   document.body.appendChild(d);
   const end = () => { ls.set('sa_intro_v1', 1); d.style.opacity = '0'; setTimeout(() => d.remove(), 500); };
   const v = d.querySelector('video'); v.onended = end; v.onerror = end; d.querySelector('button').onclick = end;

@@ -2,249 +2,179 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<meta name="theme-color" content="#dedfe1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+// enlaces antiguos a un código (scan2com.com/?c=CÓDIGO o scan2com.com/#CÓDIGO): van a la página de escaneo
+if (/[?&]c=/.test(location.search) || /^#[A-Za-z0-9]+$/.test(location.hash)) location.replace('/scan.html' + location.search + location.hash);
+</script>
+<title>Scan2Com · Tu código QR para que te avisen</title>
+<meta name="description" content="Pegatinas con código QR que conectan el mundo físico con tu móvil: quien las escanea te avisa, te escribe o te llama sin conocer tu número.">
+<meta name="theme-color" content="#1d1f22">
 <link rel="icon" href="/app/logo.png">
-<title>Scan2Com</title>
+<meta property="og:title" content="Scan2Com">
+<meta property="og:description" content="Pegatinas QR para que te avisen sin dar tu número.">
+<meta property="og:image" content="https://scan2com.com/img/pegatina-coche.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Comfortaa:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Comfortaa:wght@700&display=swap" rel="stylesheet">
 <style>
-:root{--blue:#2f8fe0;--green:#2fc23a;--red:#e8352b;--yellow:#e6c62a}
+:root{--ink:#1d1f22;--mut:#5f646c;--line:#e3e5e8;--bg:#f4f5f7;--red:#e8352b;--yel:#f2c91b;--gris:#8d9396;--azul:#0e9bd8;--verde:#2fc23a}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;display:flex;justify-content:center}
-.app{width:100%;max-width:480px;min-height:100%;display:flex;flex-direction:column;padding:16px 16px calc(16px + env(safe-area-inset-bottom));gap:12px}
-.brand{display:flex;align-items:center;gap:8px;justify-content:center;color:#666;font-family:Comfortaa;font-size:15px}
-.card{background:#464749;color:#e8e8e8;border-radius:22px;padding:22px}
-.card h1{margin:0 0 10px;text-align:center;font-weight:500;font-size:30px;color:#d2d2d2}
-.card p{margin:0;line-height:1.7;white-space:pre-line;font-size:17px}
-.ws{display:flex;background:#fff;border-radius:26px;padding:4px 4px 4px 18px;align-items:center}
-.ws input{flex:1;border:0;font:inherit;font-size:16px;padding:12px 0;font-style:italic;background:none}
-.ws input:focus{outline:none}
-.status{text-align:center;color:#7d7f82;font-size:21px;font-style:italic;min-height:30px}
-.status.err{color:#b3261e;font-size:16px;font-style:normal}
-.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:auto}
-.act{border:0;border-radius:18px;height:92px;cursor:pointer;color:#fff;font:inherit;font-weight:600;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;-webkit-tap-highlight-color:transparent}
-.act:active{transform:scale(.97)}
-.act svg{width:32px;height:32px}
-.mail{background:linear-gradient(#1f86e0,#0a5bb0)}
-.alert{background:linear-gradient(#ff3a2c,#c50d05)}
-.chat,.call{background:linear-gradient(#3ee03a,#1a9c16)}
-.hidden{visibility:hidden}
-.busy svg{animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.callrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.callrow a{grid-column:3;text-decoration:none}
-.app.full{height:var(--vvh,100dvh);min-height:0;overflow:hidden}
-.app.full .top,.app.full .ws{flex:none}
-.msgs{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:auto;padding:4px 0}
-.m{max-width:80%;padding:9px 12px;border-radius:16px;font-size:15px;line-height:1.4;word-wrap:break-word}
-.m.me{align-self:flex-end;background:#1aa3d9;color:#fff;border-bottom-right-radius:4px}
-.m.them{align-self:flex-start;background:#fff;border-bottom-left-radius:4px}
-.m.sys{align-self:center;background:none;color:#777;font-size:13px;text-align:center}
-.top{display:flex;align-items:center;gap:10px}
-.back{background:none;border:0;font:inherit;font-size:15px;color:#1a7fb0;font-weight:600;cursor:pointer;padding:6px 0}
-.send{border:0;background:var(--green);color:#fff;border-radius:22px;padding:11px 16px;font:inherit;font-weight:600;cursor:pointer}
-.mailbox{display:flex;flex-direction:column;gap:8px}
-.mailbox input,.mailbox textarea{font:inherit;font-size:16px;border:0;border-radius:14px;padding:12px}
-.tick{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;margin:auto;text-align:center;animation:pop .5s ease-out}
-.tick svg{width:min(55vw,200px);height:auto;filter:drop-shadow(0 6px 14px rgba(26,156,22,.35))}
-.tick h2{margin:0;color:#1a7a1a;font-size:26px}
-@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
-.wait{display:inline-block;width:8px;height:8px;border-radius:50%;background:#9a9ea4;margin-left:6px;animation:wp 1s infinite}
-@keyframes wp{50%{opacity:.2}}
-.center{margin:auto;text-align:center;color:#555;padding:30px}
-.foot{text-align:center;font-size:12px;color:#888}
-.inst{display:flex;align-items:center;gap:14px;margin:20px 0 8px;padding:16px 18px;border-radius:18px;background:#2fc23a;color:#fff;text-decoration:none;line-height:1.3;font-size:18px;box-shadow:0 6px 18px rgba(47,194,58,.35)}.inst img{width:44px;height:44px;flex:none;background:#fff;border-radius:12px;padding:4px}.inst small{color:#eaffea;font-size:14px}
-.foot a{color:#666}
+html{scroll-behavior:smooth}
+body{margin:0;font:17px/1.6 Inter,system-ui,sans-serif;color:var(--ink);background:#fff}
+a{color:inherit}
+.w{max-width:1100px;margin:0 auto;padding:0 22px}
+header{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header .w{display:flex;align-items:center;gap:10px;height:64px}
+.brand{display:flex;align-items:center;gap:9px;font-family:Comfortaa;font-size:21px;text-decoration:none}
+.brand img{width:34px;height:34px}
+nav{margin-left:auto;display:flex;gap:22px;font-size:15px;font-weight:500}
+nav a{text-decoration:none;color:var(--mut)}nav a:hover{color:var(--ink)}
+.btn{display:inline-block;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;padding:13px 22px;border-radius:999px;border:0;font-size:16px}
+.btn.red{background:var(--red)}.btn.light{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.hero{padding:64px 0 72px;background:linear-gradient(180deg,#fff,var(--bg))}
+.hero .w{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center}
+h1{font-size:clamp(36px,5.4vw,60px);line-height:1.06;letter-spacing:-.02em;margin:0 0 20px;font-weight:800}
+h1 span{color:var(--red)}
+.lead{font-size:20px;color:var(--mut);margin:0 0 30px;max-width:34em}
+.ctas{display:flex;gap:12px;flex-wrap:wrap}
+.hero img{width:100%;max-width:340px;justify-self:center;transform:rotate(4deg);filter:drop-shadow(0 22px 30px rgba(0,0,0,.18))}
+section{padding:76px 0}
+h2{font-size:clamp(28px,3.6vw,40px);line-height:1.15;letter-spacing:-.01em;margin:0 0 14px;font-weight:800}
+.sub{color:var(--mut);margin:0 0 40px;max-width:40em}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;counter-reset:s}
+.step{background:var(--bg);border-radius:22px;padding:26px}
+.step:before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--ink);color:#fff;font-weight:700;margin-bottom:14px}
+.step h3{margin:0 0 6px;font-size:20px}.step p{margin:0;color:var(--mut)}
+.kinds{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.k{border-radius:22px;padding:24px 22px;color:#fff;min-height:190px;display:flex;flex-direction:column}
+.k b{font-family:Comfortaa;font-size:24px;display:block;margin-bottom:8px}
+.k p{margin:0;font-size:15.5px;opacity:.95}
+.k.a{background:var(--red)}.k.c{background:var(--yel);color:#222}.k.l{background:var(--gris)}.k.t{background:var(--azul)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.bg{background:var(--bg)}
+ul.ok{list-style:none;padding:0;margin:0 0 28px}
+ul.ok li{padding:8px 0 8px 34px;position:relative}
+ul.ok li:before{content:"";position:absolute;left:0;top:12px;width:20px;height:20px;border-radius:50%;background:var(--verde) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
+.phone{background:#dedfe1;border-radius:34px;padding:18px;max-width:330px;margin:0 auto;border:8px solid var(--ink)}
+.phone .card{background:#464749;color:#e8e8e8;border-radius:18px;padding:18px;text-align:center;margin-bottom:12px}
+.phone .card b{display:block;font-size:20px;color:#d2d2d2;font-weight:500}
+.phone .row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.phone .row div{height:74px;border-radius:14px;color:#fff;font-weight:600;font-size:13px;display:grid;place-items:center}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.plan{border:1.5px solid var(--line);border-radius:22px;padding:28px;display:flex;flex-direction:column;background:#fff}
+.plan h3{margin:0 0 4px;font-size:22px}.plan .tag{color:var(--mut);font-size:15px;margin-bottom:16px}
+.plan ul{padding-left:20px;margin:0 0 24px;color:var(--mut);font-size:15.5px}
+.plan .btn{margin-top:auto;text-align:center}
+.plan.hl{border-color:var(--red);box-shadow:0 10px 30px rgba(232,53,43,.12)}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{font-weight:600;cursor:pointer;font-size:18px}
+.faq p{color:var(--mut);margin:10px 0 0}
+footer{background:var(--ink);color:#b9bdc3;padding:40px 0;font-size:15px}
+footer .w{display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+footer a{color:#fff;text-decoration:none}
+@media(max-width:860px){
+  nav{display:none}
+  .hero .w,.split{grid-template-columns:1fr}
+  .hero img{max-width:240px}
+  .steps,.plans{grid-template-columns:1fr}
+  .kinds{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){.kinds{grid-template-columns:1fr}.k{min-height:0}}
 </style>
 </head>
 <body>
-<div class="app" id="app"><div class="center">Cargando…</div></div>
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-const sb = createClient('https://kbkyosyenotqjcgujbmn.supabase.co', 'sb_publishable_Ac2fFMZTIWXMGfEURbVc8Q_Z2gcpujt', { auth: { persistSession: false } });
+<header><div class="w">
+  <a class="brand" href="/"><img src="/img/logo.png" alt="">Scan2Com</a>
+  <nav><a href="#como">Cómo funciona</a><a href="#pegatinas">Pegatinas</a><a href="#entidades">Entidades</a><a href="#faq">Preguntas</a></nav>
+  <a class="btn" href="/app/" style="margin-left:18px;padding:9px 18px;font-size:15px">Entrar</a>
+</div></header>
 
-// Scan2Com Police: si en este navegador hay un agente con sesión iniciada en la app, puede enviar avisos de autoridad
-let AUTH = null, sbA = null;
-async function loadAuthority() {
-  try {
-    if (!Object.keys(localStorage).some(k => /^sb-.*-auth-token$/.test(k))) return;
-    sbA = createClient('https://kbkyosyenotqjcgujbmn.supabase.co', 'sb_publishable_Ac2fFMZTIWXMGfEURbVc8Q_Z2gcpujt');
-    const { data } = await sbA.rpc('my_authority'); AUTH = data || null;
-  } catch (e) {}
-}
-async function policeAlert() {
-  if (busy) return; busy = true; status = ''; render();
-  const t = wsText() || 'Su vehículo está mal estacionado. Acuda inmediatamente.';
-  let pos = null; try { pos = await new Promise((ok, ko) => navigator.geolocation.getCurrentPosition(p => ok(p.coords), ko, { timeout: 5000, maximumAge: 60000 })); } catch (e) {}
-  const { data } = await sbA.rpc('police_alert', { p_id: id, p_body: t, p_lat: pos?.latitude ?? null, p_lng: pos?.longitude ?? null });
-  busy = false;
-  if (data?.ok) { status = 'Aviso de autoridad enviado 🚓'; statusErr = false; }
-  else { status = { not_eligible: 'Este código no es de coche ni de Alert.', rate_limited: 'Demasiados avisos seguidos. Espera unos minutos.' }[data?.error] || 'No se ha podido enviar el aviso.'; statusErr = true; }
-  render();
-}
-const LOGO = `<img src="/app/logo.png" width="28" height="28" alt="Scan2Com">`;
-const I = {
-  mail: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z" opacity=".25"/><path d="M3 5h18v2l-9 6-9-6zM3 9l9 6 9-6v10H3z"/></svg>',
-  alert: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 4V5L7 9z"/><path d="M15 8.5a4 4 0 0 1 0 7M17.5 6a7.5 7.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
-  chat: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v11H8l-4 4z"/></svg>',
-  call: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/></svg>',
-  spin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 3a9 9 0 1 0 9 9" stroke-linecap="round"/></svg>'
-};
-const ERR = { rate_limited: 'Se han enviado demasiados avisos. Inténtalo en unos minutos.', unavailable: 'Este código no está disponible ahora.', channel_disabled: 'El dueño no tiene activada esta opción.', closed: 'Este chat está cerrado.', forbidden: 'No tienes acceso a este chat.' };
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const $ = s => document.querySelector(s);
-const app = $('#app');
+<main>
+<div class="hero"><div class="w">
+  <div>
+    <h1>Que te avisen <span>sin dar tu número</span>.</h1>
+    <p class="lead">Scan2Com convierte un código QR en una puerta de comunicación contigo. Pégalo en tu coche, tu moto, tu buzón o tus cosas: quien lo escanea con el móvil te envía una alerta, un mensaje o abre un chat. Tú eliges cómo quieres que te contacten.</p>
+    <div class="ctas"><a class="btn red" href="#pegatinas">Quiero pegatinas</a><a class="btn light" href="/app/">Crear mi código gratis</a></div>
+  </div>
+  <img src="/img/pegatina-coche.png" alt="Pegatina Scan 2 Alert para el coche con código QR">
+</div></div>
 
-// id del código: /s/ABCD1234, ?c=ABCD1234 o #ABCD1234
-// botón "Instala la app" para quien abre el código en el navegador (Android, fuera de la app).
-// Cuando la app esté en Google Play, poner su enlace en PLAY_URL y se usará en lugar del APK.
-const PLAY_URL = '';
-const INSTALL = /Android/i.test(navigator.userAgent) && !window.Capacitor?.isNativePlatform?.() ? (PLAY_URL || '/app/scan2com.apk') : '';
-const id = (location.pathname.match(/\/s\/([A-Za-z0-9]+)/) || [])[1] || new URLSearchParams(location.search).get('c') || location.hash.slice(1);
-let code = null, status = '', statusErr = false, busy = false, view = 'home';
-const chatKey = () => 'scan2com_chat_' + id;
-let chat = null; try { chat = JSON.parse(localStorage.getItem(chatKey())); } catch (e) {}
-let lastMsg = 0, msgs = [], poll = null, alive = true, pending = null, readPoll = null, readKind = '';
+<section id="como"><div class="w">
+  <h2>Cómo funciona</h2>
+  <p class="sub">Como un número de teléfono, pero en forma de código QR y sin revelar tus datos.</p>
+  <div class="steps">
+    <div class="step"><h3>Consigue tu código</h3><p>Crea tu cuenta en la app y genera tus códigos, o vincula las pegatinas impresas que te enviamos.</p></div>
+    <div class="step"><h3>Elige cómo te contactan</h3><p>Alerta con sirena, chat, mensaje o llamada. Puedes cambiarlo cuando quieras y bloquear a quien moleste.</p></div>
+    <div class="step"><h3>Te escanean, te enteras</h3><p>Quien escanea no necesita instalar nada: se abre una web y te avisa al momento en tu móvil.</p></div>
+  </div>
+</div></section>
 
-const vv = window.visualViewport; function fitVV() { document.documentElement.style.setProperty('--vvh', (vv ? vv.height : innerHeight) + 'px'); if (document.querySelector('.full')) { window.scrollTo(0, 0); const b = document.querySelector('.full .scrollme'); if (b) b.scrollTop = b.scrollHeight; } }
-vv ? vv.addEventListener('resize', fitVV) : addEventListener('resize', fitVV); fitVV();
+<section class="bg"><div class="w split">
+  <div>
+    <h2>Un ejemplo: tu coche</h2>
+    <p class="sub" style="margin-bottom:20px">Te has dejado las luces encendidas, el coche mal aparcado o alguien le ha dado un golpe. Con la pegatina en el cristal:</p>
+    <ul class="ok">
+      <li>Cualquiera puede avisarte en segundos, sin buscar tu teléfono.</li>
+      <li>Recibes una alerta con sirena a pantalla completa en tu Android.</li>
+      <li>Puedes contestar por chat sin dar tu número.</li>
+      <li>Pegatina en espejo para poner por dentro del cristal, como la de la ITV.</li>
+    </ul>
+    <a class="btn" href="#pegatinas">Ver pegatinas</a>
+  </div>
+  <div class="phone" aria-hidden="true">
+    <div class="card"><b>Coche</b><small>Elige cómo avisar al propietario</small></div>
+    <div class="row"><div style="background:linear-gradient(#1f86e0,#0a5bb0)">Mensaje</div><div style="background:linear-gradient(#ff3a2c,#c50d05)">Alerta</div><div style="background:linear-gradient(#3ee03a,#1a9c16)">Chat</div></div>
+  </div>
+</div></section>
 
-async function rpc(fn, args) {
-  const { data, error } = await sb.rpc(fn, args);
-  if (error) { console.error(error); return { ok: false, error: 'network' }; }
-  return data;
-}
+<section><div class="w">
+  <h2>Un código para cada cosa</h2>
+  <p class="sub">Las pegatinas vienen por colores según el uso, para que se reconozcan de un vistazo.</p>
+  <div class="kinds">
+    <div class="k a"><b>Scan 2 Alert</b><p>Avisos urgentes: coche, moto, bici, puerta del garaje, maleta.</p></div>
+    <div class="k c"><b>Scan 2 Chat</b><p>Conversación directa: objetos perdidos, mascotas, buzón, anuncios.</p></div>
+    <div class="k l"><b>Scan 2 Link</b><p>Lleva a quien escanea a la web o enlace que tú elijas.</p></div>
+    <div class="k t"><b>Scan 2 Contact</b><p>Para que te escriban o te llamen sin publicar tu número.</p></div>
+  </div>
+</div></section>
 
-async function load() {
-  if (!id) { app.innerHTML = `<div class="center">${LOGO}<h2>Scan2Com</h2><p>Escanea un código Scan2Com con la cámara de tu móvil.</p></div>`; return; }
-  // dentro de la app Android con sesión iniciada: el código se abre en la propia app (chat en los dos móviles)
-  if (window.Capacitor?.isNativePlatform?.() && !new URLSearchParams(location.search).has('web') && Object.keys(localStorage).some(k => /^sb-.*-auth-token$/.test(k))) { location.replace('/app/?open=' + encodeURIComponent(id)); return; }
-  [code] = await Promise.all([rpc('public_code', { p_id: id }), loadAuthority()]);
-  if (chat) linkChat();
-  if (!code || code.status === 'not_found' || code.ok === false) { app.innerHTML = `<div class="center">${LOGO}<h2>Código no encontrado</h2><p>Revisa que el QR se haya leído bien.</p></div>`; return; }
-  if (code.status === 'unclaimed') { app.innerHTML = `<div class="center">${LOGO}<h2>Pegatina sin activar</h2><p>Esta pegatina Scan2Com aún no tiene dueño. Si es tuya, vincúlala desde la app escaneando el QR maestro de tu pack.</p></div>`; return; }
-  if (code.status === 'redirect' && /^https?:\/\//i.test(code.url)) { app.innerHTML = `<div class="center">${LOGO}<p>Abriendo <a href="${esc(code.url)}" rel="noopener">${esc(code.url.replace(/^https?:\/\//, ''))}</a>…</p></div>`; location.replace(code.url); return; }
-  if (chat && code.status === 'on') view = 'home';
-  render();
-  if (code.status === 'on' && code.auto_alert && !sessionStorage.getItem('auto_' + id)) {
-    sessionStorage.setItem('auto_' + id, '1');
-    sendEvent('alert', true);
-  }
-}
-
-function render() {
-  if (view !== 'chat') app.classList.remove('full');
-  if (view === 'read') return renderRead();
-  if (view === 'chat') return renderChat();
-  if (view === 'mail') return renderMail();
-  const off = code.status === 'off', ch = code.channels || {};
-  const any = (!off && (ch.mail || ch.alert || ch.chat)) || !!AUTH;
-  app.innerHTML = `
-    <div class="brand">${LOGO} Scan2Com</div>
-    <div class="card"><h1>${esc(code.public_name || 'Scan2Com')}</h1><p>${off ? 'El dueño ha desactivado este código temporalmente.' : esc(code.public_desc || '')}</p></div>
-    ${any ? `<div class="ws"><input id="ws" placeholder="Write & Send" maxlength="1000"></div>` : ''}
-    <div class="status ${statusErr ? 'err' : ''}">${esc(status)}${pending && !statusErr ? '<div style="font-size:14px;margin-top:4px">Esperando a que el dueño lo lea<span class="wait"></span></div>' : ''}</div>
-    ${!off && ch.call && code.phone ? `<div class="callrow"><a class="act call" href="tel:${esc(code.phone)}">${I.call}${esc(code.phone)}</a></div>` : ''}
-    <div class="acts">
-      <button class="act mail ${off || !ch.mail ? 'hidden' : ''}" id="bMail">${I.mail}Mail</button>
-      <button class="act alert ${off || !ch.alert ? 'hidden' : ''} ${busy ? 'busy' : ''}" id="bAlert">${busy ? I.spin : I.alert}Alert</button>
-      <button class="act chat ${(off && !chat) || !ch.chat ? 'hidden' : ''}" id="bChat">${I.chat}Chat${chat ? ' ·' : ''}</button>
+<section id="pegatinas" class="bg"><div class="w">
+  <h2>Pegatinas impresas</h2>
+  <p class="sub">Pegatinas de vinilo troqueladas en imprenta, resistentes al sol y al agua. Cada una lleva su código único, listo para vincular a tu cuenta escaneándolo desde la app.</p>
+  <div class="plans">
+    <div class="plan">
+      <h3>Hazlo tú mismo</h3><div class="tag">Gratis</div>
+      <ul><li>Crea tus códigos en la app</li><li>Descarga el PDF con las pegatinas del coche</li><li>Imprímelo y recórtalo</li></ul>
+      <a class="btn light" href="/app/">Crear mi código</a>
     </div>
-    ${AUTH ? `<button class="act" id="bPol" style="background:#0b2a6b;color:#fff;width:100%;height:64px;margin-top:10px;flex-direction:row;gap:10px;justify-content:center"><img src="/app/img2014/police.png" width="26" height="30" alt="">Aviso de autoridad</button><div style="font-size:12px;color:#777;text-align:center;margin-top:4px">${esc(AUTH.body)} · agente ${esc(AUTH.badge)}. Suena aunque el código esté apagado.</div>` : ''}
-    <div class="foot">Ni el dueño ni tú veis el teléfono o el email del otro.</div>
-    ${INSTALL ? `<a class="inst" href="${INSTALL}" rel="noopener">${LOGO}<span><b>Instala la app Scan2Com</b><br><small>Crea tus propios códigos y recibe los avisos al momento</small></span></a>` : ''}`;
-  $('#bAlert').onclick = () => sendEvent('alert');
-  if ($('#bPol')) $('#bPol').onclick = policeAlert;
-  $('#bMail').onclick = () => { view = 'mail'; render(); };
-  $('#bChat').onclick = openChat;
-}
+    <div class="plan hl">
+      <h3>Pack de pegatinas</h3><div class="tag">Vinilo profesional, enviado por correo</div>
+      <ul><li>20 pegatinas: Alert, Chat, Link y Contact</li><li>Pegatinas de coche en espejo para el cristal</li><li>Se vinculan a tu cuenta con un solo escaneo</li></ul>
+      <a class="btn red" href="mailto:admin@scan2com.com?subject=Pedido%20de%20pegatinas%20Scan2Com&body=Hola%2C%20quiero%20pedir%20pegatinas%20Scan2Com.%0A%0ANombre%3A%0ADirecci%C3%B3n%20de%20env%C3%ADo%3A%0ACantidad%20y%20tipo%3A%0A">Pedir pegatinas</a>
+    </div>
+    <div class="plan" id="entidades">
+      <h3>Entidades</h3><div class="tag">Ayuntamientos, empresas, asociaciones</div>
+      <ul><li>Lotes para repartir entre vecinos, clientes o socios</li><li>Pegatinas de coche para todo un municipio</li><li>Precio por volumen</li></ul>
+      <a class="btn" href="mailto:admin@scan2com.com?subject=Scan2Com%20para%20entidades">Pedir presupuesto</a>
+    </div>
+  </div>
+</div></section>
 
-const wsText = () => ($('#ws')?.value || '').trim();
+<section id="faq"><div class="w faq" style="max-width:820px">
+  <h2>Preguntas frecuentes</h2>
+  <details><summary>¿Quien escanea necesita instalar algo?</summary><p>No. Basta con la cámara del móvil: se abre una página web desde la que te avisa, te escribe o te llama.</p></details>
+  <details><summary>¿Ven mi número de teléfono o mis datos?</summary><p>No. Solo ven el nombre que tú pongas al código y los medios de contacto que hayas activado.</p></details>
+  <details><summary>¿Y si alguien lo usa para molestar?</summary><p>Puedes bloquear a esa persona desde el chat, cambiar los medios de contacto o desactivar el código en cualquier momento.</p></details>
+  <details><summary>¿Funciona en iPhone?</summary><p>Escanear y avisar funciona en cualquier móvil. La app del propietario funciona en el navegador; la alerta con sirena a pantalla completa está disponible en la app de Android.</p></details>
+  <details><summary>¿Cómo vinculo una pegatina impresa?</summary><p>Abre la app Scan2Com, escanea el código de la pegatina con el escáner de la app y quedará asociada a tu cuenta.</p></details>
+</div></section>
+</main>
 
-async function sendEvent(kind, auto = false, body = null, reply = null) {
-  if (busy) return;
-  busy = kind === 'alert'; status = ''; statusErr = false; const t = body ?? (auto ? '' : wsText()); render();
-  const r = await rpc('send_event', { p_id: id, p_kind: kind, p_body: t || null, p_reply_email: reply, p_auto: auto });
-  busy = false;
-  if (r.ok) { status = kind === 'alert' ? (auto ? 'Aviso enviado al abrir 🔊' : 'Alert sended 🔊') : 'Mensaje enviado ✉️'; statusErr = false; try { navigator.vibrate && navigator.vibrate(120); } catch (e) {} if (r.event_id) watchRead(r.event_id, r.token, kind); }
-  else { status = ERR[r.error] || 'No se ha podido enviar. Revisa tu conexión.'; statusErr = true; }
-  view = 'home'; render();
-}
-
-function watchRead(eventId, token, kind) {
-  pending = { eventId, token }; readKind = kind; clearInterval(readPoll); const t0 = Date.now();
-  readPoll = setInterval(async () => {
-    if (Date.now() - t0 > 30 * 60 * 1000) { clearInterval(readPoll); pending = null; return; }
-    const r = await rpc('event_status', { p_event: pending.eventId, p_token: pending.token });
-    if (r.ok && r.read) { clearInterval(readPoll); pending = null; view = 'read'; render(); try { navigator.vibrate && navigator.vibrate([80, 60, 80]); } catch (e) {} }
-  }, 4000);
-}
-function renderRead() {
-  app.innerHTML = `<div class="brand">${LOGO} Scan2Com</div>
-    <div class="tick"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="56" fill="#2fc23a"/><path d="M34 62l17 17 36-38" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <h2>${readKind === 'alert' ? 'Alerta recibida' : 'Mensaje leído'}</h2>
-      <p style="margin:0;color:#555">El dueño de “${esc(code.public_name)}” ya lo ha visto. ¡Gracias por avisar!</p></div>
-    <button class="act chat" style="height:56px;flex-direction:row;margin-top:auto" id="bk">Volver</button>`;
-  $('#bk').onclick = () => { view = 'home'; status = ''; render(); };
-}
-
-function renderMail() {
-  app.innerHTML = `
-    <div class="top"><button class="back" id="bk">‹ Volver</button></div>
-    <div class="card"><h1>${esc(code.public_name)}</h1><p>Escribe tu mensaje. Si quieres respuesta, deja un email: solo lo verá el dueño.</p></div>
-    <div class="mailbox"><textarea id="mb" rows="5" placeholder="Tu mensaje" maxlength="1000">${esc(wsText())}</textarea>
-    <input id="me" type="email" placeholder="Tu email (opcional)" maxlength="200">
-    <button class="act mail" style="height:56px;flex-direction:row" id="ms">${I.mail} Enviar</button></div>`;
-  $('#bk').onclick = () => { view = 'home'; render(); };
-  $('#ms').onclick = () => { const b = $('#mb').value.trim(); if (!b) { $('#mb').focus(); return; } sendEvent('mail', false, b, $('#me').value.trim() || null); };
-}
-
-async function openChat() {
-  if (!chat) {   // con sesión de Scan2Com: si ya tengo chat con este código, se reutiliza (un chat por código y persona)
-    try { if (!sbA) await loadAuthority(); if (sbA) { const { data } = await sbA.rpc('my_chat_for_code', { p_id: id }); if (data?.ok) { chat = { id: data.chat_id, token: data.token }; try { localStorage.setItem(chatKey(), JSON.stringify(chat)); } catch (e) {} } } } catch (e) {}
-  }
-  if (!chat) {
-    const first = wsText();
-    const r = await rpc('start_chat', { p_id: id, p_first: first || null });
-    if (!r.ok) { status = ERR[r.error] || 'No se ha podido abrir el chat.'; statusErr = true; return render(); }
-    chat = { id: r.chat_id, token: r.token };
-    try { localStorage.setItem(chatKey(), JSON.stringify(chat)); } catch (e) {}
-  } else if (wsText()) {
-    await rpc('visitor_send', { p_chat: chat.id, p_token: chat.token, p_body: wsText() });
-  }
-  view = 'chat'; renderChat(); fetchMsgs(); clearInterval(poll); poll = setInterval(fetchMsgs, 3000);
-  linkChat();
-}
-// si quien escanea tiene sesión de Scan2Com en este navegador o en la app, el chat queda también en su lista de chats
-async function linkChat() {
-  try { if (!sbA) await loadAuthority(); if (sbA && chat) await sbA.rpc('link_visitor_chat', { p_chat: chat.id, p_token: chat.token }); } catch (e) {}
-}
-
-function renderChat() {
-  app.innerHTML = `
-    <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div>${sbA ? `<a href="/app/?vchat=${chat.id}" style="font-size:13px;color:#0a8f8f;font-weight:600;text-decoration:none">Mis chats ›</a>` : '<span style="font-size:12px;color:#777">chat anónimo</span>'}</div>
-    <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
-    ${alive ? `<div class="ws"><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs">Enviar</button></div>` : ''}`;
-  $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };
-  app.classList.add('full'); const ms = $('#ms'); ms.scrollTop = ms.scrollHeight;
-  if ($('#ci')) $('#ci').onfocus = () => setTimeout(fitVV, 300);
-  if (alive) {
-    const send = async () => { const t = $('#ci').value.trim(); if (!t) return; $('#ci').value = ''; const r = await rpc('visitor_send', { p_chat: chat.id, p_token: chat.token, p_body: t }); if (!r.ok && r.error === 'closed') alive = false; fetchMsgs(); };
-    $('#cs').onclick = send; $('#ci').onkeydown = e => { if (e.key === 'Enter') send(); };
-  }
-}
-
-async function fetchMsgs() {
-  const r = await rpc('visitor_messages', { p_chat: chat.id, p_token: chat.token, p_after: lastMsg, p_seen: !document.hidden });
-  if (!r.ok) { if (r.error === 'forbidden') { localStorage.removeItem(chatKey()); chat = null; view = 'home'; clearInterval(poll); render(); } return; }
-  const changed = r.messages.length || r.alive !== alive;
-  alive = r.alive; msgs.push(...r.messages); if (r.messages.length) lastMsg = r.messages.at(-1).id;
-  if (changed && view === 'chat') { const v = $('#ci')?.value; renderChat(); if (v && $('#ci')) $('#ci').value = v; }
-}
-
-load();
-</script>
+<footer><div class="w">
+  <span>© Scan2Com</span>
+  <a href="/app/">App</a>
+  <a href="/app/condiciones.html">Condiciones de uso</a>
+  <a href="mailto:admin@scan2com.com">admin@scan2com.com</a>
+</div></footer>
 </body>
 </html>

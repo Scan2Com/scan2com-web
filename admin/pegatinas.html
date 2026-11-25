@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Scan2Com · Generador de pegatinas</title>
+<title>Scan2Com</title>
 <link rel="icon" href="/app/logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
@@ -39,17 +39,17 @@ button.red{background:var(--red)}button.light{background:#e6e8eb;color:var(--ink
 </style>
 </head>
 <body>
-<header><img src="/app/logo.png" alt=""><b>Generador de pegatinas</b><span id="who"></span></header>
+<header><img src="/app/logo.png" alt=""><b id="ttl">Scan2Com</b><span id="who"></span></header>
 <main>
   <div>
     <div class="box" id="login">
-      <h2>Entrar como administrador</h2>
+      <h2>Acceso</h2>
       <label>Email</label><input id="em" type="email" autocomplete="email">
       <label>Contraseña</label><input id="pw" type="password" autocomplete="current-password">
       <div class="row"><button id="go">Entrar</button></div>
       <div class="msg err" id="lerr"></div>
     </div>
-    <div class="box" id="noadm" hidden><h2>Sin permiso</h2><p class="msg err">Esta cuenta no es administradora de Scan2Com.</p><div class="row"><button class="light" id="out2">Cerrar sesión</button></div></div>
+    <div class="box" id="noadm" hidden><h2>Sin permiso</h2><p class="msg err">Esta cuenta no tiene acceso.</p><div class="row"><button class="light" id="out2">Cerrar sesión</button></div></div>
     <div id="tool" hidden>
     <div class="box">
       <h2>Nuevo lote</h2>
@@ -233,11 +233,11 @@ $('#est').onchange = () => S.items.length && showCards();
 /* ---------- sesión ---------- */
 // todo el generador queda oculto hasta entrar con una cuenta de la tabla admins
 async function start(session) {
-  S.admin = false; S.items = []; $('#tool').hidden = $('#tool2').hidden = $('#noadm').hidden = true;
+  S.admin = false; S.items = []; $('#ttl').textContent = 'Scan2Com'; document.title = 'Scan2Com'; $('#tool').hidden = $('#tool2').hidden = $('#noadm').hidden = true;
   $('#login').hidden = !!session; $('#who').textContent = session ? session.user.email : '';
   if (!session) return;
   const { data } = await sb.from('admins').select('user_id').eq('user_id', session.user.id).maybeSingle();
-  S.admin = !!data; $('#tool').hidden = $('#tool2').hidden = !S.admin; $('#noadm').hidden = S.admin;
+  S.admin = !!data; $('#ttl').textContent = S.admin ? 'Generador de pegatinas' : 'Scan2Com'; document.title = S.admin ? 'Scan2Com · Generador de pegatinas' : 'Scan2Com'; $('#tool').hidden = $('#tool2').hidden = !S.admin; $('#noadm').hidden = S.admin;
   if (S.admin) { showCards(); loadBatches(); }
 }
 $('#out').onclick = $('#out2').onclick = () => sb.auth.signOut();

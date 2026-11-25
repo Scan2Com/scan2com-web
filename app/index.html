@@ -556,7 +556,7 @@ function subscribe() {
       if (e.kind === 'alert' || e.kind === 'call' || e.kind === 'police') {
         // con la app en pantalla suena aquí mismo; en la app Android se espera un momento por si ya salió la sirena nativa a pantalla completa
         const ring = () => { if (S.alarm?.id === e.id || e.read_at) return; S.alarm = e; sirenOn(); render(true); };
-        if (!NATIVE) ring(); else if (!document.hidden && !S.paused) setTimeout(() => { if (!document.hidden && !S.paused) ring(); }, 2500); else if (!notifOn()) ring(); notify((e.kind === 'police' ? '🚓 Aviso de la Policía · ' : '🔔 Alerta · ') + (code?.name || 'Scan2Com'), e.body || 'Alguien ha escaneado tu código y te avisa'); }
+        if (!NATIVE || (!document.hidden && !S.paused)) ring(); else if (!notifOn()) ring(); notify((e.kind === 'police' ? '🚓 Aviso de la Policía · ' : '🔔 Alerta · ') + (code?.name || 'Scan2Com'), e.body || 'Alguien ha escaneado tu código y te avisa'); }
       else { toast(`✉️ Mensaje en “${code?.name || ''}”: ${e.body || ''}`, () => { S.tab = 'alerts'; S.view = null; render(); }); notify('✉️ Mensaje · ' + (code?.name || ''), e.body || ''); }
       render(true);
     })
@@ -698,7 +698,7 @@ function renderHome() {
       : `<div class="empty">Aquí verás las alertas y mensajes que te envíen al escanear tus códigos.</div>`;
     if (tab === S.tab) {
       if (S.events.length) { S.seenEv = S.events[0].id; ls.set('sa_seen_ev', S.seenEv); }
-      const unreadEv = S.events.filter(e => !e.read_at).map(e => e.id); if (unreadEv.length) setTimeout(() => markRead(unreadEv), 800);
+      const unreadEv = S.events.filter(e => !e.read_at && !(['alert', 'call', 'police'].includes(e.kind) && Date.now() - new Date(e.created_at) < 120e3)).map(e => e.id); if (unreadEv.length) setTimeout(() => markRead(unreadEv), 800);
     }
   }
   return body; };
@@ -817,7 +817,7 @@ async function renderEdit() {
     if ($('#c8').checked) { refreshAutoPerm(); loadBonded(); }
   }
   ['c2', 'c5'].forEach(i => { const el = $('#' + i); if (el) el.addEventListener('change', () => { if (el.checked) askNotif(true); }); });
-  $('#c0').onchange = () => { $('#ibox').style.display = $('#c0').checked ? 'block' : 'none'; if ($('#c0').checked) $('#f3').focus(); };
+  $('#c0').onchange = () => { $('#ibox').style.display = $('#c0').checked ? 'block' : 'none'; if ($('#c0').checked) $('#f2').focus(); };   // primero el nombre público
   $('#c7').onchange = () => { $('#rbox').style.display = $('#c7').checked ? 'block' : 'none'; if ($('#c7').checked) $('#f7').focus(); };
   $('#c4').onchange = () => { $('#pbox').style.display = $('#c4').checked ? 'block' : 'none'; if ($('#c4').checked) $('#f4').focus(); };
   app.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { await sb.from('code_members').delete().eq('code_id', c.id).eq('user_id', b.dataset.rm); await loadMembers(c.id); });
@@ -891,9 +891,9 @@ async function drawSticker(canvas, url, hex) {
   const k = base.width / 1124, side = 784 * k, qr = await prettyQR(url, Math.round(side * 2)); x.imageSmoothingQuality = 'high';
   x.drawImage(qr, 562.5 * k - side / 2, 568.5 * k - side / 2, side, side);
 }
-const DESIGNS = [['square', 'Clásico'], ['round', 'Redondeado'], ['car', 'Pegatina coche']];
+const DESIGNS = [['square', 'Clásico'], ['round', 'Redondeado'], ['car', 'Scan 2 Alert']];
 // colores de la pegatina de coche (el rojo es el original de la plantilla)
-const CAR_COLORS = [['rojo', '#fe0000', 'Rojo'], ['naranja', '#ff3300', 'Naranja'], ['amarillo', '#f6df00', 'Amarillo'], ['verde', '#2e9e3a', 'Verde'], ['azul', '#004c98', 'Azul'], ['celeste', '#009cd7', 'Azul claro'], ['gris', '#b4b9bc', 'Gris claro'], ['grafito', '#4a4f53', 'Gris oscuro']];
+const CAR_COLORS = [['rojo', '#fe0000', 'Rojo'], ['naranja', '#ff3300', 'Naranja'], ['amarillo', '#f6df00', 'Amarillo'], ['verde', '#2e9e3a', 'Verde'], ['rosa', '#f0599b', 'Rosa'], ['azul', '#004c98', 'Azul'], ['celeste', '#009cd7', 'Azul claro'], ['gris', '#b4b9bc', 'Gris claro'], ['grafito', '#4a4f53', 'Gris oscuro']];
 const carColor = c => CAR_COLORS.find(k => k[0] === c?.style?.car_color) || CAR_COLORS[0];
 // cambia el rojo de la plantilla por otro color, manteniendo el degradado y los bordes suaves
 function tintRed(ctx, w, h, hex) {
@@ -978,7 +978,15 @@ function renderQR() {
   $('#op').onclick = () => { if (NATIVE) location.href = url + '?web=1'; else window.open(url, '_blank'); };   // en la app Android window.open no abre nada
   $('#sh').onclick = () => shareCode(c, url);
   if ($('#pdf')) $('#pdf').onclick = () => carSheetAsk(c, url);
-  $('#dl').onclick = async () => { const a = document.createElement('a'); a.href = await codeImage(c, url); a.download = `scan2com-${isCar(c) ? 'coche-' : ''}${c.id}.png`; a.click(); };
+  $('#dl').onclick = async () => {
+    const nm = (c.name || c.public_name || c.id).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '') || c.id;   // el nombre del código como nombre de la imagen
+    const data = await codeImage(c, url), name = `${nm}.png`, P = window.Capacitor?.Plugins;
+    if (NATIVE && P?.Filesystem) {   // en la app Android un enlace de descarga no hace nada: se guarda en Documentos/Scan2Com
+      try { await P.Filesystem.writeFile({ path: 'Scan2Com/' + name, data: data.split(',')[1], directory: 'DOCUMENTS', recursive: true }); return toast('Imagen guardada en Documentos/Scan2Com'); }
+      catch (e) { try { const f = await P.Filesystem.writeFile({ path: name, data: data.split(',')[1], directory: 'CACHE' }); return await P.Share.share({ title: name, files: [f.uri], dialogTitle: 'Guardar imagen' }); } catch (e2) { return toast('No se ha podido guardar la imagen.'); } }
+    }
+    const a = document.createElement('a'); a.href = data; a.download = name; a.click();
+  };
   if ($('#gc')) $('#gc').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
   bindScreenTour('qr');
 }
@@ -1379,7 +1387,7 @@ function handleScan(t) {
   const pack = t.match(/\/(?:link|p)\/([A-Z0-9]+)/i), code = t.match(/\/s\/([A-Z0-9]+)/i);
   if (pack) return claim(pack[1]);
   if (code && S.auth) { S.view = null; render(); return policeSheet(code[1].toUpperCase()); }
-  if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: 'qr', id: c.id }; return render(); } stopCam(); app.classList.remove('full'); if (/^https:\/\/(www\.)?scan2com\.com\//i.test(t)) return openScanned(code[1].toUpperCase()); window.open(t, '_blank'); S.view = null; return render(); }
+  if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: c.owner_id === S.user.id ? 'edit' : 'qr', id: c.id }; return render(); } stopCam(); app.classList.remove('full'); if (/^https:\/\/(www\.)?scan2com\.com\//i.test(t)) return openScanned(code[1].toUpperCase()); window.open(t, '_blank'); S.view = null; return render(); }
   toast('Ese QR no es de Scan2Com: ' + t.slice(0, 60)); if (S.view?.only) S.view.scan = true; renderPack();
 }
 async function claim(id) {
@@ -1423,7 +1431,7 @@ const TOURS = {
   edit: [
     ['#f1', 'Pon un nombre para reconocer el código. Solo lo ves tú.'],
     ['#f5', 'Aquí puedes apuntar información privada, como la matrícula. También solo para ti.'],
-    ['.dsg', 'Elige el diseño del código: clásico, redondeado o pegatina de coche.'],
+    ['.dsg', 'Elige el diseño del código: clásico, redondeado o Scan 2 Alert, la pegatina de coche.'],
     ['#c0', 'Marca los medios por los que te pueden contactar: info, mail, alerta, chat, llamada o una web.'],
     ['#c0', 'Con info marcado escribes el nombre público y el texto que verá quien escanee.'],
     ['#sv', 'Cuando termines, pulsa guardar.']

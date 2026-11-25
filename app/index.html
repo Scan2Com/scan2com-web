@@ -528,7 +528,7 @@ function bmSync() {
 const face = (blocked, s) => `<img src="/app/img2014/${blocked ? 'chat_blocked' : 'chat_ok'}.png" width="${s}" height="${s}" alt="" style="display:block">`;
 const codeOf = id => S.codes.find(c => c.id === id);
 const lastMsg = cid => (S.msgs[cid] || []).at(-1);
-const chatOff = ch => { const c = codeOf(ch.code_id); return c ? !c.is_on && !S.favs.has(ch.id) : !S.favs.has(ch.id); };  // sin código (borrado): cerrado salvo favorito
+const chatOff = ch => false;  // un chat creado sigue abierto siempre, aunque el código se apague o se borre (solo lo cierra el bloqueo)
 const newEvents = () => S.events.filter(e => e.id > S.seenEv).length;
 const unreadTotal = () => Object.values(S.unread).reduce((a, b) => a + b, 0);
 
@@ -685,7 +685,7 @@ function renderHome() {
     const when = x => x.token ? vtime(x) : new Date(lastMsg(x.id)?.created_at || x.created_at);
     const flat = [...rest, ...vlist].sort((a, b) => when(b) - when(a)).map(x => x.token ? vrow(x) : row(x)).join('');
     const simple = favs.map(row).join('') + flat;   // como los contactos de WhatsApp: todos juntos, los favoritos arriba
-    body = screenTour('chats') + ((mineHTML || vlist.length) ? !tr ? simple : mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].public_name || (g[0].code_id ? 'Código ' + g[0].code_id : 'Código borrado'), g.length, vOrigin(g[0])) + g.map(vrow).join('')).join('')}` : '')
+    body = screenTour('chats') + ((mineHTML || vlist.length) ? !tr ? simple : mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].code_id ? (g[0].public_name || 'Código ' + g[0].code_id) : (g[0].public_name ? g[0].public_name + ' (código borrado)' : 'Código borrado'), g.length, vOrigin(g[0])) + g.map(vrow).join('')).join('')}` : '')
       : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.<br><br>Y si tú escaneas el código de otra persona con la app y le escribes, el chat también aparecerá aquí.</div>`);
     body += '<div style="height:90px"></div>';   // hueco para la barra fija de trazabilidad
   } else {
@@ -1180,7 +1180,7 @@ async function renderVChat() {
   if (patchMsgs(key, visitorMsgs(v, list))) return;
   app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button>${LOGO(36)}<div class="grow"><div style="font-size:20px" id="nm">${esc(v.name || v.public_name || 'Chat')}</div><div style="font-size:12px;color:#aaa">${esc(v.public_name || '')} · código escaneado</div></div>
     <button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
-    ${v.alive ? '' : '<div class="notice">El dueño ha cerrado este chat o ha apagado su código: no puedes escribir ahora.</div>'}
+    ${v.alive ? '' : '<div class="notice">El dueño ha cerrado este chat: no puedes escribir ahora.</div>'}
     <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${visitorMsgs(v, list)}</div></div>
     ${v.alive ? `<div class="compose"><input id="oi" placeholder="Escribe y envía" maxlength="2000" enterkeyhint="send"><button class="sendb" id="os" title="Enviar">${IC.send(34)}</button></div>` : ''}`;
   app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight; app.dataset.cv = key; S.msHtml = visitorMsgs(v, list); bmSync(); keepKb();
@@ -1239,7 +1239,7 @@ setInterval(async () => {
 
 async function toggleFav(id) {
   const on = !S.favs.has(id); on ? S.favs.add(id) : S.favs.delete(id); render(true);
-  toast(on ? '★ Añadido a favoritos: aparece arriba y sigue activo aunque apagues el código' : 'Quitado de favoritos');
+  toast(on ? '★ Añadido a favoritos: aparece arriba de la lista' : 'Quitado de favoritos');
   const { error } = on ? await sb.from('chat_favorites').insert({ chat_id: id, user_id: S.user.id }) : await sb.from('chat_favorites').delete().eq('chat_id', id).eq('user_id', S.user.id);
   if (error && !/duplicate/i.test(error.message)) { on ? S.favs.delete(id) : S.favs.add(id); render(true); toast('No se ha podido guardar el favorito.'); }
 }
@@ -1380,7 +1380,7 @@ const TOURS = {
   chats: [
     ['', 'Esta es la pantalla de chats. Te explico cómo funciona.'],
     ['.page[data-page="chats"] [data-chat], .page[data-page="chats"] [data-vchat]', 'Cada fila es una conversación. Tócala para escribir. Nadie ve tu teléfono ni tu email.'],
-    ['.page[data-page="chats"] [data-fav]', 'Con la estrella la marcas como favorita: sigue abierta aunque apagues o borres el código.'],
+    ['.page[data-page="chats"] [data-fav]', 'Con la estrella la marcas como favorita y sube arriba de la lista.'],
     ['', 'Cuando envías un mensaje, un boomerang gris sale hacia la izquierda. Cuando lo leen, vuelve y se convierte en un tic verde.'],
     ['#bScan', 'Con la cámara de arriba escaneas el código de otra persona y empiezas un chat con ella.'],
     ['#trc', 'Y abajo, mostrar trazabilidad agrupa los chats por código y te dice de dónde sale cada nombre.']

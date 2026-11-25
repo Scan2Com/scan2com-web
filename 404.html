@@ -70,7 +70,7 @@ const sb = createClient('https://kbkyosyenotqjcgujbmn.supabase.co', 'sb_publisha
 // ---- fotos en el chat: el mensaje lleva "img:" + la dirección de la foto (comprimida en el móvil, sin datos de ubicación)
 const PHOTO_URL = 'https://kbkyosyenotqjcgujbmn.supabase.co/storage/v1/object/public/chat-photos/';
 const isPhoto = b => typeof b === 'string' && b.startsWith('img:' + PHOTO_URL);
-const photoTag = b => /#cam$/.test(b) ? '<span class="phsrc cam">📷 Hecha ahora</span>' : /#gal$/.test(b) ? '<span class="phsrc">🖼️ De la galería</span>' : '';
+const photoTag = b => /#cam$/.test(b) ? '<span class="phsrc cam">📷 Hecha desde la cámara</span>' : /#gal$/.test(b) ? '<span class="phsrc">🖼️ De la galería</span>' : '';
 const AUDIO_URL = 'https://kbkyosyenotqjcgujbmn.supabase.co/storage/v1/object/public/chat-audio/';
 const isAudio = b => typeof b === 'string' && b.startsWith('aud:' + AUDIO_URL);
 const audBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/#(\d+)$/) || [])[1] || 0; return `<div class="aud"><audio controls preload="none" src="${esc(u)}"></audio><span>🎤 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span></div>`; };
@@ -142,7 +142,7 @@ async function pvShare(url, at) {
   } catch (e) { if (e?.name !== 'AbortError' && !/cancel/i.test(e?.message || '')) pvMsg('No se ha podido compartir la foto'); }
 }
 function pvHtml(url, at, tag) {
-  const src = /#cam$/.test(url) ? '📷 Hecha ahora' : /#gal$/.test(url) ? '🖼️ De la galería' : 'Foto';
+  const src = /#cam$/.test(url) ? '📷 Hecha desde la cámara' : /#gal$/.test(url) ? '🖼️ De la galería' : 'Foto';
   return `<div class="pview" id="pv"><div class="pvs" id="pvs"><img id="pvi" src="${esc(url.split('#')[0])}" alt="Foto" draggable="false"></div>
   <div class="pvt pvbar"><button class="pvbtn" id="pvx" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><div class="pvinfo"><b>${src}</b>${at ? `<span>${esc(pvTime(at))}</span>` : ''}</div></div>
   <div class="pvf pvbar"><button class="pvact" id="pvd"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Descargar</button><button class="pvact" id="pvsh"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg>Compartir</button></div>

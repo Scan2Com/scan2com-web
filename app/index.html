@@ -981,8 +981,8 @@ function carSheetAsk(c, url, mode) {
   $('#overlay').innerHTML = mode ? box(`
     <button class="btn" id="pdfn" style="margin-bottom:8px">${IC.pdf(20)} Normal <span style="font-weight:400;opacity:.85">· en papel de pegatina, se pega por fuera; o en papel normal, por dentro del cristal sujeto con celo</span></button>
     <button class="btn light" id="pdfm">${IC.pdf(20)} En espejo <span style="font-weight:400;opacity:.8">· vinilo transparente, se pega por dentro del cristal</span></button>`) : box(`
-    <button class="btn" id="pdfg" style="margin-bottom:8px">${IC.pdf(20)} Generar PDF</button>
-    <button class="btn light" id="pdfe">✉️ Enviar PDF por email</button>`);
+    <button class="btn" id="pdfg" style="margin-bottom:8px">${IC.pdf(20)} Generar PDF en mi móvil</button>
+    <button class="btn light" id="pdfe">✉️ Generar PDF y enviar a mi email</button>`);
   const close = () => { $('#overlay').innerHTML = ''; };
   const go = mirror => { close(); mode === 'mail' ? mailCarSheet(c, true, mirror) : carSheetPdf(c, url, mirror); };
   $('#pdfs').onclick = close;

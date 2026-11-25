@@ -246,7 +246,7 @@ const TYPES = { alert: ['', 'Alert (rojo)'], chat: ['', 'Chat (amarillo)'], cont
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const $ = s => document.querySelector(s);
 // versión de esta página: la escribe GitHub (workflow "Versión web") cada vez que se sube la app
-const WEB_BUILD = { id: '7b3593ec', date: '2026-11-25T02:06:19Z' };
+const WEB_BUILD = { id: '9ce4e775', date: '2026-11-25T02:07:49Z' };
 addEventListener('error', e => { try { toast('Error: ' + (e.message || e) + (e.lineno ? ' (l.' + e.lineno + ')' : '')); } catch (x) {} });
 addEventListener('unhandledrejection', e => { try { toast('Error: ' + (e.reason?.message || e.reason)); } catch (x) {} });
 const ago = d => { const s = (Date.now() - new Date(d)) / 1000, pl = (n, w) => `Hace ${n} ${w}${n === 1 ? '' : (w.endsWith('n') ? 'es' : 's')}`;

@@ -1042,7 +1042,13 @@ async function carSheetBin(c, url, mirror) {
     const note = mirror ? 'Imprime al 100 % (sin «ajustar a la página») en vinilo transparente y pégalo por dentro del cristal (como la de la ITV).'
       : 'Imprime al 100 % (sin «ajustar a la página»). En papel de pegatina, por fuera; o en papel normal, por dentro del cristal con celo.';
     const shop = 'También puedes comprar las pegatinas en vinilo transparente, para pegar por el interior (como la de la ITV), en scan2com.com';
-    return { bin: pdfFromJpeg(rot.toDataURL('image/jpeg', 0.95), rot.width, rot.height, spec.mm[1], spec.mm[0], 210, 297, [note, shop]), name: `scan2com-pegatinas-coche-${c.id}${mirror ? '-espejo' : ''}.pdf` };
+    // hoja A4 entera como imagen (algunos visores de PDF del móvil pierden los espacios del texto PDF): pegatinas centradas y las instrucciones debajo
+    const k = rot.width / spec.mm[1], pg = document.createElement('canvas'); pg.width = Math.round(210 * k); pg.height = Math.round(297 * k);
+    const g = pg.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, pg.width, pg.height);
+    const ox = Math.round((pg.width - rot.width) / 2), oy = Math.round((pg.height - rot.height) / 2); g.drawImage(rot, ox, oy);
+    g.fillStyle = '#444'; g.textAlign = 'center'; g.textBaseline = 'top';
+    [note, shop].forEach((t, i) => { let f = Math.round(3.1 * k); g.font = `${f}px Inter, Arial, sans-serif`; while (g.measureText(t).width > pg.width - 24 * k && f > 8) g.font = `${--f}px Inter, Arial, sans-serif`; g.fillText(t, pg.width / 2, oy + rot.height + 7 * k + i * 5 * k); });
+    return { bin: pdfFromJpeg(pg.toDataURL('image/jpeg', 0.92), pg.width, pg.height, 210, 297), name: `scan2com-pegatinas-coche-${c.id}${mirror ? '-espejo' : ''}.pdf` };
 }
 async function carSheetPdf(c, url, mirror) {
   busy(true, 'Generando PDF…');

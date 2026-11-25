@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>
 // enlaces antiguos a un código (scan2com.com/?c=CÓDIGO o scan2com.com/#CÓDIGO): van a la página de escaneo
-if (/[?&]c=/.test(location.search) || /^#[A-Za-z0-9]+$/.test(location.hash)) location.replace('/scan.html' + location.search + location.hash);
+if (/[?&]c=/.test(location.search) || (/^#[A-Za-z0-9]+$/.test(location.hash) && !document.getElementById(location.hash.slice(1)) && !['como','usos','coche','pegatinas','entidades','faq'].includes(location.hash.slice(1)))) location.replace('/scan.html' + location.search + location.hash);
 </script>
 <title>Scan2Com · Tu código QR para que te avisen</title>
 <meta name="description" content="Pegatinas con código QR que conectan el mundo físico con tu móvil: quien las escanea te avisa, te escribe o te llama sin conocer tu número.">
@@ -83,8 +83,8 @@ ul.ok li:before{content:"";position:absolute;left:0;top:12px;width:20px;height:2
 .use .pic img.mini{position:absolute;right:26px;bottom:18px;height:120px;transform:rotate(6deg);filter:drop-shadow(0 8px 12px rgba(0,0,0,.2))}
 .use .tx{padding:22px 26px 26px}.use h3{margin:10px 0 6px;font-size:22px}.use p{margin:0;color:var(--mut)}
 .use.small{grid-column:1/-1}.use.small .tx{padding:18px 26px}
-.carrow{display:grid;grid-template-columns:1.4fr .8fr 1.3fr .8fr;gap:18px;align-items:end;background:#fff;border-radius:24px;padding:26px}
-.cf{margin:0;text-align:center}.cf img{max-width:100%;max-height:230px;display:block;margin:0 auto}.cf.big img{max-height:300px}
+.carrow{display:grid;grid-template-columns:.8fr 1.3fr .8fr;gap:18px;align-items:end;background:#fff;border-radius:24px;padding:26px}
+.cf{margin:0;text-align:center}.cf img{max-width:100%;max-height:230px;display:block;margin:0 auto}.cf.big{grid-column:1/-1}.cf.big img{max-height:360px;width:100%;max-width:880px;object-fit:contain}
 .cf figcaption{margin-top:10px;font-size:14px;font-weight:600;color:var(--mut)}
 .tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:18px}
 .tiles div{background:#fff;border-radius:20px;padding:18px 10px;text-align:center}
@@ -161,10 +161,10 @@ footer a{color:#fff;text-decoration:none}
   <h2>Un ejemplo: tu coche</h2>
   <p class="sub">Luces encendidas, mal aparcado, un golpe… Te avisan en segundos, sin tu número.<br><b style="color:var(--ink)">Quien escanea no necesita ninguna app: basta con la cámara del móvil.</b></p>
   <div class="carrow">
-    <figure class="cf big"><img src="/img/coche-dibujo-rojo.png?v=3" alt="Coche con las pegatinas en los cristales"><figcaption>Por dentro del cristal, en espejo</figcaption></figure>
+    <figure class="cf big"><img src="/img/mustang.png" alt="Mustang con las pegatinas Scan 2 Alert en el parabrisas y la ventanilla"><figcaption>Por dentro del cristal, en espejo</figcaption></figure>
     <figure class="cf"><img src="/img/pegatina-qr-redondeado.png" alt="Pegatina vertical"><figcaption>Parabrisas y luna trasera</figcaption></figure>
     <figure class="cf"><img src="/img/pegatina-horizontal.png" alt="Pegatina horizontal" style="width:100%"><figcaption>Ventanillas laterales</figcaption></figure>
-    <figure class="cf"><div class="ph" aria-label="Móvil sonando con la alerta a pantalla completa"><div class="scr"><small>Scan 2 Alert</small><span class="sir"><img class="bn" src="/img/sirena-bn.png" alt=""><img class="rj" src="/img/sirena.png" alt=""></span><b>¡ALERTA!</b><span>Mi Mustang rojo</span><em>Te avisan de tu coche</em></div></div><figcaption>Sirena en tu móvil</figcaption></figure>
+    <figure class="cf"><div class="ph" aria-label="Móvil sonando con la alerta a pantalla completa"><div class="scr"><small>Scan 2 Alert</small><span class="sir"><img class="bn" src="/img/sirena-bn.png" alt=""><img class="rj" src="/img/sirena.png" alt=""></span><b>¡ALERTA!</b><span>Mi Mustang</span><em>Te avisan de tu coche</em></div></div><figcaption>Sirena en tu móvil</figcaption></figure>
   </div>
   <div class="tiles"><div><i><svg viewBox="0 0 24 24" width="40" height="40" style="display:block;margin:0 auto"><rect width="24" height="24" rx="7" fill="#1f86e0"/><path d="M8 8l8 8-4 3V5l4 3-8 8" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></i><b>Se activa sola</b><small>con el Bluetooth del coche</small></div><div><i>🚗</i><b>Se apaga</b><small>al conducir</small></div><div><i>🏠</i><b>No suena</b><small>en lugares seguros</small></div><div><i>🚨</i><b>Sirena</b><small>a pantalla completa</small></div><div><i>💬</i><b>Chat</b><small>sin dar tu número</small></div><div><i>✅</i><b>Sabes</b><small>si lo han leído</small></div></div>
 </div></section>

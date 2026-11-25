@@ -90,13 +90,13 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 /* ---------- troqueles: mismas bases y coordenadas que el generador de Luis (px a 300 ppp) ---------- */
 const P = (x, y, size, mirror) => ({ x, y, size, mirror: !!mirror });
 const H20 = [['alert', 92, 92, 278], ['alert', 854, 59, 115], ['alert', 1058, 64, 130], ['alert', 507, 283, 166], ['alert', 793, 283, 166],
-  ['chat', 92, 670, 278], ['chat', 507, 648, 166], ['chat', 793, 648, 166], ['chat', 854, 1007, 115], ['chat', 1058, 920, 130],
+  ['chat', 92, 670, 278], ['chat', 507, 648, 166], ['chat', 793, 648, 166], ['chat', 854, 1007, 115], ['chat', 1058, 365, 130],
   ['link', 1292, 64, 130], ['link', 1870, 59, 115], ['link', 2110, 92, 278], ['link', 1522, 283, 166], ['link', 1808, 283, 166],
-  ['contact', 1522, 648, 166], ['contact', 1808, 648, 166], ['contact', 2110, 670, 278], ['contact', 1292, 920, 130], ['contact', 1870, 1007, 115]];
+  ['contact', 1522, 648, 166], ['contact', 1808, 648, 166], ['contact', 2110, 670, 278], ['contact', 1292, 365, 130], ['contact', 1870, 1007, 115]];
 const COCHE = { kind: 'single', stickers: [{ type: 'alert', positions: [P(147, 148, 335, 1), P(89, 882, 180, 1), P(1997, 148, 335, 1), P(1640, 882, 180, 1)] }], validation: P(1347, 294, 442) };
 const coche = (color, file) => ({ ...COCHE, nombre: `Pack coche ${color} (vinilo transparente)`, base: `bases/${file}.png`, style: { design: 'car', car_color: color } });
 const TRO = {
-  hoja20: { nombre: 'Hoja 20 códigos (opaca)', base: 'bases/hoja20-opaca.png', kind: 'sheet', stickers: H20.map(([type, x, y, s]) => ({ type, positions: [P(x, y, s)] })), validation: P(1071, 502, 336) },
+  hoja20: { nombre: 'Hoja 20 códigos (opaca)', base: 'bases/hoja20-opaca.png', kind: 'sheet', stickers: H20.map(([type, x, y, s]) => ({ type, positions: [P(x, y, s)] })), validation: P(1071, 754, 336) },
   'coche-rojo': coche('rojo', 'coche-rojo'), 'coche-gris-claro': coche('gris claro', 'coche-gris-claro'), 'coche-gris-oscuro': coche('gris oscuro', 'coche-gris-oscuro'),
   'coche-azul': coche('azul', 'coche-azul'), 'coche-verde': coche('verde', 'coche-verde'),
   flyer: { nombre: 'Tarjeta de muestra / flyer (1 código)', base: 'bases/flyer.png', kind: 'single', stickers: [{ type: 'link', positions: [P(1493, 164, 204)] }], validation: P(863, 69, 397) }

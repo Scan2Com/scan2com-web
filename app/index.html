@@ -1045,7 +1045,7 @@ async function carSheetBin(c, url, mirror) {
     return { bin: pdfFromJpeg(rot.toDataURL('image/jpeg', 0.95), rot.width, rot.height, spec.mm[1], spec.mm[0], 210, 297, [note, shop]), name: `scan2com-pegatinas-coche-${c.id}${mirror ? '-espejo' : ''}.pdf` };
 }
 async function carSheetPdf(c, url, mirror) {
-  busy(true);
+  busy(true, 'Generando PDF…');
   try {
     const { bin, name } = await carSheetBin(c, url, mirror), P = window.Capacitor?.Plugins;
     if (NATIVE && P?.Share && P?.Filesystem) {
@@ -1157,7 +1157,7 @@ async function startVChat(id) {
   busy(true);
   try { await startVChat2(id); } finally { busy(false); }
 }
-function busy(on) { let el = $('#busy'); if (!on) return el && el.remove(); if (el) return; el = document.createElement('div'); el.id = 'busy'; el.className = 'busy'; el.innerHTML = '<div style="text-align:center"><i></i>Abriendo…</div>'; document.body.appendChild(el); }
+function busy(on, txt = 'Abriendo…') { let el = $('#busy'); if (!on) return el && el.remove(); if (el) return; el = document.createElement('div'); el.id = 'busy'; el.className = 'busy'; el.innerHTML = `<div style="text-align:center"><i></i>${txt}</div>`; document.body.appendChild(el); }
 async function startVChat2(id) {
   const { data: r } = await sb.rpc('start_chat', { p_id: id, p_first: null });
   if (!r?.ok) return toast(r?.error === 'rate_limited' ? 'Demasiados chats nuevos con este código. Prueba en unos minutos.' : 'Este código no admite chat ahora.');
@@ -1472,7 +1472,7 @@ async function mailCarSheet(c, manual, mirror) {
     c = S.codes.find(c => c.owner_id === S.user.id && isCar(c)); if (!c) return;
   }
   if (S.mailing) return; S.mailing = true;   // evita envíos repetidos por varios toques seguidos
-  if (manual) busy(true);
+  if (manual) busy(true, 'Enviando…');
   try {
     const { bin, name } = await carSheetBin(c, `${SITE}/s/${c.id}`, !!mirror);
     const { data: { session } } = await sb.auth.getSession(); if (!session) throw new Error('sin sesión');

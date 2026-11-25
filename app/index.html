@@ -156,11 +156,35 @@ label{font-size:13px;color:var(--mut)}
 .ic{display:block}
 .ib{color:#555}
 .bar .ib{color:#e0e0e0}
-/* modo oscuro: se invierte toda la página y se vuelven a invertir fotos, códigos y vídeo; las barras, que ya eran oscuras, se ajustan para seguir oscuras */
-html.dark{background:#fff;filter:invert(1) hue-rotate(180deg)}
-html.dark img,html.dark canvas,html.dark video,html.dark .keepc{filter:invert(1) hue-rotate(180deg)}
-html.dark .bar{background:#e1e1e1;color:#000}html.dark .bar .name,html.dark .bar .star{color:#000}html.dark .bar .ib{color:#1f1f1f}html.dark .tabs{background:#c5c5c5}html.dark .tabs button{color:#656565}html.dark .tabs button.on{color:#000}
-.ib{position:relative}.mdot{position:absolute;top:4px;right:4px;width:10px;height:10px;border-radius:50%;background:#e8352b;border:2px solid #1e1e1e}html.dark .mdot{border-color:#e1e1e1}
+/* modo oscuro: colores propios (fotos, caras, botón on/off y QR mantienen su color) */
+html.dark{--ink:#e8e8e8;--mut:#a0a4aa;--line:#2e3135;--bg:#121212;color-scheme:dark}
+html.dark,html.dark body{background:#121212}
+html.dark .pager,html.dark .body,html.dark .buybar{background:#121212;border-color:#2e3135}
+html.dark .buybar b{color:#ddd}html.dark .foot2{background:#1e1f22;color:#ccc}
+html.dark .item{background:#18191b;border-bottom-color:#2a2c2f}html.dark .item .t{color:#ececec}html.dark .item .s{color:#9a9ea4}html.dark .item.off .t,html.dark .item.off .s{color:#5f6368}
+html.dark .grp{color:#cfcfcf;border-top-color:#2a2c2f}
+html.dark .ib{color:#cfcfcf}
+html.dark .btn.light{background:#2a2c2f;color:#e8e8e8}
+html.dark input,html.dark textarea,html.dark select{background:#1e1f22;color:#e8e8e8;border-color:#34373b}
+html.dark .compose{background:#1a1b1d;border-top-color:#2e3135}
+html.dark .m.me{background:#1f3a24;color:#e8e8e8}html.dark .m.them{background:#2a2d22;color:#e8e8e8}html.dark .m .tm{color:#a0a4aa}
+html.dark .tour{background:#1e1f22;box-shadow:0 4px 18px rgba(0,0,0,.5)}html.dark .tour .cap{color:#ddd}
+html.dark .notice{background:#3a3218;color:#f1e3b0}
+html.dark .ev.new,html.dark .page .ev.new{background:#2a1c1b}
+html.dark .nbar{background:#2a1c1b;border-color:#5a2a26;color:#f3d0cc}html.dark .nbar b,html.dark .nbar div{color:#f3d0cc}html.dark .m.them::before{border-right-color:#2a2d22}html.dark .m.me::after{border-left-color:#1f3a24}
+html.dark .howto{background:#16263a;border-color:#24405f;color:#cfe0f3}
+html.dark .pill{background:#2a2c2f}
+html.dark .dsg button{background:#1e1f22;border-color:#34373b;color:#e8e8e8}
+html.dark .alarm{background:#121212;color:#eee}html.dark .alarm .msg{background:#2a1c1b;border-color:#5a2a26;color:#eee}
+html.dark .bad{background:#2a1c1b}
+html.dark .welcome{background:#121212}
+/* en modo oscuro, resplandor blanco suave alrededor del botón on/off y de las caras */
+.facew{position:relative;display:block;width:var(--s);height:var(--s)}
+html.dark .pw,html.dark .facew img{border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.28),0 0 7px rgba(255,255,255,.16)}
+html.dark [style*="background:#fff"]{background:#1e1f22!important}
+html.dark [style*="color:#222"],html.dark [style*="color:#333"]{color:#e8e8e8!important}
+html.dark [style*="color:#555"],html.dark [style*="color:#666"],html.dark [style*="color:#777"]{color:#a8acb2!important}
+.ib{position:relative}.mdot{position:absolute;top:4px;right:4px;width:10px;height:10px;border-radius:50%;background:#e8352b;border:2px solid #1e1e1e}
 .qrbar-ib{color:#e0e0e0!important}
 .qrbar-ib svg{display:block}
 .ib.dark{color:#e0e0e0}
@@ -309,8 +333,8 @@ const IC = {
   plus: s => SV('<path d="M12 5v14M5 12h14" stroke-width="2.6"/>', s),
   back: s => SV('<path d="M15 5l-7 7 7 7" stroke-width="2.6"/>', s),
   globe: s => SV('<circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c3 3.2 3 15.8 0 19M12 2.5c-3 3.2-3 15.8 0 19"/>', s),
-  smile: s => `<svg width="${s}" height="${s}" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#f5e23a" stroke="#222" stroke-width="2.6"/><ellipse cx="14" cy="15" rx="2.2" ry="3" fill="#222"/><ellipse cx="26" cy="15" rx="2.2" ry="3" fill="#222"/><path d="M9.5 21.5q10.5 4 21 0q-1.5 10.5-10.5 10.5t-10.5-10.5z" fill="#222"/><path d="M12.5 26.5q7.5 3.5 15 0q-3 3.5-7.5 3.5t-7.5-3.5z" fill="#f5e23a"/></svg>`,
-  zipped: s => `<svg width="${s}" height="${s}" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#b9bcc0" stroke="#222" stroke-width="2.6"/><ellipse cx="14" cy="15" rx="2.2" ry="3" fill="#222"/><ellipse cx="26" cy="15" rx="2.2" ry="3" fill="#222"/><path d="M10 25h20" stroke="#222" stroke-width="3"/><path d="M12 23v4M15 23v4M18 23v4M21 23v4M24 23v4" stroke="#222" stroke-width="1.4"/><rect x="25.5" y="24" width="4" height="6" rx="1" fill="#222"/></svg>`,
+  smile: s => `<svg class="keepc" width="${s}" height="${s}" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#f5e23a" stroke="#222" stroke-width="2.6"/><ellipse cx="14" cy="15" rx="2.2" ry="3" fill="#222"/><ellipse cx="26" cy="15" rx="2.2" ry="3" fill="#222"/><path d="M9.5 21.5q10.5 4 21 0q-1.5 10.5-10.5 10.5t-10.5-10.5z" fill="#222"/><path d="M12.5 26.5q7.5 3.5 15 0q-3 3.5-7.5 3.5t-7.5-3.5z" fill="#f5e23a"/></svg>`,
+  zipped: s => `<svg class="keepc" width="${s}" height="${s}" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#b9bcc0" stroke="#222" stroke-width="2.6"/><ellipse cx="14" cy="15" rx="2.2" ry="3" fill="#222"/><ellipse cx="26" cy="15" rx="2.2" ry="3" fill="#222"/><path d="M10 25h20" stroke="#222" stroke-width="3"/><path d="M12 23v4M15 23v4M18 23v4M21 23v4M24 23v4" stroke="#222" stroke-width="1.4"/><rect x="25.5" y="24" width="4" height="6" rx="1" fill="#222"/></svg>`,
   pencil: s => SV('<path d="M4 20l1.2-4.8L16.5 3.9a2 2 0 0 1 2.8 0l.8.8a2 2 0 0 1 0 2.8L8.8 18.8z" fill="currentColor" stroke="none"/><path d="M4 20l4.5-1.2" />', s),
   send: s => SV('<path d="M3 4l18 8-18 8 3-8z" fill="currentColor" stroke="none"/>', s),
   dots: s => SV('<rect x="10" y="3" width="4" height="4" fill="currentColor" stroke="none"/><rect x="10" y="10" width="4" height="4" fill="currentColor" stroke="none"/><rect x="10" y="17" width="4" height="4" fill="currentColor" stroke="none"/>', s),
@@ -605,7 +629,7 @@ function bmSync() {
     S.bmPos[id] = want; S.bmBusy[id] = Date.now() + 1300; bmFly(el, cur, want);
   });
 }
-const face = (blocked, s) => `<img src="/app/img2014/${blocked ? 'chat_blocked' : 'chat_ok'}.png" width="${s}" height="${s}" alt="" style="display:block">`;
+const face = (blocked, s) => `<span class="facew" style="--s:${s}px"><img src="/app/img2014/${blocked ? 'chat_blocked' : 'chat_ok'}.png" width="${s}" height="${s}" alt="" style="display:block"></span>`;
 const codeOf = id => S.codes.find(c => c.id === id);
 const lastMsg = cid => (S.msgs[cid] || []).at(-1);
 const chatOff = ch => false;  // un chat creado sigue abierto siempre, aunque el código se apague o se borre (solo lo cierra el bloqueo)
@@ -1199,7 +1223,7 @@ function renderChat() {
   const markRead = () => { if (!document.hidden && list.some(m => m.from_visitor && !m.read_at)) { const now = new Date().toISOString(); list.forEach(m => { if (m.from_visitor && !m.read_at) m.read_at = now; }); sb.rpc('mark_chat_read', { p_chat: ch.id }).then(() => {}, () => {}); } };
   const key = ['c', ch.id, ch.name, ch.blocked, off, fav, code?.name, ch.code_name].join('|');
   if (patchMsgs(key, ownerMsgs(ch, list))) return markRead();
-  app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button>${LOGO(36)}<div class="grow"><div style="font-size:20px" id="nm">${esc(ch.name)}</div><div style="font-size:12px;color:#aaa">${esc(code?.name || (ch.code_name ? ch.code_name + ' (código borrado)' : ''))}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
+  app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button><div class="grow"><div style="font-size:20px" id="nm">${esc(ch.name)}</div><div style="font-size:12px;color:#aaa">${esc(code?.name || (ch.code_name ? ch.code_name + ' (código borrado)' : ''))}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
     <button class="star" id="fv" title="Favorito">${IC.star(28, fav)}</button><button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
     ${ch.blocked ? '<div class="notice" style="background:#eee">Has bloqueado a este contacto: no puede escribirte. Desbloquéalo desde ⋮.</div>' : ''}${off ? `<div class="notice">${code ? 'Este código está apagado' : 'El código de este chat se ha borrado'}: el chat está cerrado. Márcalo como favorito ★ para mantenerlo activo.</div>` : ''}
     <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${ownerMsgs(ch, list)}</div></div>
@@ -1296,7 +1320,7 @@ async function renderVChat() {
   const list = S.vmsgs?.[v.id] || [];
   const key = ['v', v.id, v.name, v.public_name, v.alive].join('|');
   if (patchMsgs(key, visitorMsgs(v, list))) return;
-  app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button>${LOGO(36)}<div class="grow"><div style="font-size:20px" id="nm">${esc(v.name || v.public_name || 'Chat')}</div><div style="font-size:12px;color:#aaa">${esc(v.public_name || '')} · código escaneado</div></div>
+  app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button><div class="grow"><div style="font-size:20px" id="nm">${esc(v.name || v.public_name || 'Chat')}</div><div style="font-size:12px;color:#aaa">${esc(v.public_name || '')} · código escaneado</div></div>
     <button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
     ${v.alive ? '' : '<div class="notice">El dueño ha cerrado este chat: no puedes escribir ahora.</div>'}
     <div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${visitorMsgs(v, list)}</div></div>

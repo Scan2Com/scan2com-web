@@ -976,7 +976,7 @@ function pdfFromJpeg(jpgDataUrl, pw, ph, wmm, hmm, pagew = 210, pageh = 297) {
 function carSheetAsk(c, url, mode) {
   const box = inner => `<div class="sheet keep" id="pdfs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
     <div style="font-size:19px;font-weight:700;margin-bottom:4px">PDF de pegatinas de coche</div>
-    <div style="font-size:14px;color:#555;margin-bottom:14px">${mode === 'mail' ? `Te lo enviamos a ${esc(S.user.email || 'tu email')}. ` : ''}Hoja A4 con las 4 pegatinas a tamaño real (210 × 100 mm), giradas y centradas con margen. Imprime al 100 %, sin "ajustar a la página".</div>${inner}</div></div>`;
+    <div style="font-size:14px;color:#555;margin-bottom:14px">${mode === 'mail' ? `Te lo enviamos a <b style="color:#222">${esc(S.user.email || 'tu email')}</b>` : `Hoja A4 con las 4 pegatinas a tamaño real (210 × 100 mm), giradas y centradas con margen. Imprime al 100 %, sin "ajustar a la página".`}</div>${inner}</div></div>`;
   // primero: generar el PDF en la app o enviarlo por email; después, normal o en espejo
   $('#overlay').innerHTML = mode ? box(`
     <button class="btn" id="pdfn" style="margin-bottom:8px">${IC.pdf(20)} Normal <span style="font-weight:400;opacity:.85">· en papel de pegatina, se pega por fuera; o en papel normal, por dentro del cristal sujeto con celo</span></button>

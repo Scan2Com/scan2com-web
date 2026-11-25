@@ -1446,6 +1446,7 @@ async function mailCarSheet(c, manual) {
     if (ls.get(k, 0) || Date.now() - new Date(S.user.created_at || 0) > 7 * 864e5) return;
     c = S.codes.find(c => c.owner_id === S.user.id && isCar(c)); if (!c) return;
   }
+  if (S.mailing) return; S.mailing = true;   // evita envíos repetidos por varios toques seguidos
   if (manual) busy(true);
   try {
     const { bin, name } = await carSheetBin(c, `${SITE}/s/${c.id}`, false);
@@ -1455,6 +1456,7 @@ async function mailCarSheet(c, manual) {
     if (manual) { busy(false); toast(j.sent ? `PDF enviado a ${S.user.email}` : j.error === 'limit' ? 'Ya te lo hemos enviado varias veces hoy. Prueba mañana.' : 'No se ha podido enviar el email.'); return; }
     if (r.ok && (j.sent || j.already)) { ls.set(k, 1); if (j.sent) toast('Te hemos enviado a tu email el PDF de las pegatinas para tu coche.'); }
   } catch (e) { if (manual) { busy(false); toast('No se ha podido enviar el email.'); } }
+  finally { S.mailing = false; }
 }
 
 /* ---------- Scan2Com Police: aviso de autoridad ---------- */

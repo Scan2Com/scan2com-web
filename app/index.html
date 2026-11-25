@@ -941,7 +941,7 @@ function renderQR() {
   if ($('#ed')) $('#ed').onclick = () => { S.view = { t: 'edit', id: c.id }; render(); };
   $('#pw').onclick = () => togglePower(c.id);
   if ($('#btset')) $('#btset').onclick = () => { if (NATIVE) { S.view = { t: 'edit', id: c.id }; render(); } else location.href = '/app/scan2com.apk'; };
-  $('#op').onclick = () => { if (NATIVE) location.href = url; else window.open(url, '_blank'); };   // en la app Android window.open no abre nada
+  $('#op').onclick = () => { if (NATIVE) location.href = url + '?web=1'; else window.open(url, '_blank'); };   // en la app Android window.open no abre nada
   $('#sh').onclick = () => shareCode(c, url);
   if ($('#pdf')) $('#pdf').onclick = () => carSheetAsk(c, url);
   $('#dl').onclick = async () => { const a = document.createElement('a'); a.href = await codeImage(c, url); a.download = `scan2com-${isCar(c) ? 'coche-' : ''}${c.id}.png`; a.click(); };

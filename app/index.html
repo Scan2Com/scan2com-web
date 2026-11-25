@@ -959,13 +959,15 @@ const howto = k => { const [t, items] = HOWTO[k]; return `<details class="howto"
 document.addEventListener('toggle', e => { const k = e.target?.dataset?.howto; if (k) ls.set('sa_howto_' + k, e.target.open); }, true);
 
 /* ---------- hoja de pegatinas de coche en PDF (210 x 100 mm, tamaño real) ---------- */
-function pdfFromJpeg(jpgDataUrl, pw, ph, wmm, hmm, pagew = 210, pageh = 297) {
-  // la imagen va a tamaño real (wmm x hmm) centrada en una hoja A4
+function pdfFromJpeg(jpgDataUrl, pw, ph, wmm, hmm, pagew = 210, pageh = 297, note = '') {
+  // la imagen va a tamaño real (wmm x hmm) centrada en una hoja A4; debajo, una línea de instrucciones (note)
   const img = atob(jpgDataUrl.split(',')[1]), pt = v => (v * 72 / 25.4).toFixed(2), W = pt(wmm), H = pt(hmm), PW = pt(pagew), PH = pt(pageh), X = pt((pagew - wmm) / 2), Y = pt((pageh - hmm) / 2);
   const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`,
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /XObject << /Im0 4 0 R >> /Font << /F1 6 0 R >> >> /Contents 5 0 R >>`,
     `<< /Type /XObject /Subtype /Image /Width ${pw} /Height ${ph} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.length} >>\nstream\n${img}\nendstream`];
-  const cs = `q ${W} 0 0 ${H} ${X} ${Y} cm /Im0 Do Q`; objs.push(`<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`);
+  const fs = 8.5, line = (t, dy) => `\nBT /F1 ${fs} Tf 0.25 g ${Math.max(20, (pt(pagew) - t.length * fs * 0.47) / 2).toFixed(2)} ${(Y - dy).toFixed(2)} Td (${t.replace(/[^\x20-\xff]/g, '').replace(/([\\()])/g, '\\$1')}) Tj ET`;
+  const cs = `q ${W} 0 0 ${H} ${X} ${Y} cm /Im0 Do Q` + [].concat(note || []).map((t, i) => line(t, 22 + i * 13)).join('');
+  objs.push(`<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
   let out = '%PDF-1.4\n%\xe2\xe3\xcf\xd3\n'; const off = [];
   objs.forEach((o, i) => { off.push(out.length); out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
   const xr = out.length; out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + off.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('');
@@ -976,7 +978,7 @@ function pdfFromJpeg(jpgDataUrl, pw, ph, wmm, hmm, pagew = 210, pageh = 297) {
 function carSheetAsk(c, url, mode) {
   const box = inner => `<div class="sheet keep" id="pdfs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
     <div style="font-size:19px;font-weight:700;margin-bottom:4px">PDF de pegatinas de coche</div>
-    <div style="font-size:14px;color:#555;margin-bottom:14px">${mode === 'mail' ? `Te lo enviamos a <b style="color:#222">${esc(S.user.email || 'tu email')}</b>` : `Hoja A4 con las 4 pegatinas a tamaño real (210 × 100 mm), giradas y centradas con margen. Imprime al 100 %, sin "ajustar a la página".`}</div>${inner}</div></div>`;
+    <div style="font-size:14px;color:#555;margin-bottom:14px">${mode === 'mail' ? `Te lo enviamos a <b style="color:#222">${esc(S.user.email || 'tu email')}</b><br>` : ''}PDF formato A4</div>${inner}</div></div>`;
   // primero: generar el PDF en la app o enviarlo por email; después, normal o en espejo
   $('#overlay').innerHTML = mode ? box(`
     <button class="btn" id="pdfn" style="margin-bottom:8px">${IC.pdf(20)} Normal <span style="font-weight:400;opacity:.85">· en papel de pegatina, se pega por fuera; o en papel normal, por dentro del cristal sujeto con celo</span></button>
@@ -1021,7 +1023,10 @@ async function carSheetBin(c, url, mirror) {
     // girada 90° y centrada en el A4 vertical: deja ~4 cm de margen por todos lados (las impresoras no imprimen hasta el borde)
     const rot = document.createElement('canvas'); rot.width = out.height; rot.height = out.width;
     const r2 = rot.getContext('2d'); r2.translate(rot.width, 0); r2.rotate(Math.PI / 2); r2.drawImage(out, 0, 0);
-    return { bin: pdfFromJpeg(rot.toDataURL('image/jpeg', 0.95), rot.width, rot.height, spec.mm[1], spec.mm[0]), name: `scan2com-pegatinas-coche-${c.id}${mirror ? '-espejo' : ''}.pdf` };
+    const note = mirror ? 'Imprime al 100 % (sin «ajustar a la página») en vinilo transparente y pégalo por dentro del cristal.'
+      : 'Imprime al 100 % (sin «ajustar a la página»). En papel de pegatina, por fuera; o en papel normal, por dentro del cristal con celo.';
+    const shop = 'También puedes comprar las pegatinas en vinilo transparente, para pegar por el interior, en scan2com.com';
+    return { bin: pdfFromJpeg(rot.toDataURL('image/jpeg', 0.95), rot.width, rot.height, spec.mm[1], spec.mm[0], 210, 297, [note, shop]), name: `scan2com-pegatinas-coche-${c.id}${mirror ? '-espejo' : ''}.pdf` };
 }
 async function carSheetPdf(c, url, mirror) {
   busy(true);

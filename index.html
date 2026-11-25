@@ -27,6 +27,7 @@ header{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.92);backdrop
 header .w{display:flex;align-items:center;gap:10px;height:64px}
 .brand{display:flex;align-items:center;gap:9px;font-family:Comfortaa;font-size:21px;text-decoration:none}
 .brand img{width:34px;height:34px}
+.brand .mun{font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:#9aa0a6;letter-spacing:.02em;margin-left:1px}
 nav{margin-left:auto;display:flex;gap:22px;font-size:15px;font-weight:500}
 nav a{text-decoration:none;color:var(--mut)}nav a:hover{color:var(--ink)}
 .btn{display:inline-block;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;padding:13px 22px;border-radius:999px;border:0;font-size:16px}
@@ -98,7 +99,7 @@ footer a{color:#fff;text-decoration:none}
 </head>
 <body>
 <header><div class="w">
-  <a class="brand" href="/"><img src="/img/logo.png" alt="">Scan2Com</a>
+  <a class="brand" href="/" aria-label="Scan2Com, Scan to Communicate"><img src="/img/logo.png" alt=""><span>Scan2Com<span class="mun">municate</span></span></a>
   <nav><a href="#como">Cómo funciona</a><a href="#usos">Usos</a><a href="#pegatinas">Pegatinas</a><a href="#entidades">Entidades</a><a href="#faq">Preguntas</a></nav>
   <a class="btn" href="/app/" style="margin-left:18px;padding:9px 18px;font-size:15px">Entrar</a>
 </div></header>

@@ -948,6 +948,8 @@ async function renderEdit() {
   if (!c) { S.view = null; return render(); }
   if (!isNew && !S.members[c.id]) loadMembers(c.id);
   const printed = c.style?.printed ?? !!c.pack_id;
+  // código de una pegatina impresa (generador de imprenta): su diseño y su color no se cambian
+  const locked = !isNew && !!c.pack_id && c.style?.printed === true;
   const mem = S.members[c.id] || [];
   app.innerHTML = `<div class="bar"><button class="back" id="bk">${IC.back(24)}</button><span class="name" style="font-size:16px;font-family:Inter">${isNew ? 'Nuevo código' : 'Ajustes del código'}</span></div><div class="body pad">
     <div style="margin:0 -16px 8px">${screenTour('edit')}</div>
@@ -955,8 +957,8 @@ async function renderEdit() {
     <label class="req">Nombre (solo lo ves tú)</label><input id="f1" value="${esc(c.name)}" placeholder="Ej. Coche rojo" maxlength="60">
     <label>Información privada (solo tú)</label><input id="f5" value="${esc(c.private_info)}" placeholder="Ej. matrícula, nº de serie…" maxlength="200">
     <div class="section">DISEÑO DEL QR</div>
-    <div class="dsg">${designsFor(c).map(([k, t]) => `<button type="button" data-dsg="${k}" class="${designOf(c) === k ? 'on' : ''}"><canvas></canvas>${t}</button>`).join('')}</div>
-    <div id="ccol" style="display:${designOf(c) === 'car' ? 'flex' : 'none'};flex-wrap:wrap;gap:8px;margin:6px 0 4px;align-items:center"><span style="font-size:13px;color:#666;width:100%">Color de la pegatina</span>${CAR_COLORS.map(([k, h, t]) => `<button type="button" data-ccol="${k}" title="${t}" aria-label="${t}" style="width:34px;height:34px;border-radius:50%;background:${h};border:3px solid ${carColor(c)[0] === k ? '#2fc23a' : '#fff'};box-shadow:0 0 0 1px #ccc;cursor:pointer"></button>`).join('')}</div>
+    ${locked ? '<div class="hint" style="margin:2px 0 8px">Diseño fijo: viene de una pegatina impresa.</div>' : ''}<div class="dsg">${designsFor(c).filter(([k]) => !locked || k === designOf(c)).map(([k, t]) => `<button type="button" data-dsg="${k}" class="${designOf(c) === k ? 'on' : ''}"><canvas></canvas>${t}</button>`).join('')}</div>
+    <div id="ccol" style="display:${designOf(c) === 'car' && !locked ? 'flex' : 'none'};flex-wrap:wrap;gap:8px;margin:6px 0 4px;align-items:center"><span style="font-size:13px;color:#666;width:100%">Color de la pegatina</span>${CAR_COLORS.map(([k, h, t]) => `<button type="button" data-ccol="${k}" title="${t}" aria-label="${t}" style="width:34px;height:34px;border-radius:50%;background:${h};border:3px solid ${carColor(c)[0] === k ? '#2fc23a' : '#fff'};box-shadow:0 0 0 1px #ccc;cursor:pointer"></button>`).join('')}</div>
     <div class="section"><span class="req">MEDIOS DE COMUNICACIÓN</span></div><div class="hint">Elige al menos uno.</div>
     <label class="chk"><input type="checkbox" id="c0" ${c.ch_info ? 'checked' : ''}> <span style="color:#8d9298">${IC.info(20)}</span> Info <span style="color:#999;font-size:13px">· un texto para quien escanee</span></label>
     <div id="ibox" class="sub" style="display:${c.ch_info ? 'block' : 'none'};margin-left:30px"><div class="hint" style="font-weight:600;color:#555;margin-top:2px">Lo que ve quien escanea</div>
@@ -994,7 +996,7 @@ async function renderEdit() {
   const carPrev = () => { const b = app.querySelector('[data-dsg="car"]'); if (b) drawDesign(b.querySelector('canvas'), { style: { design: 'car', car_color: selCol } }, `${SITE}/s/${c.id || 'EJEMPLO1'}`); };
   app.querySelectorAll('[data-dsg]').forEach(b => {
     drawDesign(b.querySelector('canvas'), { style: { ...(c.style || {}), design: b.dataset.dsg, car_color: selCol } }, `${SITE}/s/${c.id || 'EJEMPLO1'}`);
-    b.onclick = () => { selDsg = b.dataset.dsg; app.querySelectorAll('[data-dsg]').forEach(x => x.classList.toggle('on', x === b)); $('#ccol').style.display = selDsg === 'car' ? 'flex' : 'none'; updBt(); };
+    b.onclick = () => { selDsg = b.dataset.dsg; app.querySelectorAll('[data-dsg]').forEach(x => x.classList.toggle('on', x === b)); $('#ccol').style.display = selDsg === 'car' && !locked ? 'flex' : 'none'; updBt(); };
   });
   app.querySelectorAll('[data-ccol]').forEach(b => b.onclick = () => { selCol = b.dataset.ccol; app.querySelectorAll('[data-ccol]').forEach(x => x.style.borderColor = x === b ? '#2fc23a' : '#fff'); carPrev(); });
   // "Activar al bajar del coche" solo con Alerta y diseño pegatina de coche

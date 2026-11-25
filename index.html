@@ -66,6 +66,11 @@ ul.ok li:before{content:"";position:absolute;left:0;top:12px;width:20px;height:2
 .plan ul{padding-left:20px;margin:0 0 24px;color:var(--mut);font-size:15.5px}
 .plan .btn{margin-top:auto;text-align:center}
 .plan.hl{border-color:var(--red);box-shadow:0 10px 30px rgba(232,53,43,.12)}
+.dl{display:inline-flex;align-items:center;gap:10px;background:#000;color:#fff;text-decoration:none;border-radius:12px;padding:9px 18px 9px 14px;line-height:1.15}
+.dl svg{width:26px;height:26px}.dl small{display:block;font-size:11px;opacity:.8}.dl b{font-size:17px}
+.love{background:linear-gradient(135deg,#ff5a8a,#e8352b);color:#fff;border-radius:26px;padding:40px;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center}
+.love .em{font-size:64px;line-height:1}.love h2{color:#fff}.love p{margin:0;font-size:18px;opacity:.95}
+@media(max-width:600px){.love{grid-template-columns:1fr;padding:28px}}
 .faq details{border-bottom:1px solid var(--line);padding:18px 0}
 .faq summary{font-weight:600;cursor:pointer;font-size:18px}
 .faq p{color:var(--mut);margin:10px 0 0}
@@ -95,6 +100,7 @@ footer a{color:#fff;text-decoration:none}
     <h1>Que te avisen <span>sin dar tu número</span>.</h1>
     <p class="lead">Scan2Com convierte un código QR en una puerta de comunicación contigo. Pégalo en tu coche, tu moto, tu buzón o tus cosas: quien lo escanea con el móvil te envía una alerta, un mensaje o abre un chat. Tú eliges cómo quieres que te contacten.</p>
     <div class="ctas"><a class="btn red" href="#pegatinas">Quiero pegatinas</a><a class="btn light" href="/app/">Crear mi código gratis</a></div>
+    <div style="margin-top:18px"><a class="dl appdl" href="/app/scan2com.apk"><svg viewBox="0 0 24 24" fill="#3ddc84"><path d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22a11.4 11.4 0 0 0-9.84 0L5.22 5.92a.38.38 0 0 0-.66.38l1.84 3.18A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg><span><small class="dlsub">Descarga la app para</small><b>Android</b></span></a></div>
   </div>
   <img src="/img/pegatina-coche.png" alt="Pegatina Scan 2 Alert para el coche con código QR">
 </div></div>
@@ -132,11 +138,16 @@ footer a{color:#fff;text-decoration:none}
   <p class="sub">Las pegatinas vienen por colores según el uso, para que se reconozcan de un vistazo.</p>
   <div class="kinds">
     <div class="k a"><b>Scan 2 Alert</b><p>Avisos urgentes: coche, moto, bici, puerta del garaje, maleta.</p></div>
-    <div class="k c"><b>Scan 2 Chat</b><p>Conversación directa: objetos perdidos, mascotas, buzón, anuncios.</p></div>
+    <div class="k c"><b>Scan 2 Chat</b><p>Conversación directa: objetos perdidos, mascotas, buzón, anuncios… o para ligar.</p></div>
     <div class="k l"><b>Scan 2 Link</b><p>Lleva a quien escanea a la web o enlace que tú elijas.</p></div>
     <div class="k t"><b>Scan 2 Contact</b><p>Para que te escriban o te llamen sin publicar tu número.</p></div>
   </div>
 </div></section>
+
+<section style="padding-top:0"><div class="w"><div class="love">
+  <div class="em">💘</div>
+  <div><h2>¿Te gusta alguien?</h2><p>Déjale una pegatina o una tarjeta con tu código Scan2Com. Si le apetece, te escribe por chat sin saber quién eres ni tener tu número, y tú decides cuándo darte a conocer. Si no te contesta, no pasa nada: nadie se entera.</p></div>
+</div></div></section>
 
 <section id="pegatinas" class="bg"><div class="w">
   <h2>Pegatinas impresas</h2>
@@ -173,8 +184,14 @@ footer a{color:#fff;text-decoration:none}
 <footer><div class="w">
   <span>© Scan2Com</span>
   <a href="/app/">App</a>
+  <a class="appdl" href="/app/scan2com.apk">Descargar app Android</a>
   <a href="/app/condiciones.html">Condiciones de uso</a>
   <a href="mailto:admin@scan2com.com">admin@scan2com.com</a>
 </div></footer>
+<script>
+// cuando la app esté en Google Play, poner aquí su enlace y todos los botones de descarga irán a Google Play
+const PLAY_URL = '';
+if (PLAY_URL) document.querySelectorAll('.appdl').forEach(a => { a.href = PLAY_URL; const s = a.querySelector('.dlsub'); if (s) s.textContent = 'Disponible en'; const b = a.querySelector('b'); if (b) b.textContent = 'Google Play'; if (!s && !b) a.textContent = 'Descargar en Google Play'; });
+</script>
 </body>
 </html>

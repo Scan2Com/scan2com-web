@@ -71,7 +71,15 @@ ul.ok li:before{content:"";position:absolute;left:0;top:12px;width:20px;height:2
 .plan .btn{margin-top:auto;text-align:center}
 .plan.hl{border-color:var(--red);box-shadow:0 10px 30px rgba(232,53,43,.12)}
 .dl{display:inline-flex;align-items:center;gap:10px;background:#000;color:#fff;text-decoration:none;border-radius:12px;padding:9px 18px 9px 14px;line-height:1.15}
-.dl svg{width:26px;height:26px}.dl small{display:block;font-size:11px;opacity:.8}.dl b{font-size:17px}
+.dl svg{width:26px;height:26px}
+.iosm{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:100;padding:18px}.iosm.show{display:flex}
+.iosm>div{background:#fff;color:#111;border-radius:18px;max-width:380px;width:100%;padding:22px 22px 18px;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.iosm h3{margin:0 0 4px;font-size:20px}.iosm p{margin:0 0 14px;color:#555;font-size:14px}
+.iosm ol{margin:0;padding:0;list-style:none;counter-reset:n}.iosm li{counter-increment:n;display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-top:1px solid #eee;font-size:15px;line-height:1.35}
+.iosm li::before{content:counter(n);flex:none;width:26px;height:26px;border-radius:50%;background:#1aa3d9;color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px}
+.iosm .ix{position:absolute;top:10px;right:12px;border:0;background:none;font-size:24px;color:#888;cursor:pointer}
+.iosm .go{display:block;text-align:center;margin-top:14px;background:#000;color:#fff;text-decoration:none;border-radius:12px;padding:12px;font-weight:600}
+.iosm .shi{display:inline-block;vertical-align:-4px}.dl small{display:block;font-size:11px;opacity:.8}.dl b{font-size:17px}
 .love{background:linear-gradient(135deg,#ff5a8a,#e8352b);color:#fff;border-radius:26px;padding:40px;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center}
 .love .em{font-size:64px;line-height:1}.love h2{color:#fff}.love p{margin:0;font-size:18px;opacity:.95}
 @media(max-width:600px){.love{grid-template-columns:1fr;padding:28px}}
@@ -149,7 +157,7 @@ footer a{color:#fff;text-decoration:none}
     <h1>Comunícate <span>GRATIS</span> sin número de teléfono.</h1>
     <p class="lead">Scan2Com convierte un código QR en una puerta de comunicación contigo. Configúralo y pégalo donde quieras: tu coche, tu moto, tu buzón, tus cosas. Quien lo escanea con el móvil te envía una alerta, un mensaje o abre un chat. <a href="#usos" style="color:var(--red);font-weight:600">Mira los casos de uso</a>.</p>
     <div class="ctas"><a class="btn red" href="#pegatinas">Quiero pegatinas</a><a class="btn light" href="/app/">Crear mi código gratis</a></div>
-    <div style="margin-top:18px"><a class="dl appdl" href="/app/scan2com.apk"><svg viewBox="0 0 24 24" fill="#3ddc84"><path d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22a11.4 11.4 0 0 0-9.84 0L5.22 5.92a.38.38 0 0 0-.66.38l1.84 3.18A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg><span><small class="dlsub">Descarga la app para</small><b>Android</b></span></a></div>
+    <div style="margin-top:18px;display:flex;flex-wrap:wrap;gap:10px"><a class="dl appdl" href="/app/scan2com.apk"><svg viewBox="0 0 24 24" fill="#3ddc84"><path d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22a11.4 11.4 0 0 0-9.84 0L5.22 5.92a.38.38 0 0 0-.66.38l1.84 3.18A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg><span><small class="dlsub">Descarga la app para</small><b>Android</b></span></a><a class="dl iosdl" href="#iphone"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.960-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.82-.81-3-.79-1.54.02-2.97.9-3.76 2.28-1.6 2.78-.41 6.9 1.15 9.16.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.970-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.37-3.69zM14.1 5.85c.63-.77 1.06-1.83.94-2.9-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.27z"/></svg><span><small class="dlsub">Descarga la app para</small><b>iPhone</b></span></a></div>
   </div>
   <div class="herort"><div class="pila" aria-label="Pegatinas Scan 2 Alert, Chat, Link y Contact">
     <img src="/img/pila-contact.png?v=2" alt="Scan 2 Contact" style="--i:3">
@@ -325,19 +333,41 @@ footer a{color:#fff;text-decoration:none}
   <div class="cap" aria-label="Opción Ocultar trazabilidad en los ajustes del código"><span class="tick">✓</span><div><b>Ocultar trazabilidad</b><small>Quien escanee no verá el número de este código en sus chats (verá «Código con trazabilidad oculta»)</small></div></div></details>
   <details><summary>¿Y si alguien lo usa para molestar?</summary><p>Puedes bloquear a esa persona desde el chat, cambiar los medios de contacto o desactivar el código en cualquier momento.</p>
   <div class="cap" style="align-items:center"><span class="pwr on" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></span><span class="pwr" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></span><div><b>Función ON / OFF</b><small>Cada código tiene su botón de encendido. Apágalo y nadie podrá contactarte por él hasta que lo vuelvas a encender.</small></div></div></details>
-  <details><summary>¿Funciona en iPhone?</summary><p>Escanear y avisar funciona en cualquier móvil. La app del propietario funciona en el navegador; la alerta con sirena a pantalla completa está disponible en la app de Android.</p></details>
+  <details><summary>¿Funciona en iPhone?</summary><p>Sí. Escanear y avisar funciona en cualquier móvil. En iPhone instala la app desde Safari: pulsa <b>Descargar app iPhone</b> y sigue los 3 pasos. Recibirás los avisos como notificaciones; la alerta con sirena a pantalla completa, de momento, solo está en la app de Android.</p></details>
   <details><summary>¿Cómo vinculo una pegatina impresa?</summary><p>Abre la app Scan2Com, escanea el código de la pegatina con el escáner de la app y quedará asociada a tu cuenta.</p></details>
 </div></section>
 </main>
 
+<div class="iosm" id="iosm" role="dialog" aria-modal="true" aria-labelledby="iosmt"><div>
+  <button class="ix" id="iosx" aria-label="Cerrar">✕</button>
+  <h3 id="iosmt">Scan2Com en tu iPhone</h3>
+  <p>Se instala desde Safari en unos segundos, sin pasar por la App Store.</p>
+  <ol>
+    <li><span>Abre <b>scan2com.com/app</b> en <b>Safari</b>.</span></li>
+    <li><span>Pulsa el botón <b>Compartir</b> <svg class="shi" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a7ff0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5v10h14V11h-1"/></svg> y elige <b>Añadir a pantalla de inicio</b>.</span></li>
+    <li><span>Abre Scan2Com desde el icono nuevo, entra con tu cuenta y <b>activa los avisos</b> cuando te lo pida.</span></li>
+  </ol>
+  <a class="go" id="iosgo" href="/app/">Abrir la app en Safari</a>
+</div></div>
 <footer><div class="w">
   <span>© Scan2Com</span>
   <a href="/app/">App</a>
   <a class="appdl" href="/app/scan2com.apk">Descargar app Android</a>
+  <a class="iosdl" href="#iphone">Descargar app iPhone</a>
   <a href="/app/condiciones.html">Condiciones de uso</a>
   <a href="mailto:info@scan2com.com">info@scan2com.com</a>
 </div></footer>
 <script>
+// iPhone: hasta tener la app en la App Store, el botón explica cómo instalar la app web desde Safari.
+// cuando esté en la App Store, poner aquí su enlace y los botones de iPhone irán directamente allí
+const APPSTORE_URL = '';
+document.querySelectorAll('.iosdl').forEach(a => {
+  if (APPSTORE_URL) { a.href = APPSTORE_URL; const s = a.querySelector('.dlsub'); if (s) s.textContent = 'Disponible en'; const b = a.querySelector('b'); if (b) b.textContent = 'App Store'; return; }
+  a.addEventListener('click', e => { e.preventDefault(); document.getElementById('iosm').classList.add('show'); });
+});
+document.getElementById('iosx').onclick = () => document.getElementById('iosm').classList.remove('show');
+document.getElementById('iosm').onclick = e => { if (e.target.id === 'iosm') e.currentTarget.classList.remove('show'); };
+if (location.hash === '#iphone') document.getElementById('iosm').classList.add('show');
 // cuando la app esté en Google Play, poner aquí su enlace y todos los botones de descarga irán a Google Play
 const PLAY_URL = '';
 if (PLAY_URL) document.querySelectorAll('.appdl').forEach(a => { a.href = PLAY_URL; const s = a.querySelector('.dlsub'); if (s) s.textContent = 'Disponible en'; const b = a.querySelector('b'); if (b) b.textContent = 'Google Play'; if (!s && !b) a.textContent = 'Descargar en Google Play'; });

@@ -777,7 +777,7 @@ async function renderEdit() {
     <label class="chk"><input type="checkbox" id="c1" ${c.ch_mail ? 'checked' : ''}> <span style="color:#1f86e0">${IC.mail(20)}</span> Mail</label>
     <label class="chk"><input type="checkbox" id="c2" ${c.ch_alert ? 'checked' : ''}> <span style="color:#e8352b">${IC.alert(20)}</span> Alert</label>
     <label class="chk sub"><input type="checkbox" id="c5" ${c.auto_alert ? 'checked' : ''}> Sonar solo con abrir la web</label>
-    <div id="btbox" class="sub" style="display:${c.ch_alert ? 'block' : 'none'}">
+    <div id="btbox" class="sub" style="display:${c.ch_alert && designOf(c) === 'car' ? 'block' : 'none'}">
       <label class="chk" style="margin-left:0"><input type="checkbox" id="c8" ${c.bt_auto ? 'checked' : ''} ${NATIVE ? '' : 'disabled'}> <span style="color:#555">${IC.lock(16)}</span> Activar al bajar del coche</label>
       ${NATIVE ? `<div id="btcfg" style="display:${c.bt_auto ? 'block' : 'none'};margin-left:30px">
         <label class="req">Bluetooth del coche</label><select id="f8">${btOptions(c.bt_addr, c.bt_name)}</select>
@@ -805,10 +805,12 @@ async function renderEdit() {
   const carPrev = () => { const b = app.querySelector('[data-dsg="car"]'); if (b) drawDesign(b.querySelector('canvas'), { style: { design: 'car', car_color: selCol } }, `${SITE}/s/${c.id || 'EJEMPLO1'}`); };
   app.querySelectorAll('[data-dsg]').forEach(b => {
     drawDesign(b.querySelector('canvas'), { style: { design: b.dataset.dsg, car_color: selCol } }, `${SITE}/s/${c.id || 'EJEMPLO1'}`);
-    b.onclick = () => { selDsg = b.dataset.dsg; app.querySelectorAll('[data-dsg]').forEach(x => x.classList.toggle('on', x === b)); $('#ccol').style.display = selDsg === 'car' ? 'flex' : 'none'; };
+    b.onclick = () => { selDsg = b.dataset.dsg; app.querySelectorAll('[data-dsg]').forEach(x => x.classList.toggle('on', x === b)); $('#ccol').style.display = selDsg === 'car' ? 'flex' : 'none'; updBt(); };
   });
   app.querySelectorAll('[data-ccol]').forEach(b => b.onclick = () => { selCol = b.dataset.ccol; app.querySelectorAll('[data-ccol]').forEach(x => x.style.borderColor = x === b ? '#2fc23a' : '#fff'); carPrev(); });
-  if ($('#c2')) $('#c2').addEventListener('change', () => { $('#btbox').style.display = $('#c2').checked ? 'block' : 'none'; });
+  // "Activar al bajar del coche" solo con Alerta y diseño pegatina de coche
+  const updBt = () => { if ($('#btbox')) $('#btbox').style.display = $('#c2')?.checked && selDsg === 'car' ? 'block' : 'none'; };
+  if ($('#c2')) $('#c2').addEventListener('change', updBt);
   if (NATIVE && $('#c8')) {
     $('#c8').onchange = async () => { $('#btcfg').style.display = $('#c8').checked ? 'block' : 'none'; if ($('#c8').checked) { await autoPermStep(true); loadBonded(); } };
     if ($('#c8').checked) { refreshAutoPerm(); loadBonded(); }
@@ -830,13 +832,13 @@ async function renderEdit() {
     if (!name) { $('#f1').classList.add('bad'); miss.push('el nombre'); }
     if (!chans) miss.push('al menos un medio de comunicación');
     if ($('#c7').checked && !urlOk) { $('#f7').classList.add('bad'); miss.push('una dirección web válida (ej. www.ejemplo.com)'); }
-    if (NATIVE && $('#c8')?.checked && $('#c2').checked && !$('#f8').value) { $('#f8').classList.add('bad'); miss.push('el Bluetooth del coche'); }
+    if (NATIVE && $('#c8')?.checked && $('#c2').checked && selDsg === 'car' && !$('#f8').value) { $('#f8').classList.add('bad'); miss.push('el Bluetooth del coche'); }
     if ($('#c4').checked && !$('#f4').value.trim()) { $('#f4').classList.add('bad'); miss.push('el teléfono (has activado Llamada)'); }
     if (miss.length) { const e = app.querySelector('.err') || Object.assign(document.createElement('div'), { className: 'err' }); e.textContent = 'Falta ' + miss.join(', ') + '.'; $('#sv').before(e); (app.querySelector('.bad') || $('#sv')).scrollIntoView({ block: 'center' }); return; }
     const style = { ...(c.style || {}), design: selDsg, car: selDsg === 'car', car_color: selCol, hide_trace: !!$('#ht')?.checked }; if (c.style?.car || c.style?.car_code) style.car_code = true;
     const row = { type: selType, style, name, private_info: $('#f5').value.trim() || null, public_name: pub || null, public_desc: $('#f3').value.trim() || null,
       ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: $('#c6').checked, ch_call: $('#c4').checked, ch_redirect: $('#c7').checked, redirect_url: urlOk ? url : null, phone: $('#f4').value.trim() || null };
-    if (NATIVE && $('#c8')) { const o = $('#f8').selectedOptions[0]; Object.assign(row, { bt_auto: $('#c8').checked && $('#c2').checked, bt_addr: $('#f8').value || null, bt_name: o && o.value ? o.dataset.name : null, bt_drive_off: $('#c9').checked }); }
+    if (NATIVE && $('#c8')) { const o = $('#f8').selectedOptions[0]; Object.assign(row, { bt_auto: $('#c8').checked && $('#c2').checked && selDsg === 'car', bt_addr: $('#f8').value || null, bt_name: o && o.value ? o.dataset.name : null, bt_drive_off: $('#c9').checked }); }
     S.busy = true; S.err = ''; render();
     const r = isNew ? await sb.from('codes').insert({ ...row, owner_id: S.user.id }).select().single() : await sb.from('codes').update(row).eq('id', c.id).select().single();
     S.busy = false;

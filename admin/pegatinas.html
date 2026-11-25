@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Scan2Com</title>
+<title>Scan2Com · Generador de pegatinas</title>
 <link rel="icon" href="/app/logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
@@ -33,29 +33,32 @@ button.red{background:var(--red)}button.light{background:#e6e8eb;color:var(--ink
 .card .meta{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--mut);margin-top:8px}
 .card .meta button{min-height:36px;padding:6px 12px;font-size:13px}
 .empty{color:var(--mut);text-align:center;padding:40px 10px}
-#lotes div{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer}
-#lotes div:hover{color:var(--teal)}
+#lotes .lt{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+#lotes .lt .nm{flex:1;cursor:pointer}#lotes .lt .nm:hover b{color:var(--teal)}#lotes .lt small{display:block;color:var(--mut)}
+#lotes .cnt{font-weight:700;white-space:nowrap;text-align:right}#lotes .cnt small{font-weight:400}
+#lotes .lt button{min-height:34px;padding:4px 10px;font-size:13px}#lotes .lt input{margin:0;padding:6px 8px;font-size:15px}
 .hint{font-size:12px;color:var(--mut);margin-top:6px}
 </style>
 </head>
 <body>
-<header><img src="/app/logo.png" alt=""><b id="ttl">Scan2Com</b><span id="who"></span></header>
+<header><img src="/app/logo.png" alt=""><b>Generador de pegatinas</b><span id="who"></span></header>
 <main>
   <div>
     <div class="box" id="login">
-      <h2>Acceso</h2>
+      <h2>Entrar como administrador</h2>
       <label>Email</label><input id="em" type="email" autocomplete="email">
       <label>Contraseña</label><input id="pw" type="password" autocomplete="current-password">
       <div class="row"><button id="go">Entrar</button></div>
       <div class="msg err" id="lerr"></div>
     </div>
-    <div class="box" id="noadm" hidden><h2>Sin permiso</h2><p class="msg err">Esta cuenta no tiene acceso.</p><div class="row"><button class="light" id="out2">Cerrar sesión</button></div></div>
+    <div class="box" id="noadm" hidden><h2>Sin permiso</h2><p class="msg err">Esta cuenta no es administradora de Scan2Com.</p><div class="row"><button class="light" id="out2">Cerrar sesión</button></div></div>
     <div id="tool" hidden>
     <div class="box">
       <h2>Nuevo lote</h2>
       <label>Troquel</label><select id="tro"></select>
       <label>Nº de tarjetas (packs)</label><input id="num" type="number" min="1" max="2000" value="1">
-      <label>Nombre del lote</label><input id="lote" placeholder="Ej. IMPRENTA-01">
+      <label>Nombre del lote (para ti)</label><input id="loteNom" maxlength="80" placeholder="Ej. Policía de Logroño">
+      <label>Código del lote</label><input id="lote" placeholder="Automático, o p. ej. IMPRENTA-01">
       <label>Estilo del QR</label><select id="est"><option value="round">Redondeado (con el ojo)</option><option value="classic">Clásico</option></select>
       <label class="chk"><input type="checkbox" id="prueba" checked> Muestra (no crea códigos reales)</label>
       <div class="row"><button class="red" id="gen">Generar</button></div>
@@ -63,7 +66,7 @@ button.red{background:var(--red)}button.light{background:#e6e8eb;color:var(--ink
       <div class="msg" id="gmsg"></div>
     </div>
     <div class="box" style="margin-top:14px" id="lotesBox" hidden>
-      <h2>Lotes creados · pulsa para reimprimir</h2>
+      <h2>Lotes creados · pulsa uno para reimprimirlo</h2>
       <div id="lotes"></div>
     </div>
     <div class="row"><button class="light" id="out">Cerrar sesión</button></div>
@@ -94,10 +97,13 @@ const H20 = [['alert', 92, 92, 278], ['alert', 854, 59, 115], ['alert', 1058, 64
   ['link', 1292, 64, 130], ['link', 1870, 59, 115], ['link', 2110, 92, 278], ['link', 1522, 283, 166], ['link', 1808, 283, 166],
   ['contact', 1522, 648, 166], ['contact', 1808, 648, 166], ['contact', 2110, 670, 278], ['contact', 1292, 365, 130], ['contact', 1870, 1007, 115]];
 const COCHE = { kind: 'single', stickers: [{ type: 'alert', positions: [P(147, 148, 335, 1), P(89, 882, 180, 1), P(1997, 148, 335, 1), P(1640, 882, 180, 1)] }], validation: P(1347, 294, 442) };
-const coche = (color, file) => ({ ...COCHE, nombre: `Pack coche ${color} (vinilo transparente)`, base: `bases/${file}.png`, style: { design: 'car', car_color: color } });
+// color: clave de color de la pegatina de coche en la app (rojo, azul, verde, gris, grafito…)
+const coche = (color, file, txt = color) => ({ ...COCHE, nombre: `Pack coche ${txt} (vinilo transparente)`, base: `bases/${file}.png`, style: { design: 'car', car_color: color } });
+// diseño "Pegatina impresa" que verá la app para cada posición de la hoja de 20 (recorte de la misma base)
+const STYLES20 = [{"design":"print","print":{"src":"/app/print/hoja20-v1/00.png","qr":[58,58,278]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/01.png","qr":[383,25,115]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/02.png","qr":[27,30,130]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/03.png","qr":[36,36,166]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/04.png","qr":[36,36,166]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/05.png","qr":[58,58,278]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/06.png","qr":[36,36,166]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/07.png","qr":[36,36,166]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/08.png","qr":[383,25,115]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/09.png","qr":[27,30,130]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/10.png","qr":[30,30,130]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/11.png","qr":[385,25,115]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/12.png","qr":[58,58,278]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/13.png","qr":[36,36,166]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/14.png","qr":[36,36,166]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/15.png","qr":[36,36,166]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/16.png","qr":[36,36,166]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/17.png","qr":[58,58,278]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/18.png","qr":[30,30,130]}},{"design":"print","print":{"src":"/app/print/hoja20-v1/19.png","qr":[385,25,115]}}];
 const TRO = {
-  hoja20: { nombre: 'Hoja 20 códigos (opaca)', base: 'bases/hoja20-opaca.png', kind: 'sheet', stickers: H20.map(([type, x, y, s]) => ({ type, positions: [P(x, y, s)] })), validation: P(1071, 754, 336) },
-  'coche-rojo': coche('rojo', 'coche-rojo'), 'coche-gris-claro': coche('gris claro', 'coche-gris-claro'), 'coche-gris-oscuro': coche('gris oscuro', 'coche-gris-oscuro'),
+  hoja20: { nombre: 'Hoja 20 códigos (opaca)', base: 'bases/hoja20-opaca.png', kind: 'sheet', stickers: H20.map(([type, x, y, s]) => ({ type, positions: [P(x, y, s)] })), styles: STYLES20, validation: P(1071, 754, 336) },
+  'coche-rojo': coche('rojo', 'coche-rojo'), 'coche-gris-claro': coche('gris', 'coche-gris-claro', 'gris claro'), 'coche-gris-oscuro': coche('grafito', 'coche-gris-oscuro', 'gris oscuro'),
   'coche-azul': coche('azul', 'coche-azul'), 'coche-verde': coche('verde', 'coche-verde'),
   flyer: { nombre: 'Tarjeta de muestra / flyer (1 código)', base: 'bases/flyer.png', kind: 'single', stickers: [{ type: 'link', positions: [P(1493, 164, 204)] }], validation: P(863, 69, 397) }
 };
@@ -178,14 +184,15 @@ $('#gen').onclick = async () => {
   if (!S.admin) return;
   const lote = ($('#lote').value.trim() || `${muestra ? 'PRUEBA-' : ''}${tk.toUpperCase()}-${today()}`).toUpperCase();
   if (!muestra && N > 20 && !confirmBox(`Se van a crear ${N} packs reales en el lote ${lote}.`)) return;
-  const types = t.stickers.map(s => s.type); $('#gen').disabled = true; S.items = []; S.lote = lote;
+  const types = t.stickers.map(s => s.type), nom = $('#loteNom').value.trim(); $('#gen').disabled = true; S.items = []; S.lote = lote;
   try {
+    if (!muestra && nom) await rpc('admin_set_batch_name', { p_batch: lote, p_name: nom });
     for (let i = 0; i < N; i++) {
       const r = muestra ? { pack: rid(10), codes: types.map(type => ({ id: rid(8), type })) }
-        : await rpc('admin_print_pack', { p_kind: t.kind, p_types: types, p_batch: lote, p_layout: tk, p_style: t.style || {} });
+        : await rpc('admin_print_pack', { p_kind: t.kind, p_types: types, p_batch: lote, p_layout: tk, p_style: t.style || {}, p_styles: t.styles || null });
       S.items.push({ tk, pack: r.pack, codes: r.codes, muestra }); setProg((i + 1) / N); setMsg(`${i + 1}/${N} packs ${muestra ? 'de muestra' : 'creados'}…`);
     }
-    setMsg(`Lote ${lote}: ${N} tarjeta${N > 1 ? 's' : ''} lista${N > 1 ? 's' : ''}.`, 'ok'); await showCards(); if (!muestra) loadBatches();
+    setMsg(`Lote ${nom ? nom + ' · ' : ''}${lote}: ${N} tarjeta${N > 1 ? 's' : ''} lista${N > 1 ? 's' : ''}.`, 'ok'); await showCards(); if (!muestra) loadBatches();
   } catch (e) { setMsg(e.message + (S.items.length ? ` (se crearon ${S.items.length} packs; puedes reimprimirlos desde Lotes)` : ''), 'err'); await showCards(); }
   $('#gen').disabled = false;
 };
@@ -196,13 +203,24 @@ async function reprint(batch) {
   try {
     setMsg('Cargando lote ' + batch + '…'); const r = await rpc('admin_batch', { p_batch: batch });
     S.items = r.packs.filter(p => TRO[p.layout]).map(p => ({ tk: p.layout, pack: p.pack, codes: p.codes, claimed: p.claimed, muestra: false })); S.lote = batch;
-    const nc = r.packs.filter(p => p.claimed).length; setMsg(`Lote ${batch}: ${S.items.length} tarjetas${nc ? ` · ${nc} ya vinculadas a un usuario` : ''}.`, nc ? 'err' : 'ok'); await showCards();
+    const nc = r.packs.filter(p => p.claimed).length; setMsg(`Lote ${r.name ? r.name + ' · ' : ''}${batch}: ${S.items.length} tarjetas${nc ? ` · ${nc} ya vinculadas a un usuario` : ''}.`, nc ? 'err' : 'ok'); await showCards();
   } catch (e) { setMsg(e.message, 'err'); }
 }
 async function loadBatches() {
   try { const r = await rpc('admin_batches', {}); $('#lotesBox').hidden = false;
-    $('#lotes').innerHTML = r.batches.map(b => `<div data-b="${esc(b.batch)}"><b>${esc(b.batch)}</b><span>${b.packs} packs · ${b.claimed} vinculados · ${esc(b.at.slice(0, 10))}</span></div>`).join('') || '<div>Aún no hay lotes.</div>';
-    document.querySelectorAll('#lotes [data-b]').forEach(d => d.onclick = () => reprint(d.dataset.b));
+    // por lote: nombre, código, y cuántos códigos de vinculación (QR maestros) se han usado de los que tiene
+    $('#lotes').innerHTML = r.batches.map(b => `<div class="lt" data-b="${esc(b.batch)}"><div class="nm"><b>${esc(b.name || b.batch)}</b><small>${b.name ? esc(b.batch) + ' · ' : ''}${esc(TRO[b.layout]?.nombre || b.layout || '')} · ${esc(b.at.slice(0, 10))}</small></div>
+      <div class="cnt">${b.claimed} / ${b.packs}<small><br>vinculados</small></div><button class="light" data-ren title="Cambiar el nombre">Nombre</button></div>`).join('') || '<div>Aún no hay lotes.</div>';
+    document.querySelectorAll('#lotes [data-b]').forEach(d => {
+      d.querySelector('.nm').onclick = () => reprint(d.dataset.b);
+      d.querySelector('[data-ren]').onclick = () => {
+        const b = r.batches.find(x => x.batch === d.dataset.b), nm = d.querySelector('.nm');
+        nm.onclick = null; nm.innerHTML = `<input maxlength="80" placeholder="Ej. Policía de Logroño">`; const i = nm.querySelector('input'); i.value = b.name || ''; i.focus();
+        const btn = d.querySelector('[data-ren]'); btn.textContent = 'Guardar';
+        const save = async () => { try { await rpc('admin_set_batch_name', { p_batch: b.batch, p_name: i.value }); } catch (e) { setMsg(e.message, 'err'); } loadBatches(); };
+        btn.onclick = save; i.onkeydown = e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') loadBatches(); };
+      };
+    });
   } catch (e) {}
 }
 
@@ -233,11 +251,11 @@ $('#est').onchange = () => S.items.length && showCards();
 /* ---------- sesión ---------- */
 // todo el generador queda oculto hasta entrar con una cuenta de la tabla admins
 async function start(session) {
-  S.admin = false; S.items = []; $('#ttl').textContent = 'Scan2Com'; document.title = 'Scan2Com'; $('#tool').hidden = $('#tool2').hidden = $('#noadm').hidden = true;
+  S.admin = false; S.items = []; $('#tool').hidden = $('#tool2').hidden = $('#noadm').hidden = true;
   $('#login').hidden = !!session; $('#who').textContent = session ? session.user.email : '';
   if (!session) return;
   const { data } = await sb.from('admins').select('user_id').eq('user_id', session.user.id).maybeSingle();
-  S.admin = !!data; $('#ttl').textContent = S.admin ? 'Generador de pegatinas' : 'Scan2Com'; document.title = S.admin ? 'Scan2Com · Generador de pegatinas' : 'Scan2Com'; $('#tool').hidden = $('#tool2').hidden = !S.admin; $('#noadm').hidden = S.admin;
+  S.admin = !!data; $('#tool').hidden = $('#tool2').hidden = !S.admin; $('#noadm').hidden = S.admin;
   if (S.admin) { showCards(); loadBatches(); }
 }
 $('#out').onclick = $('#out2').onclick = () => sb.auth.signOut();

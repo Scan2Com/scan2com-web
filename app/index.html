@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#1e1e1e">
+<script>try { if ((localStorage.getItem('sa_theme') || 'dark') === 'dark') document.documentElement.classList.add('dark'); } catch (e) { document.documentElement.classList.add('dark'); }</script>
 <title>Scan2Com — Mis códigos</title>
 <link rel="manifest" href="/app/manifest.json">
 <link rel="icon" href="/app/logo.png">
@@ -155,6 +156,11 @@ label{font-size:13px;color:var(--mut)}
 .ic{display:block}
 .ib{color:#555}
 .bar .ib{color:#e0e0e0}
+/* modo oscuro: se invierte toda la página y se vuelven a invertir fotos, códigos y vídeo; las barras, que ya eran oscuras, se ajustan para seguir oscuras */
+html.dark{background:#fff;filter:invert(1) hue-rotate(180deg)}
+html.dark img,html.dark canvas,html.dark video,html.dark .keepc{filter:invert(1) hue-rotate(180deg)}
+html.dark .bar{background:#e1e1e1;color:#000}html.dark .bar .name,html.dark .bar .star{color:#000}html.dark .bar .ib{color:#1f1f1f}html.dark .tabs{background:#c5c5c5}html.dark .tabs button{color:#656565}html.dark .tabs button.on{color:#000}
+.ib{position:relative}.mdot{position:absolute;top:4px;right:4px;width:10px;height:10px;border-radius:50%;background:#e8352b;border:2px solid #1e1e1e}html.dark .mdot{border-color:#e1e1e1}
 .qrbar-ib{color:#e0e0e0!important}
 .qrbar-ib svg{display:block}
 .ib.dark{color:#e0e0e0}
@@ -209,7 +215,7 @@ const msgBody = b => isAudio(b) ? audBody(b) : isPhoto(b) ? `<a href="${esc(b.sl
 // primero se elige: hacer la foto ahora o cogerla de la galería
 function pickPhoto() {
   return new Promise(res => {
-    const pick = cam => { $('#overlay').innerHTML = ''; const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; if (cam) i.capture = 'environment'; i.onchange = () => { const f = i.files[0]; res(f ? { f, cam: cam && Date.now() - f.lastModified < 120e3 } : null); }; i.click(); };
+    const pick = cam => { $('#overlay').innerHTML = ''; const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; if (cam) i.setAttribute('capture', 'environment'); i.onchange = () => { const f = i.files[0]; res(f ? { f, cam: cam && Date.now() - f.lastModified < 120e3 } : null); }; i.click(); };
     $('#overlay').innerHTML = `<div class="sheet keep" id="phs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
       <button class="btn" id="phc" style="margin-bottom:8px">📷 Hacer foto ahora</button><button class="btn light" id="phg">🖼️ Elegir de la galería</button></div></div>`;
     $('#phs').onclick = () => { $('#overlay').innerHTML = ''; res(null); }; $('#phc').onclick = () => pick(true); $('#phg').onclick = () => pick(false);
@@ -266,6 +272,8 @@ async function uploadPhoto(chatId) {
   } catch (e) { toast('No se ha podido enviar la foto.'); return null; } finally { busy(false); }
 }
 
+// icono del escáner: los 4 boomerangs verdes del logo y la línea roja del láser, sin el QR
+const SCANI = (s = 32) => `<svg class="keepc" width="${s}" height="${s}" viewBox="0 0 100 100" style="display:block">${[[90, 16, 16], [180, 84, 16], [0, 16, 84], [270, 84, 84]].map(([a, x, y]) => `<g transform="translate(${x} ${y}) rotate(${a}) translate(-17 -17) scale(.215)"><polygon points="${BMP}" fill="#3ccf3c"/></g>`).join('')}<rect x="6" y="47" width="88" height="6" rx="3" fill="#ff2a1a"/><rect x="6" y="44" width="88" height="12" rx="6" fill="#ff2a1a" opacity=".25"/></svg>`;
 const LOGO = (s = 40) => `<img src="/app/logo.png" width="${s}" height="${s}" alt="Scan2Com" style="display:block">`;
 
 const SV = (p, s = 24, extra = '') => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${p}</svg>`;
@@ -776,7 +784,7 @@ function renderHome() {
   return body; };
   const idx = Math.max(0, TABS.indexOf(S.tab)); app.classList.add('homepg');
   const keepScroll = {}; app.querySelectorAll('[data-page]').forEach(p => keepScroll[p.dataset.page] = p.scrollTop);
-  app.innerHTML = `<div class="bar">${LOGO(38)}${S.searching ? `<input id="sq" class="searchin" placeholder="Buscar…" value="${esc(S.q || '')}">` : `<span class="name">${S.auth ? 'Scan2Com Police' : 'Scan2Com'}</span>`}<button class="ib dark" id="bSearch" title="Buscar">${IC.search(26)}</button><button class="ib dark" id="bScan" title="Escanear"><img src="/app/img2014/camera.png" width="32" height="32" alt="Escanear" style="display:block" onerror="this.style.display='none'"></button><button class="ib dark" id="bMenu" title="Menú">${IC.dots(24)}</button></div>
+  app.innerHTML = `<div class="bar">${LOGO(38)}${S.searching ? `<input id="sq" class="searchin" placeholder="Buscar…" value="${esc(S.q || '')}">` : `<span class="name">${S.auth ? 'Scan2Com Police' : 'Scan2Com'}</span>`}<button class="ib dark" id="bSearch" title="Buscar">${IC.search(26)}</button><button class="ib dark" id="bScan" title="Escanear">${SCANI(34)}</button><button class="ib dark" id="bMenu" title="Menú">${IC.dots(24)}${S.ver?.old ? '<i class="mdot"></i>' : ''}</button></div>
     <div class="tabs">${tabs.map(([k, l, n]) => `<button class="${S.tab === k ? 'on' : ''}" data-tab="${k}">${l}${n && S.tab !== k ? `<span class="badge">${n}</span>` : ''}</button>`).join('')}<i class="ind" id="ind" style="transform:translateX(${idx * 100}%)"></i></div>
     <div class="pager" id="pg"><div class="track" id="tr" style="transform:translateX(${-idx * 100}%)">${TABS.map(t => `<div class="page body" data-page="${t}">${page(t)}</div>`).join('')}</div></div>${S.tab === 'codes' ? `<button class="fab" id="fab" style="display:grid;place-items:center">${IC.plus(28)}</button><div class="buybar" id="buy">Quiero pegatinas <b>impresas</b></div>` : S.tab === 'chats' ? `<label class="buybar" id="trc" style="display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer"><input type="checkbox" id="trcb" ${ls.get('sa_trace', false) ? 'checked' : ''} style="width:20px;height:20px;margin:0"><span>Mostrar <b>trazabilidad</b></span></label>` : ''}`;
   app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { const i = TABS.indexOf(b.dataset.tab); $('#tr').style.transform = `translateX(${-i * 100}%)`; $('#ind').style.transform = `translateX(${i * 100}%)`; setTimeout(() => { S.tab = b.dataset.tab; render(); }, 290); });
@@ -807,10 +815,12 @@ function accountMenu() {
     <button class="btn light" id="how" style="margin-bottom:8px">${IC.play(20)}Cómo funciona</button>
     ${NATIVE ? (S.ver?.old ? `<a class="btn red" href="${APK_URL}" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.refresh(20)}Actualizar a la última versión<div style="font-size:12px;font-weight:400;opacity:.85">${fmtD(S.ver.apk?.date)}</div></a>` : `<button class="btn light" id="ver" style="margin-bottom:8px">${IC.refresh(20)}${S.ver?.ok ? 'Última versión instalada' : 'Comprobar actualización'}${S.ver?.last ? `<div style="font-size:12px;font-weight:400;color:#777">${fmtD(S.ver.last)}</div>` : ''}</button>`) : ''}
     ${/android/i.test(navigator.userAgent) && !NATIVE ? `<a class="btn red" href="/app/scan2com.apk" download style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.alert(20)}Descargar app Android (sirena a pantalla completa)</a>` : ''}
+    <button class="btn light" id="thm" style="margin-bottom:8px">${document.documentElement.classList.contains('dark') ? '☀️ Cambiar a modo claro' : '🌙 Cambiar a modo oscuro'}</button>
     <button class="btn light" id="ins" style="margin-bottom:8px">${IC.vibrate(20)}Cómo instalar en el móvil</button>
     <button class="btn red" id="lo">Cerrar sesión</button></div></div>`;
   $('#am').onclick = () => { $('#overlay').innerHTML = ''; };
   $('#sp').onclick = placesSheet;
+  $('#thm').onclick = () => { const d = !document.documentElement.classList.contains('dark'); document.documentElement.classList.toggle('dark', d); try { localStorage.setItem('sa_theme', d ? 'dark' : 'light'); } catch (e) {} accountMenu(); };
   if ($('#ver')) $('#ver').onclick = async () => { $('#overlay').innerHTML = ''; await checkVersion(true); };
   $('#how').onclick = () => { $('#overlay').innerHTML = ''; S.tourForce = true; S.tab = 'codes'; S.view = null; render(); setTimeout(playTour, 100); };
   $('#lo').onclick = async () => { await sb.auth.signOut(); location.reload(); };
@@ -1704,7 +1714,7 @@ async function checkVersion(manual) {
   }
   const old = !!(NATIVE && apk && build && build < apk.build);
   const last = [web?.date, apk?.date].filter(Boolean).sort().pop() || WEB_BUILD.date;
-  S.ver = { web, apk, build, old, last, ok: !!(web || apk) };
+  S.ver = { web, apk, build, old, last, ok: !!(web || apk) }; if (old) render();
   if (old) toast('Hay una versión nueva de Scan2Com. Toca aquí para actualizar.', () => { location.href = APK_URL; });
   else if (manual) toast(S.ver.ok ? 'Tienes la última versión (' + fmtD(last) + ').' : 'No se ha podido comprobar la versión. Revisa la conexión.');
 }

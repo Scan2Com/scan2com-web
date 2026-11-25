@@ -101,6 +101,7 @@ ul.ok li:before{content:"";position:absolute;left:0;top:12px;width:20px;height:2
 @keyframes flash{50%{filter:brightness(1.25)}}@keyframes shake{0%,100%{transform:rotate(0)}5%{transform:rotate(-3deg)}10%{transform:rotate(3deg)}15%{transform:rotate(-2deg)}20%{transform:rotate(0)}}
 @media(prefers-reduced-motion:reduce){.ph,.ph .scr{animation:none}}
 .medios{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:22px}.ml{font-weight:600;margin-right:4px}.md{color:var(--ink);background:#fff;border:3px solid var(--c);font-weight:600;font-size:15px;padding:6px 14px;border-radius:999px}
+.sw{display:inline-flex;gap:5px;vertical-align:middle;margin-left:4px}.sw i{width:16px;height:16px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
 .pill{display:inline-block;color:#fff;font-size:13px;font-weight:600;padding:4px 12px;border-radius:999px}
 @media(max-width:760px){.uses{grid-template-columns:1fr}}
 .carimg{width:100%;max-width:560px;display:block;margin:0 auto}
@@ -161,7 +162,7 @@ footer a{color:#fff;text-decoration:none}
   <h2>Un ejemplo: tu coche</h2>
   <p class="sub">Luces encendidas, mal aparcado, un golpe… Te avisan en segundos, sin tu número.<br><b style="color:var(--ink)">Quien escanea no necesita ninguna app: basta con la cámara del móvil.</b></p>
   <div class="carrow">
-    <figure class="cf big"><img src="/img/mustang.png" alt="Mustang con las pegatinas Scan 2 Alert en el parabrisas y la ventanilla"><figcaption>Por dentro del cristal, en espejo</figcaption></figure>
+    <figure class="cf big"><img src="/img/mustang.png" alt="Mustang con las pegatinas Scan 2 Alert en el parabrisas y la ventanilla"><figcaption>Pégala por dentro del cristal, en espejo.<br>Elige un rojo intenso o un color más discreto: <span class="sw"><i style="background:#fe0000"></i><i style="background:#ff6a00"></i><i style="background:#f6df00"></i><i style="background:#2e9e3a"></i><i style="background:#004c98"></i><i style="background:#009cd7"></i><i style="background:#b4b9bc"></i><i style="background:#4a4f53"></i></span></figcaption></figure>
     <figure class="cf"><img src="/img/pegatina-qr-redondeado.png" alt="Pegatina vertical"><figcaption>Parabrisas y luna trasera</figcaption></figure>
     <figure class="cf"><img src="/img/pegatina-horizontal.png" alt="Pegatina horizontal" style="width:100%"><figcaption>Ventanillas laterales</figcaption></figure>
     <figure class="cf"><div class="ph" aria-label="Móvil sonando con la alerta a pantalla completa"><div class="scr"><small>Scan 2 Alert</small><span class="sir"><img class="bn" src="/img/sirena-bn.png" alt=""><img class="rj" src="/img/sirena.png" alt=""></span><b>¡ALERTA!</b><span>Mi Mustang</span><em>Te avisan de tu coche</em></div></div><figcaption>Sirena en tu móvil</figcaption></figure>

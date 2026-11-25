@@ -81,6 +81,17 @@ ul.ok li:before{content:"";position:absolute;left:0;top:12px;width:20px;height:2
 .use .pic img{max-height:200px;max-width:70%}
 .use .pic img.mini{position:absolute;right:26px;bottom:18px;height:120px;transform:rotate(6deg);filter:drop-shadow(0 8px 12px rgba(0,0,0,.2))}
 .use .tx{padding:22px 26px 26px}.use h3{margin:10px 0 6px;font-size:22px}.use p{margin:0;color:var(--mut)}
+.use.small{grid-column:1/-1}.use.small .tx{padding:18px 26px}
+.carrow{display:grid;grid-template-columns:1.4fr .8fr 1.3fr .8fr;gap:18px;align-items:end;background:#fff;border-radius:24px;padding:26px}
+.cf{margin:0;text-align:center}.cf img{max-width:100%;max-height:230px;display:block;margin:0 auto}.cf.big img{max-height:300px}
+.cf figcaption{margin-top:10px;font-size:14px;font-weight:600;color:var(--mut)}
+.tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:18px}
+.tiles div{background:#fff;border-radius:20px;padding:18px 10px;text-align:center}
+.tiles i{font-style:normal;font-size:40px;display:block;line-height:1.1;margin-bottom:8px}.tiles b{display:block;font-size:16px}.tiles small{color:var(--mut);font-size:13.5px}
+@media(max-width:860px){.tiles{grid-template-columns:repeat(3,1fr)}}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.chips span{background:#fff;border-radius:999px;padding:9px 16px;font-size:15px;font-weight:500}
+@media(max-width:760px){.carrow{grid-template-columns:1fr 1fr}.cf.big{grid-column:1/-1}}
 .pill{display:inline-block;color:#fff;font-size:13px;font-weight:600;padding:4px 12px;border-radius:999px}
 @media(max-width:760px){.uses{grid-template-columns:1fr}}
 .carimg{width:100%;max-width:560px;display:block;margin:0 auto}
@@ -134,12 +145,14 @@ footer a{color:#fff;text-decoration:none}
 
 <section class="bg"><div class="w">
   <h2>Un ejemplo: tu coche</h2>
-  <p class="sub">Te has dejado las luces encendidas, el coche mal aparcado o alguien le ha dado un golpe. Con la pegatina Scan 2 Alert en el cristal, cualquiera puede avisarte en segundos, sin buscar tu teléfono.</p>
-  <div class="split" style="align-items:start">
-    <img class="carimg" src="/img/coche-alerta.png?v=2" alt="Coche con la pegatina Scan 2 Alert en el parabrisas y la ventanilla lateral, y la sirena de alerta">
-    <div class="feats"><div class="ft"><span class="fi">🔵</span><div><b>Se activa sola al bajar del coche</b><p>Se conecta al Bluetooth de tu coche: cuando te alejas, tu código se enciende. No tienes que acordarte de activarlo ni de apagarlo.</p></div></div><div class="ft"><span class="fi">🚗</span><div><b>Se apaga sola al conducir</b><p>Mientras vas conduciendo (a más de 20 km/h) no recibes avisos.</p></div></div><div class="ft"><span class="fi">🏠</span><div><b>Lugares seguros</b><p>En casa, en tu garaje o donde tú elijas, no se activa.</p></div></div><div class="ft"><span class="fi">🚨</span><div><b>Sirena a pantalla completa</b><p>El aviso suena fuerte y ocupa toda la pantalla de tu Android para que no se te escape.</p></div></div><div class="ft"><span class="fi">💬</span><div><b>Contesta sin dar tu número</b><p>Puedes responder por chat, y quien te avisa ve cuándo lo has leído.</p></div></div><div class="ft"><span class="fi">🪟</span><div><b>Pegatina por dentro del cristal</b><p>En espejo, como la de la ITV: la vertical en el parabrisas y la luna trasera, la horizontal en las ventanillas laterales. También puedes imprimirla gratis desde la app.</p></div></div></div>
+  <p class="sub">Luces encendidas, mal aparcado, un golpe… Te avisan en segundos, sin tu número.</p>
+  <div class="carrow">
+    <figure class="cf big"><img src="/img/coche-dibujo.png" alt="Coche con las pegatinas en los cristales"><figcaption>Por dentro del cristal, en espejo</figcaption></figure>
+    <figure class="cf"><img src="/img/pegatina-qr-redondeado.png" alt="Pegatina vertical"><figcaption>Parabrisas y luna trasera</figcaption></figure>
+    <figure class="cf"><img src="/img/pegatina-horizontal.png" alt="Pegatina horizontal" style="width:100%"><figcaption>Ventanillas laterales</figcaption></figure>
+    <figure class="cf"><img src="/img/sirena.png" alt="Sirena"><figcaption>Sirena en tu móvil</figcaption></figure>
   </div>
-  <div style="margin-top:30px"><a class="btn" href="#pegatinas">Ver pegatinas</a></div>
+  <div class="tiles"><div><i><svg viewBox="0 0 24 24" width="40" height="40" style="display:block;margin:0 auto"><rect width="24" height="24" rx="7" fill="#1f86e0"/><path d="M8 8l8 8-4 3V5l4 3-8 8" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></i><b>Se activa sola</b><small>con el Bluetooth del coche</small></div><div><i>🚗</i><b>Se apaga</b><small>al conducir</small></div><div><i>🏠</i><b>No suena</b><small>en lugares seguros</small></div><div><i>🚨</i><b>Sirena</b><small>a pantalla completa</small></div><div><i>💬</i><b>Chat</b><small>sin dar tu número</small></div><div><i>✅</i><b>Sabes</b><small>si lo han leído</small></div></div>
 </div></section>
 
 <section><div class="w">
@@ -159,6 +172,34 @@ footer a{color:#fff;text-decoration:none}
   <div class="uses">
     <article class="use">
       <div class="pic" style="background:#fde3e1"><img src="/img/coche-alerta.png?v=2" alt="Coche con pegatina Scan 2 Alert y sirena" style="max-width:92%;max-height:225px"></div>
+      <div class="tx"><span class="pill" style="background:var(--red)">Scan 2 Alert</span><h3>Tu coche</h3><p>Luces encendidas, coche mal aparcado, un golpe… Quien lo vea escanea la pegatina del cristal y en tu móvil suena una sirena a pantalla completa. Se activa sola al bajar del coche, con su Bluetooth.</p></div>
+    </article>
+    <article class="use">
+      <div class="pic" style="background:#fde4ee"><svg viewBox="0 0 400 260" role="img" aria-label="Una chica pega a escondidas una pegatina rosa en la mochila de un chico tímido">
+ <ellipse cx="200" cy="238" rx="170" ry="12" fill="#f3d3dd"/>
+ <g fill="#ff7aa8" opacity=".85"><path d="M168 40c0-8 12-8 12 0 0-8 12-8 12 0 0 9-12 15-12 18-0-3-12-9-12-18z"/><path d="M196 18c0-6 9-6 9 0 0-6 9-6 9 0 0 7-9 11-9 13 0-2-9-6-9-13z" opacity=".7"/></g>
+ <!-- chica -->
+ <rect x="104" y="190" width="11" height="44" rx="5" fill="#f2c39d"/><rect x="124" y="190" width="11" height="44" rx="5" fill="#f2c39d"/>
+ <path d="M95 112q25-12 50 0l14 86H81z" fill="#f0599b"/>
+ <path d="M140 122q40 6 74 14" stroke="#f2c39d" stroke-width="11" stroke-linecap="round" fill="none"/>
+ <path d="M86 70q-6 60 8 74h52q14-14 8-74q-34-40-68 0z" fill="#7a3e1d"/>
+ <circle cx="120" cy="78" r="27" fill="#f6cfae"/>
+ <path d="M93 74q4-30 27-30t27 30q-14-14-27-14t-27 14z" fill="#7a3e1d"/>
+ <circle cx="129" cy="78" r="3" fill="#333"/><path d="M128 92q6 3 11-2" stroke="#333" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+ <!-- chico -->
+ <rect x="252" y="188" width="12" height="46" rx="5" fill="#2d3e5f"/><rect x="274" y="188" width="12" height="46" rx="5" fill="#2d3e5f"/>
+ <rect x="240" y="104" width="58" height="92" rx="16" fill="#1f86e0"/>
+ <rect x="206" y="112" width="44" height="72" rx="12" fill="#4a5a52"/><rect x="211" y="150" width="34" height="24" rx="6" fill="#5d6f65"/>
+ <rect x="218" y="122" width="22" height="22" rx="5" fill="#f0599b" stroke="#fff" stroke-width="2"/>
+ <g fill="#fff"><rect x="222" y="126" width="5" height="5" rx="1.5"/><rect x="231" y="126" width="5" height="5" rx="1.5"/><rect x="222" y="135" width="5" height="5" rx="1.5"/><rect x="230" y="134" width="3" height="3"/><rect x="234" y="137" width="3" height="3"/></g>
+ <circle cx="216" cy="135" r="7" fill="#f2c39d"/>
+ <path d="M298 124q14 30 2 56" stroke="#f6cfae" stroke-width="11" stroke-linecap="round" fill="none"/>
+ <circle cx="272" cy="74" r="27" fill="#f6cfae"/>
+ <path d="M245 70q2-28 28-28t27 26q-10-8-22-6-14 2-33 8z" fill="#2b2b2b"/>
+ <circle cx="284" cy="78" r="3" fill="#333"/><ellipse cx="289" cy="88" rx="7" ry="4" fill="#ff8fa8" opacity=".8"/>
+ <path d="M278 94q5 2 9-1" stroke="#333" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+ <path d="M308 52l6-6M312 62l8-2" stroke="#f0599b" stroke-width="2.4" stroke-linecap="round"/>
+</svg></div>
       <div class="tx"><span class="pill" style="background:#f0599b">Para ligar</span><h3>¿Te gusta alguien?</h3><p>Pégale tu código sin que se dé cuenta, en la mochila, en una carpeta o en su libro, o déjaselo escondido donde sepas que lo va a encontrar. Usa un código <b style="color:#0e7fd0">azul si eres chico</b> o <b style="color:#e0407f">rosa si eres chica</b>. Cuando lo vea, te escribe por chat sin saber quién eres, y tú decides cuándo darte a conocer.</p></div>
     </article>
     <article class="use">
@@ -176,19 +217,6 @@ footer a{color:#fff;text-decoration:none}
       <div class="tx"><span class="pill" style="background:#d8ac00">Scan 2 Chat</span><h3>Mascotas y objetos perdidos</h3><p>En el collar del perro, las llaves, la maleta o el móvil. Quien lo encuentre te escribe al momento, sin que tengas que poner tu teléfono a la vista.</p></div>
     </article>
     <article class="use">
-      <div class="pic" style="background:#e1f3fb"><svg viewBox="0 0 400 260" role="img" aria-label="Escaparate de una tienda con un código QR en la puerta">
- <ellipse cx="200" cy="238" rx="160" ry="12" fill="#dfe3e6"/>
- <rect x="80" y="80" width="240" height="152" rx="8" fill="#fff" stroke="#8d9396" stroke-width="4"/>
- <path d="M70 80l20-40h220l20 40z" fill="#0e9bd8"/><path d="M90 40h44l-10 40H70zM178 40h44l2 40h-48zM266 40h44l20 40h-54z" fill="#fff" opacity=".35"/>
- <rect x="100" y="104" width="100" height="80" rx="6" fill="#d8eef8"/>
- <rect x="220" y="104" width="80" height="128" rx="6" fill="#bcc3c7"/>
- <rect x="236" y="124" width="48" height="48" rx="8" fill="#fff"/>
- <g fill="#222"><rect x="242" y="130" width="12" height="12" rx="3"/><rect x="266" y="130" width="12" height="12" rx="3"/><rect x="242" y="154" width="12" height="12" rx="3"/><rect x="262" y="150" width="6" height="6"/><rect x="270" y="158" width="6" height="6"/></g>
- <circle cx="290" cy="196" r="4" fill="#666"/>
-</svg></div>
-      <div class="tx"><span class="pill" style="background:var(--azul)">Scan 2 Link · Contact</span><h3>Tu negocio o tu casa</h3><p>En el escaparate, el buzón o el timbre: lleva a tu web, recibe mensajes cuando no estás o deja que te llamen sin publicar tu número.</p></div>
-    </article>
-    <article class="use">
       <div class="pic" style="background:#fbf1e2"><svg viewBox="0 0 400 260" role="img" aria-label="Carta de la mesa 5 con un código QR por plato">
  <ellipse cx="200" cy="244" rx="160" ry="10" fill="#e9dcc9"/>
  <rect x="96" y="18" width="200" height="222" rx="12" fill="#fffaf0" stroke="#c9a46a" stroke-width="3"/>
@@ -197,6 +225,9 @@ footer a{color:#fff;text-decoration:none}
  <path d="M288 140h10" stroke="#2fc23a" stroke-width="3"/>
 </svg></div>
       <div class="tx"><span class="pill" style="background:#c98a2b">Restauración</span><h3>Pide desde la mesa</h3><p>Cada mesa tiene su carta numerada, y cada plato su propio código QR. El cliente escanea el plato que quiere y el pedido llega a la cocina indicando la mesa. La carta de la mesa 2 lleva los mismos platos que la de la mesa 5, pero con códigos distintos, así que siempre se sabe desde qué mesa se pide.</p><p style="margin-top:10px"><b style="color:#c98a2b">Próximamente, servicio para restauración:</b> sube el PDF de tu carta y di cuántas mesas tienes. La inteligencia artificial coloca un código junto a cada plato y te envía un PDF por mesa, cada uno con sus propios códigos, listo para imprimir y poner en las mesas.</p></div>
+    </article>
+    <article class="use small">
+      <div class="tx"><span class="pill" style="background:var(--azul)">Scan 2 Link · Contact</span><h3>Tu negocio o tu casa</h3><p>En el escaparate, el buzón o el timbre: lleva a tu web, recibe mensajes cuando no estás o deja que te llamen sin publicar tu número.</p></div>
     </article>
   </div>
 </div></section>

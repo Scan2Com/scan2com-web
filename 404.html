@@ -44,7 +44,7 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 .m.sys{align-self:center;background:none;color:#777;font-size:13px;text-align:center}
 .top{display:flex;align-items:center;gap:10px}
 .back{background:none;border:0;font:inherit;font-size:15px;color:#1a7fb0;font-weight:600;cursor:pointer;padding:6px 0}
-.phw{position:relative;display:block}.pview{position:fixed;inset:0;z-index:60;background:#000;display:flex;align-items:center;justify-content:center}.pview img{max-width:100%;max-height:100%;object-fit:contain;display:block}.pvx{position:absolute;top:12px;right:12px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:22px}.phsrc{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 7px;border-radius:10px}.phsrc.cam{background:rgba(26,163,217,.9)}.phsheet{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;z-index:50}.phsheet>div{background:#fff;width:100%;padding:18px;border-radius:20px 20px 0 0;display:flex;flex-direction:column;gap:8px}.phsheet .send{padding:14px;font-size:16px}.send.light{background:#eef6fb;color:#1a6fa0}
+.phw{position:relative;display:block}.pview{position:fixed;inset:0;z-index:60;background:#000;color:#fff;overflow:hidden}.pvs{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;touch-action:none;overflow:hidden}.pvs img{max-width:100%;max-height:100%;object-fit:contain;display:block;transform-origin:center center;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.pvbar{position:absolute;left:0;right:0;display:flex;align-items:center;transition:opacity .2s}.pview.bare .pvbar{opacity:0;pointer-events:none}.pvt{top:0;padding:calc(8px + env(safe-area-inset-top)) 10px 18px;background:linear-gradient(rgba(0,0,0,.7),transparent);gap:8px}.pvbtn{border:0;background:none;color:#fff;width:44px;height:44px;display:grid;place-items:center;cursor:pointer}.pvinfo{display:flex;flex-direction:column;font-size:13px;line-height:1.35}.pvinfo b{font-size:16px;font-weight:600}.pvinfo span{color:#ccc;text-transform:capitalize}.pvf{bottom:0;justify-content:space-around;padding:18px 10px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.7))}.pvact{border:0;background:none;color:#fff;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px;cursor:pointer;padding:6px 18px}.pvm{position:absolute;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(255,255,255,.92);color:#111;padding:9px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}.pvm.show{opacity:1}.phsrc{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 7px;border-radius:10px}.phsrc.cam{background:rgba(26,163,217,.9)}.phsheet{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;z-index:50}.phsheet>div{background:#fff;width:100%;padding:18px;border-radius:20px 20px 0 0;display:flex;flex-direction:column;gap:8px}.phsheet .send{padding:14px;font-size:16px}.send.light{background:#eef6fb;color:#1a6fa0}
 .ws{position:relative}.send .sm{display:none;line-height:0}.send:not(.txt){background:none;color:#1aa3d9;padding:6px 8px;touch-action:none;user-select:none;-webkit-user-select:none}.send:not(.txt) .st{display:none}.send:not(.txt) .sm{display:block}.ws.rec .send{color:#e8352b;transform:scale(1.3)}.ws.rec input,.ws.rec .camb{visibility:hidden}.recst{position:absolute;left:16px;right:60px;top:50%;transform:translateY(-50%);font-size:16px;color:#333;pointer-events:none}.recst b{color:#e8352b}.recst span{color:#999;font-size:12px;margin-left:6px}.aud{display:flex;flex-direction:column;gap:2px}.aud audio{width:230px;max-width:100%;height:40px}.aud span{font-size:12px;opacity:.75}
 .mph{display:block;max-width:220px;max-height:260px;border-radius:12px}.camb{border:0;background:none;padding:4px 8px 4px 0;cursor:pointer;flex:none;display:flex}.camb i{display:block;width:30px;height:30px;background:#1aa3d9;-webkit-mask:url(/app/img2014/camera.png) center/contain no-repeat;mask:url(/app/img2014/camera.png) center/contain no-repeat}.ws .camb{margin-left:-8px}
 .send{border:0;background:var(--green);color:#fff;border-radius:22px;padding:11px 16px;font:inherit;font-weight:600;cursor:pointer}
@@ -109,15 +109,85 @@ function bindMic(send) {
   const end = () => { held = false; if (rec?.state === 'recording') stop(); };
   btn.addEventListener('pointerup', end); btn.addEventListener('pointercancel', end);
 }
+// visor de fotos: encajada en pantalla, zoom con dos dedos (o doble toque), arrastrar con un dedo cuando hay zoom,
+// barra arriba con origen y hora, abajo Descargar y Compartir; un toque oculta/muestra las barras
+const pvTime = d => d ? new Date(d).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+const pvName = (url, at) => { const d = at ? new Date(at) : new Date(), p = n => String(n).padStart(2, '0'); return `scan2com-foto-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.${(url.split('#')[0].match(/\.(\w{3,4})(\?|$)/) || [, 'jpg'])[1]}`; };
+const pvMsg = t => { const m = document.getElementById('pvm'); if (!m) return; m.textContent = t; m.classList.add('show'); clearTimeout(m._t); m._t = setTimeout(() => m.classList.remove('show'), 2600); };
+async function pvData(url) { const b = await (await fetch(url.split('#')[0])).blob(); return { blob: b, b64: await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result.split(',')[1]); f.readAsDataURL(b); }) }; }
+async function pvDownload(url, at) {
+  const name = pvName(url, at), P = window.Capacitor?.Plugins;
+  try {
+    const { blob, b64 } = await pvData(url);
+    if (window.Capacitor?.isNativePlatform?.() && P?.Filesystem) {
+      try { await P.Filesystem.writeFile({ path: 'Scan2Com/' + name, data: b64, directory: 'DOCUMENTS', recursive: true }); return pvMsg('Foto guardada en Documentos/Scan2Com'); }
+      catch (e) { const f = await P.Filesystem.writeFile({ path: name, data: b64, directory: 'CACHE' }); return await P.Share.share({ title: name, files: [f.uri], dialogTitle: 'Guardar foto' }); }
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    pvMsg('Foto descargada');
+  } catch (e) { pvMsg('No se ha podido descargar la foto'); }
+}
+async function pvShare(url, at) {
+  const name = pvName(url, at), P = window.Capacitor?.Plugins;
+  try {
+    const { blob, b64 } = await pvData(url);
+    if (window.Capacitor?.isNativePlatform?.() && P?.Share && P?.Filesystem) {
+      const f = await P.Filesystem.writeFile({ path: name, data: b64, directory: 'CACHE' });
+      return await P.Share.share({ title: 'Foto', files: [f.uri], dialogTitle: 'Compartir foto' });
+    }
+    const file = new File([blob], name, { type: blob.type || 'image/jpeg' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) return await navigator.share({ files: [file], title: 'Foto' });
+    if (navigator.share) return await navigator.share({ url: url.split('#')[0], title: 'Foto' });
+    await navigator.clipboard.writeText(url.split('#')[0]); pvMsg('Enlace de la foto copiado');
+  } catch (e) { if (e?.name !== 'AbortError' && !/cancel/i.test(e?.message || '')) pvMsg('No se ha podido compartir la foto'); }
+}
+function pvHtml(url, at, tag) {
+  const src = /#cam$/.test(url) ? '📷 Hecha ahora' : /#gal$/.test(url) ? '🖼️ De la galería' : 'Foto';
+  return `<div class="pview" id="pv"><div class="pvs" id="pvs"><img id="pvi" src="${esc(url.split('#')[0])}" alt="Foto" draggable="false"></div>
+  <div class="pvt pvbar"><button class="pvbtn" id="pvx" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><div class="pvinfo"><b>${src}</b>${at ? `<span>${esc(pvTime(at))}</span>` : ''}</div></div>
+  <div class="pvf pvbar"><button class="pvact" id="pvd"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Descargar</button><button class="pvact" id="pvsh"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg>Compartir</button></div>
+  <div class="pvm" id="pvm"></div></div>`;
+}
+function pvBind(url, at, close) {
+  const v = document.getElementById('pv'), box = document.getElementById('pvs'), img = document.getElementById('pvi');
+  document.getElementById('pvx').onclick = close;
+  document.getElementById('pvd').onclick = () => pvDownload(url, at);
+  document.getElementById('pvsh').onclick = () => pvShare(url, at);
+  let s = 1, tx = 0, ty = 0, st = null, down = 0, moved = false, lastTap = 0, tapT = null;
+  const pts = new Map();
+  const apply = anim => { img.style.transition = anim ? 'transform .2s' : 'none'; img.style.transform = `translate(${tx}px,${ty}px) scale(${s})`; };
+  const clamp = () => { if (s <= 1.01) { s = 1; tx = 0; ty = 0; return; } const r = box.getBoundingClientRect(), mx = Math.max(0, (img.offsetWidth * s - r.width) / 2), my = Math.max(0, (img.offsetHeight * s - r.height) / 2); tx = Math.min(mx, Math.max(-mx, tx)); ty = Math.min(my, Math.max(-my, ty)); };
+  const rel = () => { const r = box.getBoundingClientRect(), p = [...pts.values()], cx = p.reduce((a, q) => a + q.x, 0) / p.length - r.left - r.width / 2, cy = p.reduce((a, q) => a + q.y, 0) / p.length - r.top - r.height / 2; return { cx, cy, d: p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0, n: p.length, s, tx, ty }; };
+  box.onpointerdown = e => { try { box.setPointerCapture(e.pointerId); } catch (x) {} pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); st = rel(); if (pts.size === 1) { down = Date.now(); moved = false; } };
+  box.onpointermove = e => {
+    if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const c = rel(); if (c.n !== st.n) { st = c; return; }
+    if (Math.hypot(c.cx - st.cx, c.cy - st.cy) > 8 || c.n > 1) moved = true;
+    if (c.n > 1 && st.d) { const ns = Math.min(6, Math.max(.8, st.s * c.d / st.d)); tx = c.cx - (st.cx - st.tx) * ns / st.s; ty = c.cy - (st.cy - st.ty) * ns / st.s; s = ns; apply(); }
+    else if (st.s > 1) { tx = st.tx + c.cx - st.cx; ty = st.ty + c.cy - st.cy; apply(); }
+  };
+  const up = e => {
+    if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId);
+    if (pts.size) { st = rel(); return; }
+    clamp(); apply(true);
+    if (moved || Date.now() - down > 350) return;
+    const now = Date.now();
+    if (now - lastTap < 300) {   // doble toque: acerca donde se toca, o vuelve a encajar
+      clearTimeout(tapT); lastTap = 0;
+      if (s > 1) { s = 1; tx = 0; ty = 0; } else { const r = box.getBoundingClientRect(), cx = e.clientX - r.left - r.width / 2, cy = e.clientY - r.top - r.height / 2; s = 2.5; tx = -cx * 1.5; ty = -cy * 1.5; clamp(); }
+      apply(true);
+    } else { lastTap = now; tapT = setTimeout(() => v.classList.toggle('bare'), 300); }
+  };
+  box.onpointerup = up; box.onpointercancel = up;
+}
 document.addEventListener('click', e => {
   const a = e.target.closest('[data-photo]'); if (!a) return; e.preventDefault();
-  const v = document.createElement('div'); v.className = 'pview'; v.id = 'pv';
-  v.innerHTML = `<img src="${esc(a.dataset.photo)}" alt="Foto"><button class="pvx" aria-label="Cerrar">✕</button>`;
-  document.body.appendChild(v); history.pushState({ pv: 1 }, '');
-  v.onclick = () => history.back();
+  const u = a.dataset.photo, at = a.dataset.at, w = document.createElement('div');
+  w.innerHTML = pvHtml(u, at); document.body.appendChild(w.firstElementChild); history.pushState({ pv: 1 }, '');
+  pvBind(u, at, () => history.back());
 });
 addEventListener('popstate', () => { const v = document.getElementById('pv'); if (v) v.remove(); });
-const msgBody = b => isAudio(b) ? audBody(b) : isPhoto(b) ? `<a href="${esc(b.slice(4))}" data-photo="${esc(b.slice(4))}" class="phw"><img class="mph" src="${esc(b.slice(4))}" loading="lazy" alt="Foto">${photoTag(b)}</a>` : esc(b);
+const msgBody = (b, at) => isAudio(b) ? audBody(b) : isPhoto(b) ? `<a href="${esc(b.slice(4))}" data-photo="${esc(b.slice(4))}" data-at="${esc(at || '')}" class="phw"><img class="mph" src="${esc(b.slice(4))}" loading="lazy" alt="Foto">${photoTag(b)}</a>` : esc(b);
 function pickPhoto() {   // primero se elige: hacer la foto ahora o cogerla de la galería
   return new Promise(res => {
     const box = document.createElement('div'); box.className = 'phsheet';
@@ -294,7 +364,7 @@ async function linkChat() {
 function renderChat() {
   app.innerHTML = `
     <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div>${sbA ? `<a href="/app/?vchat=${chat.id}" style="font-size:13px;color:#0a8f8f;font-weight:600;text-decoration:none">Mis chats ›</a>` : '<span style="font-size:12px;color:#777">chat anónimo</span>'}</div>
-    <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${msgBody(m.body)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
+    <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${msgBody(m.body, m.at)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
     ${alive ? `<div class="ws"><button class="camb" id="cph" title="Enviar foto"><i></i></button><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs"><span class="st">Enviar</span><span class="sm"><svg width="26" height="26" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></button></div>` : ''}`;
   $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };
   app.classList.add('full'); const ms = $('#ms'); ms.scrollTop = ms.scrollHeight;

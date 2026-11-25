@@ -979,16 +979,16 @@ function carSheetAsk(c, url) {
     <div style="font-size:14px;color:#555;margin-bottom:14px">Hoja A4 con las 4 pegatinas a tamaño real (210 × 100 mm), giradas y centradas con margen. Imprime al 100 %, sin "ajustar a la página".</div>
     <button class="btn" id="pdfn" style="margin-bottom:8px">${IC.pdf(20)} Normal <span style="font-weight:400;opacity:.85">· en papel de pegatina, se pega por fuera; o en papel normal, por dentro del cristal sujeto con celo</span></button>
     <button class="btn light" id="pdfm">${IC.pdf(20)} En espejo <span style="font-weight:400;opacity:.8">· vinilo transparente, se pega por dentro del cristal</span></button>
+    <button class="btn light" id="pdfe" style="margin-top:8px">✉️ Enviármelo por email <span style="font-weight:400;opacity:.8">· formato normal, a ${esc(S.user.email || 'tu email')}</span></button>
   </div></div>`;
   const close = () => { $('#overlay').innerHTML = ''; };
   $('#pdfs').onclick = close;
   $('#pdfn').onclick = () => { close(); carSheetPdf(c, url, false); };
   $('#pdfm').onclick = () => { close(); carSheetPdf(c, url, true); };
+  $('#pdfe').onclick = () => { close(); mailCarSheet(c, true); };
 }
 const BMP = '4,2 3,7 2,8 2,26 1,27 1,73 2,74 3,91 4,92 5,102 6,103 6,106 7,107 7,110 8,111 8,114 9,115 10,120 18,134 25,141 29,144 39,149 41,149 48,152 51,152 56,154 60,154 61,155 66,155 67,156 73,156 74,157 85,157 86,158 126,158 127,157 149,157 150,156 154,156 158,153 157,149 149,141 146,140 144,138 141,138 140,137 129,137 128,136 115,136 114,135 105,135 104,134 97,134 96,133 84,132 83,131 79,131 78,130 74,130 66,127 63,127 52,122 48,119 37,107 31,92 31,89 30,88 30,85 28,80 28,76 27,75 26,63 25,62 24,45 23,44 23,30 22,29 22,19 21,18 21,15 19,11 14,6 14,5 8,1';   // contorno del boomerang del logo, en 160×160 (vértice abajo a la izquierda)
-async function carSheetPdf(c, url, mirror) {
-  busy(true);
-  try {
+async function carSheetBin(c, url, mirror) {
     const [base, spec] = await Promise.all([loadImg('/app/img2014/plantilla_coche.png'), fetch('/app/img2014/plantilla_coche.json').then(r => r.json())]);
     const cv = document.createElement('canvas'); cv.width = base.width; cv.height = base.height;
     const x = cv.getContext('2d'); x.drawImage(base, 0, 0); x.imageSmoothingQuality = 'high';
@@ -1017,8 +1017,12 @@ async function carSheetPdf(c, url, mirror) {
     // girada 90° y centrada en el A4 vertical: deja ~4 cm de margen por todos lados (las impresoras no imprimen hasta el borde)
     const rot = document.createElement('canvas'); rot.width = out.height; rot.height = out.width;
     const r2 = rot.getContext('2d'); r2.translate(rot.width, 0); r2.rotate(Math.PI / 2); r2.drawImage(out, 0, 0);
-    const bin = pdfFromJpeg(rot.toDataURL('image/jpeg', 0.95), rot.width, rot.height, spec.mm[1], spec.mm[0]);
-    const name = `scan2com-pegatinas-coche-${c.id}${mirror ? '-espejo' : ''}.pdf`, P = window.Capacitor?.Plugins;
+    return { bin: pdfFromJpeg(rot.toDataURL('image/jpeg', 0.95), rot.width, rot.height, spec.mm[1], spec.mm[0]), name: `scan2com-pegatinas-coche-${c.id}${mirror ? '-espejo' : ''}.pdf` };
+}
+async function carSheetPdf(c, url, mirror) {
+  busy(true);
+  try {
+    const { bin, name } = await carSheetBin(c, url, mirror), P = window.Capacitor?.Plugins;
     if (NATIVE && P?.Share && P?.Filesystem) {
       const f = await P.Filesystem.writeFile({ path: name, data: btoa(bin), directory: 'CACHE' });
       busy(false); return await P.Share.share({ title: 'Pegatinas de coche Scan2Com', text: 'Hoja A4 con 4 pegatinas de coche a tamaño real. Imprime al 100 %, sin ajustar a la página.', files: [f.uri], dialogTitle: 'Enviar PDF' });
@@ -1434,6 +1438,25 @@ async function ensureCar() {
   if (!r.error && r.data) { if (old) Object.assign(old, r.data); else S.codes.push(r.data); ls.set('sa_car_' + S.user.id, 1); render(); }
 }
 
+/* email con el PDF normal de las pegatinas del coche: automático una sola vez al registrarse (si falla, se reintenta al abrir la app),
+   y a mano desde el botón PDF siempre que quiera */
+async function mailCarSheet(c, manual) {
+  const k = 'sa_carmail_' + S.user.id;
+  if (!manual) {
+    if (ls.get(k, 0) || Date.now() - new Date(S.user.created_at || 0) > 7 * 864e5) return;
+    c = S.codes.find(c => c.owner_id === S.user.id && isCar(c)); if (!c) return;
+  }
+  if (manual) busy(true);
+  try {
+    const { bin, name } = await carSheetBin(c, `${SITE}/s/${c.id}`, false);
+    const { data: { session } } = await sb.auth.getSession(); if (!session) throw new Error('sin sesión');
+    const r = await fetch(PUSH_FN.replace(/push$/, 'pegatina'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token }, body: JSON.stringify({ code_id: c.id, filename: name, pdf: btoa(bin), manual: !!manual }) });
+    const j = await r.json().catch(() => ({}));
+    if (manual) { busy(false); toast(j.sent ? `PDF enviado a ${S.user.email}` : j.error === 'limit' ? 'Ya te lo hemos enviado varias veces hoy. Prueba mañana.' : 'No se ha podido enviar el email.'); return; }
+    if (r.ok && (j.sent || j.already)) { ls.set(k, 1); if (j.sent) toast('Te hemos enviado a tu email el PDF de las pegatinas para tu coche.'); }
+  } catch (e) { if (manual) { busy(false); toast('No se ha podido enviar el email.'); } }
+}
+
 /* ---------- Scan2Com Police: aviso de autoridad ---------- */
 const POLICE_MSGS = ['Su vehículo está mal estacionado. Acuda inmediatamente.', 'Su vehículo obstaculiza la salida de otro vehículo.', 'Su vehículo va a ser retirado por la grúa.', 'Contacte con la policía en relación con su vehículo.'];
 function policeSheet(id) {
@@ -1548,7 +1571,7 @@ async function start(session) {
   S.user = session?.user || null;
   if (!S.user) { channel?.unsubscribe(); return render(); }
   app.innerHTML = `<div style="position:fixed;inset:0;background:#000;display:grid;place-items:center;z-index:30"><img src="/app/img2014/icon.png" width="170" height="170" alt="Scan2Com" onerror="this.src='/app/icon-192.png'"></div>`;
-  await loadAll(); await ensureStarter(); await ensureCar(); subscribe(); render(); syncAuto(); checkTerms();
+  await loadAll(); await ensureStarter(); await ensureCar(); subscribe(); render(); syncAuto(); checkTerms(); setTimeout(() => mailCarSheet(), 3000);
   if (location.search) { openUrl(location.href); history.replaceState(null, '', '/app/'); }
   checkVersion();
   if (NATIVE) { await Promise.race([enableNativePush(false), new Promise(r => setTimeout(r, 5000))]); avInit(); } else if (pushOK() && Notification.permission === 'granted') enablePush(false);

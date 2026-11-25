@@ -44,6 +44,7 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 .m.sys{align-self:center;background:none;color:#777;font-size:13px;text-align:center}
 .top{display:flex;align-items:center;gap:10px}
 .back{background:none;border:0;font:inherit;font-size:15px;color:#1a7fb0;font-weight:600;cursor:pointer;padding:6px 0}
+.mph{display:block;max-width:220px;max-height:260px;border-radius:12px}.camb{border:0;background:none;padding:4px 8px 4px 0;cursor:pointer;flex:none;display:flex}.camb i{display:block;width:30px;height:30px;background:#1aa3d9;-webkit-mask:url(/app/img2014/camera.png) center/contain no-repeat;mask:url(/app/img2014/camera.png) center/contain no-repeat}.ws .camb{margin-left:-8px}
 .send{border:0;background:var(--green);color:#fff;border-radius:22px;padding:11px 16px;font:inherit;font-weight:600;cursor:pointer}
 .mailbox{display:flex;flex-direction:column;gap:8px}
 .mailbox input,.mailbox textarea{font:inherit;font-size:16px;border:0;border-radius:14px;padding:12px}
@@ -64,6 +65,17 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const sb = createClient('https://kbkyosyenotqjcgujbmn.supabase.co', 'sb_publishable_Ac2fFMZTIWXMGfEURbVc8Q_Z2gcpujt', { auth: { persistSession: false } });
+// ---- fotos en el chat: el mensaje lleva "img:" + la dirección de la foto (comprimida en el móvil, sin datos de ubicación)
+const PHOTO_URL = 'https://kbkyosyenotqjcgujbmn.supabase.co/storage/v1/object/public/chat-photos/';
+const isPhoto = b => typeof b === 'string' && b.startsWith('img:' + PHOTO_URL);
+const msgBody = b => isPhoto(b) ? `<a href="${esc(b.slice(4))}" target="_blank" rel="noopener"><img class="mph" src="${esc(b.slice(4))}" loading="lazy" alt="Foto"></a>` : esc(b);
+function pickPhoto() { return new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = () => res(i.files[0] || null); i.click(); }); }
+async function compressPhoto(f, max = 1280, q = 0.72) {
+  const img = await new Promise((ok, ko) => { const u = URL.createObjectURL(f), im = new Image(); im.onload = () => { URL.revokeObjectURL(u); ok(im); }; im.onerror = ko; im.src = u; });
+  const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+  c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return await new Promise(ok => c.toBlob(ok, 'image/jpeg', q));
+}
 
 // Scan2Com Police: si en este navegador hay un agente con sesión iniciada en la app, puede enviar avisos de autoridad
 let AUTH = null, sbA = null;
@@ -225,14 +237,23 @@ async function linkChat() {
 function renderChat() {
   app.innerHTML = `
     <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div>${sbA ? `<a href="/app/?vchat=${chat.id}" style="font-size:13px;color:#0a8f8f;font-weight:600;text-decoration:none">Mis chats ›</a>` : '<span style="font-size:12px;color:#777">chat anónimo</span>'}</div>
-    <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${esc(m.body)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
-    ${alive ? `<div class="ws"><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs">Enviar</button></div>` : ''}`;
+    <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${msgBody(m.body)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
+    ${alive ? `<div class="ws"><button class="camb" id="cph" title="Enviar foto"><i></i></button><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs">Enviar</button></div>` : ''}`;
   $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };
   app.classList.add('full'); const ms = $('#ms'); ms.scrollTop = ms.scrollHeight;
   if ($('#ci')) $('#ci').onfocus = () => setTimeout(fitVV, 300);
   if (alive) {
     const send = async () => { const t = $('#ci').value.trim(); if (!t) return; $('#ci').value = ''; const r = await rpc('visitor_send', { p_chat: chat.id, p_token: chat.token, p_body: t }); if (!r.ok && r.error === 'closed') alive = false; fetchMsgs(); };
     $('#cs').onclick = send; $('#ci').onkeydown = e => { if (e.key === 'Enter') send(); };
+    $('#cph').onclick = async () => {
+      const f = await pickPhoto(); if (!f) return; const b = $('#cph'); b.disabled = true; b.style.opacity = .4;
+      try {
+        const blob = await compressPhoto(f), path = `${chat.id}/${crypto.randomUUID()}.jpg`;
+        const { error } = await sb.storage.from('chat-photos').upload(path, blob, { contentType: 'image/jpeg' }); if (error) throw error;
+        const r = await rpc('visitor_send', { p_chat: chat.id, p_token: chat.token, p_body: 'img:' + PHOTO_URL + path }); if (!r.ok && r.error === 'closed') alive = false;
+      } catch (e) { alert('No se ha podido enviar la foto.'); }
+      fetchMsgs();
+    };
   }
 }
 

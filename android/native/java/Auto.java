@@ -95,6 +95,22 @@ public class Auto {
         } catch (Exception e) { return false; }
     }
 
+    /** Avisos de emergencia por zona: guarda dónde quedó el coche (el servidor solo lo acepta si el dueño dio su consentimiento). */
+    static boolean setGeo(Context c, String code, Location loc) {
+        JSONObject k = cfg(c);
+        if (loc == null || !k.optBoolean("zone")) return false;
+        try {
+            URL u = new URL(k.getString("url") + "/rest/v1/rpc/device_set_code_geo");
+            HttpURLConnection h = (HttpURLConnection) u.openConnection();
+            h.setRequestMethod("POST"); h.setConnectTimeout(15000); h.setReadTimeout(15000); h.setDoOutput(true);
+            h.setRequestProperty("Content-Type", "application/json"); h.setRequestProperty("apikey", k.getString("key"));
+            JSONObject b = new JSONObject().put("p_token", k.getString("token")).put("p_code", code)
+                .put("p_lat", loc.getLatitude()).put("p_lng", loc.getLongitude()).put("p_acc", (double) loc.getAccuracy());
+            try (OutputStream o = h.getOutputStream()) { o.write(b.toString().getBytes(StandardCharsets.UTF_8)); }
+            return h.getResponseCode() < 400;
+        } catch (Exception e) { return false; }
+    }
+
     static void notify(Context c, int id, String title, String text) {
         AlarmService.channels(c);
         Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);

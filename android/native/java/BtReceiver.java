@@ -9,7 +9,7 @@ import android.os.Build;
 import java.util.List;
 import org.json.JSONObject;
 
-/** Bluetooth del coche: al desconectar activa el código (salvo en lugares seguros); al conectar, si se pidió, vigila si vas conduciendo. */
+/** Bluetooth del coche: al desconectar guarda dónde quedó el coche (si aceptó los avisos por zona) y activa el código (salvo en lugares seguros); al conectar, si se pidió, vigila si vas conduciendo. */
 public class BtReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent i) {
@@ -31,6 +31,7 @@ public class BtReceiver extends BroadcastReceiver {
         new Thread(() -> {
             try {
                 Location loc = Auto.location(ctx, 12000);
+                for (JSONObject o : codes) Auto.setGeo(ctx, o.optString("id"), loc);   // última posición del coche (avisos por zona)
                 String safe = Auto.safePlace(ctx, loc);
                 if (safe != null) return;  // en casa / parking: no se activa
                 StringBuilder names = new StringBuilder();

@@ -165,7 +165,7 @@ html.dark{--ink:#e8e8e8;--mut:#a0a4aa;--line:#2e3135;--bg:#121212;color-scheme:d
 html.dark,html.dark body{background:#121212}
 html.dark .pager,html.dark .body,html.dark .buybar{background:#121212;border-color:#2e3135}
 html.dark .buybar b{color:#ddd}html.dark .foot2{background:#1e1f22;color:#ccc}
-html.dark .item{background:#18191b;border-bottom-color:#2a2c2f}html.dark .item .t{color:#ececec}html.dark .item .s{color:#9a9ea4}html.dark .item.off .t,html.dark .item.off .s{color:#5f6368}
+html.dark .item{background:#18191b;border-bottom-color:#2a2c2f}html.dark .item .t{color:#ececec}html.dark .page .ev{background:#18191b;border-bottom-color:#2a2c2f}html.dark .page .ev.new{background:#2a1c1b}html.dark .ev .t1{color:#ececec}html.dark .ev .s1{color:#9a9ea4}html.dark .item .s{color:#9a9ea4}html.dark .item.off .t,html.dark .item.off .s{color:#5f6368}
 html.dark .grp{color:#cfcfcf;border-top-color:#2a2c2f}
 html.dark .ib{color:#cfcfcf}
 html.dark .btn.light{background:#2a2c2f;color:#e8e8e8}
@@ -604,6 +604,7 @@ function openUrl(u) {
   if (q.get('chat')) S.view = { t: 'chat', id: q.get('chat') };
   else if (q.get('vchat')) S.view = { t: 'vchat', id: q.get('vchat') };
   else if (q.get('open')) setTimeout(() => openScanned(q.get('open')), 0);
+  else if (q.get('ack') && /^z\d+$/.test(q.get('ack'))) { S.alarm = null; S.tab = 'alerts'; S.view = null; render(); setTimeout(() => zoneMap(q.get('ack').slice(1)), 300); return; }
   else if (q.get('ack')) { markRead([Number(q.get('ack'))]); S.alarm = null; S.tab = 'alerts'; S.view = null; }
   else if (q.get('ev')) { const e = S.events.find(x => String(x.id) === q.get('ev')); if (e && !e.read_at) { S.alarm = e; sirenOn(); } else { S.tab = 'alerts'; S.view = null; } }
   else if (q.get('tab')) { S.tab = q.get('tab'); S.view = null; }
@@ -658,8 +659,8 @@ let leafletP = null;
 function loadLeaflet() {
   if (window.L) return Promise.resolve();
   return leafletP ||= new Promise((ok, ko) => {
-    const c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(c);
-    const j = document.createElement('script'); j.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; j.onload = ok; j.onerror = () => { leafletP = null; ko(); }; document.head.appendChild(j);
+    const c = document.createElement('link'); c.crossOrigin = 'anonymous'; c.rel = 'stylesheet'; c.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(c);
+    const j = document.createElement('script'); j.crossOrigin = 'anonymous'; j.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; j.onload = ok; j.onerror = () => { leafletP = null; ko(); }; document.head.appendChild(j);
   });
 }
 async function zoneMap(id) {
@@ -676,10 +677,10 @@ async function zoneMap(id) {
   try { await loadLeaflet(); } catch (e) { $('#zmap').textContent = 'No se ha podido cargar el mapa.'; return; }
   if (!$('#zmap')) return;
   $('#zmap').innerHTML = '';
-  const m = L.map('zmap', { zoomControl: true, attributionControl: true });
+  const m = L.map('zmap', { zoomControl: true, attributionControl: true }).setView([z.lat, z.lng], 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m);
   const area = L.circle([z.lat, z.lng], { radius: z.radius || 300, color: '#e8352b', weight: 2, fillOpacity: .18 }).addTo(m);
-  m.fitBounds(area.getBounds(), { padding: [24, 24] });
+  setTimeout(() => { try { m.invalidateSize(); m.fitBounds(area.getBounds(), { padding: [24, 24] }); } catch (e) {} }, 250);   // la hoja se anima al abrir: se recalcula el tamaño
   const dist = (a, b) => { const r = Math.PI / 180, x = (b.lng - a.lng) * r * Math.cos((a.lat + b.lat) / 2 * r), y = (b.lat - a.lat) * r; return Math.sqrt(x * x + y * y) * 6371000; };
   const pos = await hereNow(false);
   if (pos && $('#zmine')) {
@@ -1011,8 +1012,8 @@ function renderHome() {
     body += '<div style="height:90px"></div>';   // hueco para la barra fija de trazabilidad
   } else {
     const seen = S.seenEv, za = S.zalerts || [];
-    const zhtml = za.map(z => `<div class="ev ${z.read ? '' : 'new'}" data-zone="${z.id}"><div class="av" style="color:#fff;background:#f28c00">${IC.alert(22)}</div><div class="grow"><div class="t1">${{ cars: '🚗', fire: '🔥', security: '🚓', road: '🚧' }[z.kind] || '📢'} Aviso en tu zona · ${esc(z.title)}</div>
-      <div class="s1">${esc(z.body)} · ${ago(z.at)}${z.via === 'car' ? ' · por la ubicación de tu coche' : z.via === 'both' ? ' · por tu ubicación y la de tu coche' : ''}${z.lat != null ? ' · <span style="color:#1f86e0">ver zona en el mapa</span>' : ''}</div></div></div>`).join('');
+    const zhtml = za.map(z => `<div class="ev ${z.read ? '' : 'new'}" data-zone="${z.id}"><div class="av" style="color:#fff;background:#f28c00">${IC.alert(22)}</div><div class="grow"><div class="t1">${{ cars: '🚗', fire: '🔥', security: '🚓', road: '🚧' }[z.kind] || '📢'} ${esc(z.title)}</div>
+      <div class="s1">Aviso en tu zona · ${esc(z.body)} · ${ago(z.at)}${z.via === 'car' ? ' · por la ubicación de tu coche' : z.via === 'both' ? ' · por tu ubicación y la de tu coche' : ''}${z.lat != null ? ' · <span style="color:#1f86e0">ver zona en el mapa</span>' : ''}</div></div></div>`).join('');
     if (tab === S.tab && za.some(z => !z.read)) setTimeout(() => { za.forEach(z => { z.read = true; }); sb.rpc('read_zone_alerts').then(() => {}, () => {}); }, 1500);
     body = zhtml + (S.events.length || !za.length ? '' : '<div style="height:4px"></div>');
     body += S.events.length ? S.events.map(e => { const c = codeOf(e.code_id); const ic = { alert: IC.alert(22), mail: IC.mail(22), call: IC.phone(22), police: '<img src="/app/img2014/police.png" width="30" height="34" alt="Policía" style="display:block">' }[e.kind];

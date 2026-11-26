@@ -32,7 +32,7 @@ body{font-family:Inter,system-ui,sans-serif;color:var(--ink);max-width:560px;mar
 .ib{background:none;border:0;font-size:20px;cursor:pointer;padding:6px;color:#555}
 .tabs{display:flex;background:#3a3a3a;position:sticky;top:57px;z-index:2}
 .tabs button{flex:1;padding:13px 0;border:0;background:none;font:inherit;font-size:14px;font-weight:500;color:#9a9a9a;border-bottom:4px solid transparent;letter-spacing:.06em;cursor:pointer}
-.tabs button.on{color:#fff}
+.tabs button.on{color:#fff}.tabs.tabs4 button{font-size:13px;letter-spacing:.02em}
 .namebar{flex:none;background:#3a3a3a;color:#fff;text-align:center;font-size:14px;font-weight:500;letter-spacing:.06em;padding:13px 12px 17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tabs .ind{position:absolute;left:0;bottom:0;width:33.3333%;height:4px;background:#33b5e5;transition:transform .28s cubic-bezier(.2,.8,.2,1);pointer-events:none}
 #app.homepg{height:var(--vvh,100dvh);min-height:0;overflow:hidden;flex:none}
@@ -663,12 +663,13 @@ function loadLeaflet() {
     const j = document.createElement('script'); j.crossOrigin = 'anonymous'; j.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; j.onload = ok; j.onerror = () => { leafletP = null; ko(); }; document.head.appendChild(j);
   });
 }
-async function zoneMap(id) {
-  const z = (S.zalerts || []).find(x => String(x.id) === String(id)); if (!z) return;
+async function zoneMap(id, sent) {
+  const z = sent ? (S.zhist || []).find(x => String(x.id) === String(id)) : (S.zalerts || []).find(x => String(x.id) === String(id)); if (!z) return;
+  const TG = { both: 'coches y personas', cars: 'dueños de coches', people: 'personas' };
   const ic = { cars: '🚗', fire: '🔥', security: '🚓', road: '🚧' }[z.kind] || '📢';
   $('#overlay').innerHTML = `<div class="sheet keep" id="zm"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));text-align:left" onclick="event.stopPropagation()">
     <div style="font-weight:700;font-size:18px">${ic} ${esc(z.title)}</div>
-    <div style="font-size:14px;color:#444;line-height:1.45;margin:4px 0 10px">${esc(z.body)}<div style="font-size:12px;color:#888;margin-top:2px">${ago(z.at)}</div></div>
+    <div style="font-size:14px;color:#444;line-height:1.45;margin:4px 0 10px">${esc(z.body)}<div style="font-size:12px;color:#888;margin-top:2px">${sent ? `Enviado ${new Date(z.at).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })} · a ${TG[z.targets] || 'todos'} · radio ${z.radius >= 1000 ? (z.radius / 1000).toFixed(1).replace('.', ',') + ' km' : z.radius + ' m'}<br><b>${z.users} persona${z.users === 1 ? '' : 's'} avisada${z.users === 1 ? '' : 's'} · ${z.read} ${z.read === 1 ? 'lo ha' : 'lo han'} leído</b>` : ago(z.at)}</div></div>
     <div id="zmap" style="height:46vh;min-height:240px;border-radius:12px;background:#e8eef3;display:grid;place-items:center;color:#888;font-size:13px">${z.lat != null ? 'Cargando mapa…' : 'Este aviso no tiene zona en el mapa.'}</div>
     <div id="zmine" style="font-size:14px;margin-top:10px;font-weight:600"></div>
     <button class="btn light" id="zmx" style="margin-top:10px">Cerrar</button></div></div>`;
@@ -691,7 +692,7 @@ async function zoneMap(id) {
   }
   if (z.via === 'car' || z.via === 'both') { const { data } = await sb.from('code_geo').select('lat,lng').eq('owner_id', S.user.id); (data || []).forEach(g => L.marker([g.lat, g.lng], { title: 'Tu coche' }).addTo(m).bindTooltip('🚗 Tu coche')); }
 }
-document.addEventListener('click', e => { const el = e.target.closest('[data-zone]'); if (el) zoneMap(el.dataset.zone); });
+document.addEventListener('click', e => { const el = e.target.closest('[data-zone]'); if (el) return zoneMap(el.dataset.zone); const h = e.target.closest('[data-zhist]'); if (h) zoneMap(h.dataset.zhist, true); });
 async function hereNow(precise) {
   try { if (AUTO()) return await AUTO().here(); } catch (e) {}
   return await new Promise(ok => navigator.geolocation ? navigator.geolocation.getCurrentPosition(p => ok({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }), () => ok(null), { enableHighAccuracy: !!precise, timeout: 15000, maximumAge: 600000 }) : ok(null));
@@ -811,8 +812,10 @@ async function loadAll() {
   try { const [au, pr] = await Promise.all([sb.rpc('my_authority'), sb.from('profiles').select('terms_version').eq('id', S.user.id).maybeSingle()]);
     S.auth = au.data || null; S.terms = pr.data?.terms_version || null; } catch (e) {}
   try { const v = await sb.rpc('my_visitor_chats'); S.vchats = v.data || []; } catch (e) { S.vchats = S.vchats || []; }
-  try { const [g, z, ad] = await Promise.all([sb.from('user_geo').select('optin').eq('user_id', S.user.id).maybeSingle(), sb.rpc('my_zone_alerts'), sb.from('admins').select('user_id').eq('user_id', S.user.id).maybeSingle()]);
-    S.zone = !!g.data?.optin; S.admin = !!ad.data; S.zalerts = Array.isArray(z.data) ? z.data : []; } catch (e) { S.zalerts = S.zalerts || []; }
+  try { const [g, z, ad] = await Promise.all([sb.from('user_geo').select('optin').eq('user_id', S.user.id).maybeSingle(), sb.rpc('my_zone_alerts'), sb.rpc('my_zone_role')]);
+    S.zone = !!g.data?.optin; S.zrole = ad.data || null; S.admin = !!(ad.data && (ad.data.admin || (ad.data.groups || []).length)); S.zalerts = Array.isArray(z.data) ? z.data : []; } catch (e) { S.zalerts = S.zalerts || []; }
+  // pestaña ENVÍOS: solo para las cuentas que pueden enviar avisos por zona; ven el historial de todos los avisos enviados
+  TABS.splice(3); if (S.admin) { TABS.push('sent'); try { const h = await sb.rpc('zone_history'); S.zhist = h.data?.items || []; } catch (e) { S.zhist = S.zhist || []; } } else if (S.tab === 'sent') S.tab = 'codes';
   S.codes = c.data || []; S.chats = ch.data || []; S.favs = new Set((f.data || []).map(x => x.chat_id)); S.events = ev.data || []; S.places = pl.data || [];
   if (S.chats.length) {
     const { data } = await sb.from('messages').select('*').in('chat_id', S.chats.map(x => x.id)).order('id');
@@ -968,9 +971,19 @@ function traduce(m) {
 
 function renderHome() {
   const nEv = newEvents(), nUn = unreadTotal();
-  const tabs = [['codes', 'CÓDIGOS', 0], ['chats', 'CHATS', nUn], ['alerts', 'AVISOS', nEv]];
+  const tabs = [['codes', 'CÓDIGOS', 0], ['chats', 'CHATS', nUn], ['alerts', 'AVISOS', nEv]]; if (TABS.includes('sent')) tabs.push(['sent', 'ENVÍOS', 0]);
   const q = (S.q || '').toLowerCase(), match = (...xs) => !q || xs.some(x => (x || '').toLowerCase().includes(q));
   const page = tab => { let body = '';
+  if (tab === 'sent') {
+    const KI = { cars: ['🚗', 'Retirada de coches'], fire: ['🔥', 'Incendio'], security: ['🚓', 'Seguridad ciudadana'], road: ['🚧', 'Calle cortada'], other: ['✏️', 'Otro'] };
+    const fm = m => m >= 1000 ? (m / 1000).toFixed(m >= 10000 ? 0 : 1).replace('.', ',') + ' km' : m + ' m';
+    const hs = (S.zhist || []).filter(h => match(h.title, h.body));
+    const gn = (S.zrole?.groups || []).map(g => g.name).join(', ');
+    return `${gn || S.zrole?.admin ? `<div style="padding:12px 14px 0;font-size:13px;color:#888">${gn ? 'Envías como <b>' + esc(gn) + '</b>' : ''}${S.zrole?.admin ? (gn ? ' · ' : '') + 'Administrador: ves los avisos de todos los grupos' : ''}</div>` : ''}<div style="padding:14px 14px 6px"><a class="btn" href="/admin/zona.html" style="display:block;text-align:center;text-decoration:none;background:#f28c00;color:#fff">📢 Enviar nuevo aviso por zona</a></div>`
+      + (hs.length ? hs.map((h, i) => `<div class="ev" data-zhist="${h.id}"><div class="av" style="color:#fff;background:#f28c00;font-size:24px;display:grid;place-items:center">${(KI[h.kind] || KI.other)[0]}</div><div class="grow"><div class="t1">${esc(h.title)}</div>
+        <div class="s1">${h.group && (S.zrole?.admin || (S.zrole?.groups || []).length > 1) ? esc(h.group) + ' · ' : ''}${new Date(h.at).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${h.users} avisad${h.users === 1 ? 'a' : 'as'} · ${h.read} ${h.read === 1 ? 'lo ha' : 'lo han'} leído · ${fm(h.radius)}</div></div></div>`).join('')
+      : `<div class="empty">Aquí verás los avisos por zona que envíe ${(S.zrole?.groups || []).length === 1 && !S.zrole.admin ? esc(S.zrole.groups[0].name) : 'tu grupo'}: a cuánta gente llegaron, cuántos los han leído y la zona en el mapa.</div>`);
+  }
   if (tab === 'codes') {
     const codes = S.codes.filter(c => match(c.name, c.public_name, c.private_info));
     body = codes.length ? codes.map(c => `<div class="item ${c.is_on ? '' : 'off'}" data-code="${c.id}">
@@ -1030,7 +1043,7 @@ function renderHome() {
   const idx = Math.max(0, TABS.indexOf(S.tab)); app.classList.add('homepg');
   const keepScroll = {}; app.querySelectorAll('[data-page]').forEach(p => keepScroll[p.dataset.page] = p.scrollTop);
   app.innerHTML = `<div class="bar">${S.searching ? `<input id="sq" class="searchin" placeholder="Buscar…" value="${esc(S.q || '')}">` : `<span class="name">${S.auth ? 'Scan2Com Police' : 'Scan2Com'}</span>`}<button class="ib dark" id="bSearch" title="Buscar">${IC.search(26)}</button><button class="ib dark" id="bScan" title="Escanear">${SCANI(34)}</button><button class="ib dark" id="bMenu" title="Menú">${IC.dots(24)}${S.ver?.old ? '<i class="mdot"></i>' : ''}</button></div>
-    <div class="tabs">${tabs.map(([k, l, n]) => `<button class="${S.tab === k ? 'on' : ''}" data-tab="${k}">${l}${n && S.tab !== k ? `<span class="badge">${n}</span>` : ''}</button>`).join('')}<i class="ind" id="ind" style="transform:translateX(${idx * 100}%)"></i></div>
+    <div class="tabs ${tabs.length > 3 ? 'tabs4' : ''}">${tabs.map(([k, l, n]) => `<button class="${S.tab === k ? 'on' : ''}" data-tab="${k}">${l}${n && S.tab !== k ? `<span class="badge">${n}</span>` : ''}</button>`).join('')}<i class="ind" id="ind" style="width:${100 / tabs.length}%;transform:translateX(${idx * 100}%)"></i></div>
     <div class="pager" id="pg"><div class="track" id="tr" style="transform:translateX(${-idx * 100}%)">${TABS.map(t => `<div class="page body" data-page="${t}">${page(t)}</div>`).join('')}</div></div>${S.tab === 'codes' ? `<button class="fab" id="fab" style="display:grid;place-items:center">${IC.plus(28)}</button><div class="buybar" id="buy">Quiero pegatinas <b>impresas</b></div>` : S.tab === 'chats' ? `<label class="buybar" id="trc" style="display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer"><input type="checkbox" id="trcb" ${ls.get('sa_trace', false) ? 'checked' : ''} style="width:20px;height:20px;margin:0"><span>Mostrar <b>trazabilidad</b></span></label>` : ''}`;
   app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { const i = TABS.indexOf(b.dataset.tab); $('#tr').style.transform = `translateX(${-i * 100}%)`; $('#ind').style.transform = `translateX(${i * 100}%)`; setTimeout(() => { S.tab = b.dataset.tab; render(); }, 290); });
   app.querySelectorAll('[data-page]').forEach(p => { if (keepScroll[p.dataset.page]) p.scrollTop = keepScroll[p.dataset.page]; });

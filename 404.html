@@ -91,7 +91,7 @@ const fileBody = b => { const { u, size, name } = fileMeta(b), ext = (name.match
 const FILE_TYPES = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', odt: 'application/vnd.oasis.opendocument.text', ods: 'application/vnd.oasis.opendocument.spreadsheet', odp: 'application/vnd.oasis.opendocument.presentation', txt: 'text/plain', csv: 'text/csv', zip: 'application/zip', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', heic: 'image/heic', mp3: 'audio/mpeg', m4a: 'audio/mp4', ogg: 'audio/ogg', wav: 'audio/wav', mp4: 'video/mp4', mov: 'video/quicktime', '3gp': 'video/3gpp', webm: 'video/webm' };
 const FILE_MAX = 10 * 1048576;
 const isVideo = b => typeof b === 'string' && b.startsWith('vid:' + FILE_URL);
-const vidBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/#(\d+)$/) || [])[1] || 0; return `<div class="vidw"><video class="mvid" controls playsinline preload="metadata" src="${esc(u)}"></video><span>🎥 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span></div>`; };
+const vidBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/#(\d+)$/) || [])[1] || 0; return `<div class="vidw"><video class="mvid" controls playsinline preload="metadata" poster="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" src="${esc(u)}#t=0.1"></video><span>🎥 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span></div>`; };
 const vidSecs = f => new Promise(ok => { const v = document.createElement('video'), u = URL.createObjectURL(f); v.preload = 'metadata'; v.onloadedmetadata = () => { URL.revokeObjectURL(u); ok(isFinite(v.duration) ? Math.round(v.duration) : 0); }; v.onerror = () => ok(0); v.src = u; });
 const audMime = () => ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus'].find(t => window.MediaRecorder?.isTypeSupported?.(t)) || '';
 // micrófono: con el campo vacío (máx. 2 min). Mantener pulsado graba, soltar envía, deslizar a la izquierda cancela.
@@ -406,7 +406,7 @@ async function linkChat() {
 function renderChat() {
   app.innerHTML = `
     <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div>${sbA ? `<a href="/app/?vchat=${chat.id}" style="font-size:13px;color:#0a8f8f;font-weight:600;text-decoration:none">Mis chats ›</a>` : '<span style="font-size:12px;color:#777">chat anónimo</span>'}</div>
-    <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${msgBody(m.body, m.at)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
+    <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}"${!m.mine && /^(aud|vid):/.test(m.body) ? ` data-pm="${m.id}"` : ''}>${msgBody(m.body, m.at)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
     ${alive ? `<div class="ws"><button class="camb" id="cph" title="Enviar foto, ubicación o archivo"><i></i></button><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs"><span class="st">Enviar</span><span class="sm"><svg width="26" height="26" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="stopi"></span></span></button></div>` : ''}`;
   $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };
   app.classList.add('full'); const ms = $('#ms'); ms.scrollTop = ms.scrollHeight;
@@ -448,6 +448,9 @@ function renderChat() {
   }
 }
 
+// al reproducir un audio o vídeo del dueño se le avisa (su tic se pone verde)
+const playedSent = new Set();
+document.addEventListener('play', e => { const m = e.target.closest?.('[data-pm]'); if (!m || !chat) return; const id = +m.dataset.pm; if (playedSent.has(id)) return; playedSent.add(id); rpc('visitor_played', { p_chat: chat.id, p_token: chat.token, p_msg: id }); }, true);
 async function fetchMsgs() {
   const r = await rpc('visitor_messages', { p_chat: chat.id, p_token: chat.token, p_after: lastMsg, p_seen: !document.hidden });
   if (!r.ok) { if (r.error === 'forbidden') { localStorage.removeItem(chatKey()); chat = null; view = 'home'; clearInterval(poll); render(); } return; }
@@ -476,7 +479,7 @@ async function hydrate() {
     const raw = el.dataset.u || (el.tagName === 'A' ? el.getAttribute('href').split('?')[0] : el.getAttribute('src')); if (!raw || raw.startsWith('blob:')) continue;
     el.dataset.u = raw; const u = raw.split('#')[0]; let bu = mBlobs.get(u);
     if (!bu) { try { const c = await caches.open(MCACHE), r = await c.match(u); if (r) { bu = URL.createObjectURL(await r.blob()); mBlobs.set(u, bu); } } catch (e) {} }
-    if (bu && el.tagName !== 'A') el.src = bu;
+    if (bu && el.tagName !== 'A') el.src = bu + (el.tagName === 'VIDEO' ? '#t=0.1' : '');
   }
 }
 document.addEventListener('click', async e => {

@@ -60,6 +60,9 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 .foot{text-align:center;font-size:12px;color:#888}
 .inst{display:flex;align-items:center;gap:14px;margin:20px 0 8px;padding:16px 18px;border-radius:18px;background:#2fc23a;color:#fff;text-decoration:none;line-height:1.3;font-size:18px;box-shadow:0 6px 18px rgba(47,194,58,.35)}.inst img{width:44px;height:44px;flex:none;background:#fff;border-radius:12px;padding:4px}.inst small{color:#eaffea;font-size:14px}
 .foot a{color:#666}
+.offbox{margin:0 0 14px;padding:22px 18px;border-radius:22px;background:#d32f2f;color:#fff;text-align:center;box-shadow:0 4px 16px rgba(211,47,47,.35)}
+.offic{width:76px;height:76px;margin:0 auto 12px;border-radius:50%;background:rgba(0,0,0,.22);border:3px solid #fff;display:flex;align-items:center;justify-content:center}
+.offt{font-size:26px;font-weight:800;line-height:1.2}.offs{font-size:16px;margin-top:8px;opacity:.95}
 </style>
 </head>
 <body>
@@ -291,7 +294,8 @@ function render() {
   const any = (!off && (ch.mail || ch.alert || ch.chat)) || !!AUTH;
   app.innerHTML = `
     <div class="brand">${LOGO} Scan2Com</div>
-    <div class="card"><h1>${esc(code.public_name || 'Scan2Com')}</h1><p>${off ? 'El dueño ha desactivado este código temporalmente.' : esc(code.public_desc || '')}</p></div>
+    ${off ? `<div class="offbox"><div class="offic"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></div><div class="offt">Código desactivado temporalmente</div><div class="offs">El dueño lo ha apagado: ahora no se le puede escribir.</div></div>` : ''}
+    <div class="card"><h1>${esc(code.public_name || 'Scan2Com')}</h1>${off ? '' : `<p>${esc(code.public_desc || '')}</p>`}</div>
     ${any ? `<div class="ws"><input id="ws" placeholder="Write & Send" maxlength="1000"></div>` : ''}
     <div class="status ${statusErr ? 'err' : ''}">${esc(status)}${pending && !statusErr ? '<div style="font-size:14px;margin-top:4px">Esperando a que el dueño lo lea<span class="wait"></span></div>' : ''}</div>
     ${!off && ch.call && code.phone ? `<div class="callrow"><a class="act call" href="tel:${esc(code.phone)}">${I.call}${esc(code.phone)}</a></div>` : ''}

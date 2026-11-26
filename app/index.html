@@ -538,9 +538,12 @@ function avSteps() {
     { k: 'battery', t: 'Batería sin restricciones', d: 'Para que el móvil no duerma la app.', ok: a.battery }];
   if (a.autostart) st.push({ k: 'auto', t: 'Activar Autoinicio', d: 'Se abre la pantalla de tu móvil: activa Scan2Com y vuelve.', ok: a.autostartOn === 1 || (a.autostartOn === -1 && !!ls.get('sa_autostart', 0)) });
   if (!a.fullscreen && S.codes.some(c => c.is_on && (c.ch_alert || c.auto_alert || c.ch_call))) st.push({ k: 'full', t: 'Alertas a pantalla completa', d: 'Activa el permiso y vuelve.', ok: false });
+  const locOk = a.loc !== false && a.locOn !== false, zNo = S.user && ls.get('sa_zone_no_' + S.user.id, 0);
+  st.push({ k: 'zone', opt: true, t: 'Ubicación: avisos de tu zona', d: S.zone ? (locOk ? 'Activados: incendios, calles cortadas… cerca de ti.' : a.locOn === false ? 'Enciende la ubicación del móvil.' : 'Falta el permiso de ubicación.') : zNo ? 'Opcional · no activado (tócalo si cambias de idea).' : 'Opcional: incendios, calles cortadas, retirada de coches… cerca de ti.',
+    ok: (S.zone && locOk) || (!S.zone && !!zNo) });
   return st;
 }
-const avMissing = () => avSteps().some(x => !x.ok);
+const avMissing = () => avSteps().some(x => !x.ok && !x.opt);   // lo opcional (avisos por zona) no hace saltar el asistente
 // devuelve true si se ha salido de la app (ajustes del sistema): se continúa al volver
 async function avRun(k) {
   const A = AUTO();
@@ -553,6 +556,10 @@ async function avRun(k) {
   if (k === 'battery') { await A.askBattery(); return true; }
   if (k === 'auto') { ls.set('sa_autostart', 1); await A.openAutostart(); return true; }
   if (k === 'full') { await A.openFullScreen(); return true; }
+  if (k === 'zone') {
+    if (!S.zone) { const yes = await zoneAsk(); if (!yes) { ls.set('sa_zone_no_' + S.user.id, 1); return false; } if (!await zoneSet(true)) return false; }
+    return (await zoneLoc()) === 'left';
+  }
   return false;
 }
 function avSheet() {
@@ -567,7 +574,9 @@ function avSheet() {
   const close = () => { S.avOpen = false; $('#overlay').innerHTML = ''; render(true); };
   $('#av').onclick = close; if ($('#avno')) $('#avno').onclick = close;
   $('#avgo').onclick = () => { if (!left) return close(); S.avTried = new Set(); avNext(); };
-  document.querySelectorAll('[data-av]').forEach(el => el.onclick = async () => { const x = st.find(y => y.k === el.dataset.av); if (x && !x.ok) { S.avTried.add(x.k); if (!await avRun(x.k)) avNext(); } });
+  document.querySelectorAll('[data-av]').forEach(el => el.onclick = async () => { const x = st.find(y => y.k === el.dataset.av); if (!x) return;
+    if (x.k === 'zone' && x.ok && !S.zone) ls.set('sa_zone_no_' + S.user.id, 0);   // había dicho que no y ahora lo toca: se le vuelve a preguntar
+    if (x.ok && !(x.k === 'zone' && !S.zone)) return; S.avTried.add(x.k); if (!await avRun(x.k)) avNext(); else avSheet(); });
 }
 async function avNext() {
   if (!S.avOpen || S.avBusy) return; S.avBusy = true;
@@ -588,7 +597,7 @@ async function avInit() {
   if (avMissing() && avRelevant() && Date.now() - ls.get('sa_av_ask', 0) > 864e5) { ls.set('sa_av_ask', Date.now()); avOpen(true); }
 }
 // al volver de los ajustes del sistema se sigue con el siguiente paso
-const avResume = () => { if (S.avOpen) setTimeout(avNext, 500); else if (S.av) avStatus().then(() => render(true)); };
+const avResume = () => { if (S.zoneWait) return zoneResume(); if (S.avOpen) setTimeout(avNext, 500); else if (S.av) avStatus().then(() => render(true)); };
 try { if (NATIVE && window.Capacitor.Plugins.App) { window.Capacitor.Plugins.App.addListener('resume', () => { S.paused = false; avResume(); }); window.Capacitor.Plugins.App.addListener('pause', () => { S.paused = true; }); } } catch (e) {}
 function openUrl(u) {
   const q = new URL(u, location.href).searchParams;
@@ -599,6 +608,7 @@ function openUrl(u) {
   else if (q.get('ev')) { const e = S.events.find(x => String(x.id) === q.get('ev')); if (e && !e.read_at) { S.alarm = e; sirenOn(); } else { S.tab = 'alerts'; S.view = null; } }
   else if (q.get('tab')) { S.tab = q.get('tab'); S.view = null; }
   render();
+  if (q.get('zone')) { S.tab = 'alerts'; S.view = null; render(); setTimeout(() => zoneMap(q.get('zone')), 300); }
 }
 
 /* ---------------- coche: Bluetooth + lugares seguros (app Android) ---------------- */
@@ -643,6 +653,44 @@ async function syncAuto() {
   try { await A.setConfig({ json: JSON.stringify(cfg) }); } catch (e) {}
 }
 /* ---------------- avisos de emergencia en tu zona (consentimiento + última ubicación) ---------------- */
+// mapa de la zona afectada: área del aviso, dónde estás tú y dónde dejaste el coche (Leaflet + OpenStreetMap, se carga solo al abrirlo)
+let leafletP = null;
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  return leafletP ||= new Promise((ok, ko) => {
+    const c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(c);
+    const j = document.createElement('script'); j.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; j.onload = ok; j.onerror = () => { leafletP = null; ko(); }; document.head.appendChild(j);
+  });
+}
+async function zoneMap(id) {
+  const z = (S.zalerts || []).find(x => String(x.id) === String(id)); if (!z) return;
+  const ic = { cars: '🚗', fire: '🔥', security: '🚓', road: '🚧' }[z.kind] || '📢';
+  $('#overlay').innerHTML = `<div class="sheet keep" id="zm"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));text-align:left" onclick="event.stopPropagation()">
+    <div style="font-weight:700;font-size:18px">${ic} ${esc(z.title)}</div>
+    <div style="font-size:14px;color:#444;line-height:1.45;margin:4px 0 10px">${esc(z.body)}<div style="font-size:12px;color:#888;margin-top:2px">${ago(z.at)}</div></div>
+    <div id="zmap" style="height:46vh;min-height:240px;border-radius:12px;background:#e8eef3;display:grid;place-items:center;color:#888;font-size:13px">${z.lat != null ? 'Cargando mapa…' : 'Este aviso no tiene zona en el mapa.'}</div>
+    <div id="zmine" style="font-size:14px;margin-top:10px;font-weight:600"></div>
+    <button class="btn light" id="zmx" style="margin-top:10px">Cerrar</button></div></div>`;
+  $('#zm').onclick = $('#zmx').onclick = () => { $('#overlay').innerHTML = ''; };
+  if (z.lat == null) return;
+  try { await loadLeaflet(); } catch (e) { $('#zmap').textContent = 'No se ha podido cargar el mapa.'; return; }
+  if (!$('#zmap')) return;
+  $('#zmap').innerHTML = '';
+  const m = L.map('zmap', { zoomControl: true, attributionControl: true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m);
+  const area = L.circle([z.lat, z.lng], { radius: z.radius || 300, color: '#e8352b', weight: 2, fillOpacity: .18 }).addTo(m);
+  m.fitBounds(area.getBounds(), { padding: [24, 24] });
+  const dist = (a, b) => { const r = Math.PI / 180, x = (b.lng - a.lng) * r * Math.cos((a.lat + b.lat) / 2 * r), y = (b.lat - a.lat) * r; return Math.sqrt(x * x + y * y) * 6371000; };
+  const pos = await hereNow(false);
+  if (pos && $('#zmine')) {
+    L.circleMarker([pos.lat, pos.lng], { radius: 8, color: '#fff', weight: 3, fillColor: '#1f86e0', fillOpacity: 1 }).addTo(m).bindTooltip('Tú');
+    const d = dist({ lat: z.lat, lng: z.lng }, pos), inside = d <= (z.radius || 300);
+    $('#zmine').innerHTML = inside ? '<span style="color:#e8352b">⚠ Estás dentro de la zona del aviso.</span>' : `<span style="color:#1a9c16">✓ Ahora estás fuera de la zona</span> <span style="font-weight:400;color:#666">(a ${d >= 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(d) + ' m'} del área).</span>`;
+    m.fitBounds(area.getBounds().extend([pos.lat, pos.lng]), { padding: [24, 24], maxZoom: 16 });
+  }
+  if (z.via === 'car' || z.via === 'both') { const { data } = await sb.from('code_geo').select('lat,lng').eq('owner_id', S.user.id); (data || []).forEach(g => L.marker([g.lat, g.lng], { title: 'Tu coche' }).addTo(m).bindTooltip('🚗 Tu coche')); }
+}
+document.addEventListener('click', e => { const el = e.target.closest('[data-zone]'); if (el) zoneMap(el.dataset.zone); });
 async function hereNow(precise) {
   try { if (AUTO()) return await AUTO().here(); } catch (e) {}
   return await new Promise(ok => navigator.geolocation ? navigator.geolocation.getCurrentPosition(p => ok({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }), () => ok(null), { enableHighAccuracy: !!precise, timeout: 15000, maximumAge: 600000 }) : ok(null));
@@ -654,25 +702,77 @@ async function zoneGeo(force) {
   const pos = await hereNow(false); if (!pos) return;
   ls.set(k, Date.now()); sb.rpc('set_my_geo', { p_lat: pos.lat, p_lng: pos.lng, p_acc: pos.acc || null }).then(() => {}, () => {});
 }
-function zoneSheet() {
-  $('#overlay').innerHTML = `<div class="sheet keep" id="zs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));text-align:left" onclick="event.stopPropagation()">
-    <div style="font-weight:700;font-size:18px;margin-bottom:6px">📢 Avisos de emergencia en tu zona</div>
-    <div style="font-size:14px;color:#444;line-height:1.45">Te llegarán avisos importantes de la zona en la que estás o en la que has dejado tu coche: un incendio, una calle que hay que despejar, una emergencia…</div>
-    <ul style="font-size:13px;color:#555;line-height:1.45;padding-left:18px;margin:10px 0">
+const ZONE_INFO = `<ul style="font-size:13px;color:#555;line-height:1.45;padding-left:18px;margin:10px 0">
       <li>Guardamos solo tu <b>última ubicación</b>, cuando abres la app, y dónde quedó tu coche al bajarte (si tienes su pegatina vinculada al Bluetooth).</li>
       <li>Nadie ve tu ubicación: solo se usa para saber si estás dentro de la zona de un aviso.</li>
-      <li>Puedes desactivarlo cuando quieras y <b>se borran tus ubicaciones</b> al momento.</li></ul>
+      <li>Puedes desactivarlo cuando quieras en ⋮ y <b>se borran tus ubicaciones</b> al momento.</li></ul>`;
+const zoneSheetBox = inner => `<div class="sheet keep" id="zs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));text-align:left" onclick="event.stopPropagation()">${inner}</div></div>`;
+// deja lista la ubicación para los avisos por zona: pide el permiso (ventana de Android), abre los ajustes si ya se denegó
+// o la pantalla para encender la ubicación del móvil. 'ok' = ubicación guardada · 'left' = se ha salido a Android (se sigue al volver) · 'fail'
+async function zoneLoc() {
+  const A = AUTO();
+  if (A && A.askLocation) {
+    let st = null; try { st = await A.avisos(); } catch (e) {}
+    if (st && (!st.loc || !st.locOn)) { const r = await A.askLocation(); if (r.step !== 'ok') { S.zoneWait = Date.now(); return 'left'; } }
+  }
+  const pos = await hereNow(false); if (!pos) return 'fail';
+  ls.set('sa_zgeo_' + S.user.id, Date.now()); sb.rpc('set_my_geo', { p_lat: pos.lat, p_lng: pos.lng, p_acc: pos.acc || null }).then(() => {}, () => {});
+  return 'ok';
+}
+// al volver de la ventana de permisos o de los ajustes del móvil
+async function zoneResume() {
+  if (!S.zoneWait || Date.now() - S.zoneWait > 10 * 60e3) { S.zoneWait = 0; return; }
+  S.zoneWait = 0; await new Promise(r => setTimeout(r, 600));
+  const r = await zoneLoc();
+  if (r === 'ok') { toast('📢 Avisos de tu zona activados ✓'); if (S.av) await avStatus(); render(true); if (S.avOpen) avNext(); else if (!notifOn()) askNotif(true); }
+  else if (r === 'fail' && !S.avOpen) zoneHelp();
+}
+// no hay ubicación: explica qué falta y lleva directo a la pantalla de Android para activarlo
+function zoneHelp() {
+  const A = AUTO(), st = S.av || {}, gps = st.loc && st.locOn === false;
+  $('#overlay').innerHTML = zoneSheetBox(`<div style="font-weight:700;font-size:18px;margin-bottom:6px">📍 Falta la ubicación</div>
+    <div style="font-size:14px;color:#444;line-height:1.45">Los avisos de tu zona están activados, pero ${gps ? 'la ubicación de tu móvil está apagada' : 'Scan2Com no tiene permiso para ver tu ubicación'}.</div>
+    ${A && (A.askLocation || A.openAppSettings) ? `<div style="font-size:13px;color:#666;margin:8px 0 14px">Pulsa el botón: se abre la pantalla de tu móvil. ${gps ? 'Enciende la <b>Ubicación</b>' : 'Entra en <b>Permisos → Ubicación</b> y elige <b>Permitir</b>'} y vuelve a la app.</div>
+      <button class="btn teal" id="zgo">Abrir ajustes del móvil</button>`
+      : `<div style="font-size:13px;color:#666;margin:8px 0 14px">${NATIVE ? 'En tu móvil: <b>Ajustes → Aplicaciones → Scan2Com → Permisos → Ubicación → Permitir</b>, y vuelve a la app.' : 'Permite la ubicación cuando el navegador te lo pregunte (o en el candado de la barra de direcciones) y vuelve a intentarlo.'}</div>
+      <button class="btn teal" id="zgo">Volver a intentarlo</button>`}
+    <button class="btn light" id="zx" style="margin-top:8px">Ahora no</button>`);
+  $('#zs').onclick = $('#zx').onclick = () => { $('#overlay').innerHTML = ''; };
+  $('#zgo').onclick = async () => {
+    $('#overlay').innerHTML = '';
+    if (A && A.askLocation) { const r = await A.askLocation(); if (r.step === 'ok') { const x = await zoneLoc(); if (x === 'fail') zoneHelp(); else toast('📢 Avisos de tu zona activados ✓'); } else S.zoneWait = Date.now(); return; }
+    const x = await zoneLoc(); if (x === 'ok') toast('📢 Avisos de tu zona activados ✓'); else if (x === 'fail') zoneHelp();
+  };
+}
+// pregunta de consentimiento (desde el asistente de avisos): true = acepta
+function zoneAsk() {
+  return new Promise(done => {
+    $('#overlay').innerHTML = zoneSheetBox(`<div style="font-weight:700;font-size:18px;margin-bottom:6px">📢 ¿Avisos de emergencia en tu zona?</div>
+      <div style="font-size:14px;color:#444;line-height:1.45">Incendios, calles cortadas, retirada de coches… cerca de donde estás o de donde has dejado el coche. Es opcional.</div>${ZONE_INFO}
+      <button class="btn teal" id="zyes">Sí, quiero recibirlos</button><button class="btn light" id="zno" style="margin-top:8px">No, gracias</button>`);
+    $('#zs').onclick = e => e.stopPropagation();
+    $('#zyes').onclick = () => done(true); $('#zno').onclick = () => done(false);
+  });
+}
+async function zoneSet(on) {
+  const { data, error } = await sb.rpc('set_zone_optin', { p_on: on });
+  if (error || !data?.ok) { toast('No se ha podido guardar.'); return false; }
+  S.zone = on; if (on) ls.set('sa_zone_no_' + S.user.id, 0); syncAuto(); return true;
+}
+function zoneSheet() {
+  $('#overlay').innerHTML = zoneSheetBox(`<div style="font-weight:700;font-size:18px;margin-bottom:6px">📢 Avisos de emergencia en tu zona</div>
+    <div style="font-size:14px;color:#444;line-height:1.45">Te llegarán avisos importantes de la zona en la que estás o en la que has dejado tu coche: un incendio, una calle que hay que despejar, una emergencia…</div>${ZONE_INFO}
     <label class="chk" style="font-size:15px;margin:6px 0 14px"><input type="checkbox" id="zck" ${S.zone ? 'checked' : ''}> Quiero recibir avisos de emergencia en mi zona</label>
-    <button class="btn teal" id="zok">Guardar</button></div></div>`;
+    <button class="btn teal" id="zok">Guardar</button>`);
   $('#zs').onclick = () => { $('#overlay').innerHTML = ''; };
   $('#zok').onclick = async () => {
     const on = $('#zck').checked; $('#zok').disabled = true;
-    if (on) { const pos = await hereNow(false); if (!pos) { $('#zok').disabled = false; return toast('Necesitamos el permiso de ubicación. Actívalo en los ajustes del móvil.'); } }
-    const { data, error } = await sb.rpc('set_zone_optin', { p_on: on });
-    if (error || !data?.ok) { $('#zok').disabled = false; return toast('No se ha podido guardar.'); }
-    S.zone = on; $('#overlay').innerHTML = ''; syncAuto();
-    if (on) { await zoneGeo(true); if (!notifOn()) askNotif(true); }
-    toast(on ? 'Avisos de tu zona activados' : 'Avisos de tu zona desactivados y ubicaciones borradas'); render();
+    if (!await zoneSet(on)) { $('#zok').disabled = false; return; }
+    $('#overlay').innerHTML = ''; render();
+    if (!on) return toast('Avisos de tu zona desactivados y ubicaciones borradas');
+    const r = await zoneLoc();   // si falta el permiso o la ubicación está apagada, se pide o se abre la pantalla de Android
+    if (r === 'ok') { toast('📢 Avisos de tu zona activados ✓'); if (!notifOn()) askNotif(true); }
+    else if (r === 'fail') zoneHelp();
   };
 }
 function placesSheet() {
@@ -911,8 +1011,8 @@ function renderHome() {
     body += '<div style="height:90px"></div>';   // hueco para la barra fija de trazabilidad
   } else {
     const seen = S.seenEv, za = S.zalerts || [];
-    const zhtml = za.map(z => `<div class="ev ${z.read ? '' : 'new'}" onclick="this.classList.toggle('open')"><div class="av" style="color:#fff;background:#f28c00">${IC.alert(22)}</div><div class="grow"><div class="t1">${{ cars: '🚗', fire: '🔥', security: '🚓', road: '🚧' }[z.kind] || '📢'} Aviso en tu zona · ${esc(z.title)}</div>
-      <div class="s1">${esc(z.body)} · ${ago(z.at)}${z.via === 'car' ? ' · por la ubicación de tu coche' : z.via === 'both' ? ' · por tu ubicación y la de tu coche' : ''}</div></div></div>`).join('');
+    const zhtml = za.map(z => `<div class="ev ${z.read ? '' : 'new'}" data-zone="${z.id}"><div class="av" style="color:#fff;background:#f28c00">${IC.alert(22)}</div><div class="grow"><div class="t1">${{ cars: '🚗', fire: '🔥', security: '🚓', road: '🚧' }[z.kind] || '📢'} Aviso en tu zona · ${esc(z.title)}</div>
+      <div class="s1">${esc(z.body)} · ${ago(z.at)}${z.via === 'car' ? ' · por la ubicación de tu coche' : z.via === 'both' ? ' · por tu ubicación y la de tu coche' : ''}${z.lat != null ? ' · <span style="color:#1f86e0">ver zona en el mapa</span>' : ''}</div></div></div>`).join('');
     if (tab === S.tab && za.some(z => !z.read)) setTimeout(() => { za.forEach(z => { z.read = true; }); sb.rpc('read_zone_alerts').then(() => {}, () => {}); }, 1500);
     body = zhtml + (S.events.length || !za.length ? '' : '<div style="height:4px"></div>');
     body += S.events.length ? S.events.map(e => { const c = codeOf(e.code_id); const ic = { alert: IC.alert(22), mail: IC.mail(22), call: IC.phone(22), police: '<img src="/app/img2014/police.png" width="30" height="34" alt="Policía" style="display:block">' }[e.kind];
@@ -957,7 +1057,7 @@ function accountMenu() {
     <button class="btn light" id="nt" style="margin-bottom:8px">${IC.bell(20)}${NATIVE && S.av ? (avMissing() ? 'Configurar avisos' : 'Avisos configurados ✓') : notifOn() ? 'Notificaciones activadas ✓' : 'Activar notificaciones'}</button>
     <button class="btn light" id="sp" style="margin-bottom:8px">${IC.lock(20)}Lugares seguros (${(S.places || []).length})</button>
     ${S.admin ? `<a class="btn" href="/admin/zona.html" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px;background:#f28c00;color:#fff">📢 Enviar aviso por zona</a>` : ''}
-    <button class="btn light" id="zn" style="margin-bottom:8px">${IC.alert(20)}Avisos de emergencia en tu zona: <b style="margin-left:4px;color:${S.zone ? '#1a9c16' : '#999'}">${S.zone ? 'activados' : 'desactivados'}</b></button>
+    <button class="btn light" id="zn" style="margin-bottom:8px">${IC.alert(20)}Avisos de emergencia en tu zona: <b style="margin-left:4px;color:${S.zone ? '#1a9c16' : '#999'}">${S.zone ? (S.av && (S.av.loc === false || S.av.locOn === false) ? 'falta la ubicación' : 'activados') : 'desactivados'}</b></button>
     <button class="btn light" id="how" style="margin-bottom:8px">${IC.play(20)}Cómo funciona</button>
     <button class="btn light" id="rh" style="margin-bottom:8px">${IC.play(20)}Ayudas de cada pantalla</button>
     ${NATIVE ? (S.ver?.old ? `<a class="btn red" href="${APK_URL}" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.refresh(20)}Actualizar a la última versión<div style="font-size:12px;font-weight:400;opacity:.85">${fmtD(S.ver.apk?.date)}</div></a>` : `<button class="btn light" id="ver" style="margin-bottom:8px">${IC.refresh(20)}${S.ver?.ok ? 'Última versión instalada' : 'Comprobar actualización'}${S.ver?.last ? `<div style="font-size:12px;font-weight:400;color:#777">${fmtD(S.ver.last)}</div>` : ''}</button>`) : ''}
@@ -967,7 +1067,7 @@ function accountMenu() {
     <button class="btn red" id="lo">Cerrar sesión</button></div></div>`;
   $('#am').onclick = () => { $('#overlay').innerHTML = ''; };
   $('#sp').onclick = placesSheet;
-  $('#zn').onclick = zoneSheet;
+  $('#zn').onclick = () => S.zone && S.av && (S.av.loc === false || S.av.locOn === false) ? zoneHelp() : zoneSheet();
   $('#thm').onclick = () => { const d = !document.documentElement.classList.contains('dark'); document.documentElement.classList.toggle('dark', d); try { localStorage.setItem('sa_theme', d ? 'dark' : 'light'); } catch (e) {} accountMenu(); };
   if ($('#ver')) $('#ver').onclick = async () => { $('#overlay').innerHTML = ''; await checkVersion(true); };
   $('#rh').onclick = helpsMenu;

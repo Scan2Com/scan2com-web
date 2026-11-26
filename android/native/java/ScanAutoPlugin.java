@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
@@ -30,6 +31,39 @@ import java.util.List;
 @CapacitorPlugin(name = "ScanAuto")
 public class ScanAutoPlugin extends Plugin {
     private boolean granted(String p) { return getContext().checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED; }
+    private boolean locGranted() { return granted(Manifest.permission.ACCESS_FINE_LOCATION) || granted(Manifest.permission.ACCESS_COARSE_LOCATION); }
+    private boolean locEnabled() {
+        LocationManager lm = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
+        if (lm == null) return false;
+        if (Build.VERSION.SDK_INT >= 28) return lm.isLocationEnabled();
+        return lm.isProviderEnabled(LocationManager.GPS_PROVIDER) || lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+    }
+
+    /** Avisos por zona: pide el permiso de ubicación. La primera vez sale la ventana de Android; si ya se denegó, se abren los ajustes de la app;
+     *  si el permiso está pero la ubicación del móvil está apagada, se abre la pantalla para encenderla. */
+    @PluginMethod
+    public void askLocation(PluginCall call) {
+        JSObject r = new JSObject();
+        android.content.SharedPreferences sp = getContext().getSharedPreferences(Auto.PREFS, 0);
+        if (!locGranted()) {
+            boolean asked = sp.getBoolean("loc_asked", false);
+            boolean rationale = getActivity().shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION);
+            if (!asked || rationale) {
+                sp.edit().putBoolean("loc_asked", true).apply();
+                getActivity().requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 79);
+                r.put("step", "prompt");
+            } else { go(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName()))); r.put("step", "settings"); }
+            call.resolve(r); return;
+        }
+        if (!locEnabled()) { go(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)); r.put("step", "gps"); call.resolve(r); return; }
+        r.put("step", "ok"); call.resolve(r);
+    }
+
+    @PluginMethod
+    public void openAppSettings(PluginCall call) {
+        go(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName())));
+        call.resolve();
+    }
 
     @PluginMethod
     public void status(PluginCall call) {
@@ -136,6 +170,8 @@ public class ScanAutoPlugin extends Plugin {
         r.put("autostartOn", autostartOn());
         r.put("fullscreen", Build.VERSION.SDK_INT < 34 || (nm != null && nm.canUseFullScreenIntent()));
         r.put("brand", Build.MANUFACTURER);
+        r.put("loc", locGranted());
+        r.put("locOn", locEnabled());
         call.resolve(r);
     }
 

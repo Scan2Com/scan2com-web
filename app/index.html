@@ -94,9 +94,9 @@ label{font-size:13px;color:var(--mut)}
 .ok{color:#1a7a1a;font-size:14px;margin:6px 0}
 .qrbox{display:flex;flex-direction:column;align-items:center;padding:20px 16px 10px;gap:8px}
 .qrbox canvas{width:220px;height:220px;image-rendering:pixelated;border-radius:14px;border:10px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.1)}
-.dsg{display:flex;gap:10px;margin:8px 0 4px}.dsg button{flex:1;background:#fff;border:2px solid #e3e3e3;border-radius:12px;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;font:500 12px Inter,sans-serif;color:#555;cursor:pointer}.dsg button.on{border-color:#2fc23a;color:#1a7a1a;background:#f3fbf3}.dsg canvas{width:64px;height:64px;object-fit:contain}
+.dsg{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}.dsg button{flex:1 1 20%;min-width:70px;background:#fff;border:2px solid #e3e3e3;border-radius:12px;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;font:500 12px Inter,sans-serif;color:#555;cursor:pointer}.dsg button.on{border-color:#2fc23a;color:#1a7a1a;background:#f3fbf3}.dsg canvas{width:64px;height:64px;object-fit:contain}.dsg canvas.hz{width:100%;max-width:96px}
 .qrbox canvas.rnd{image-rendering:auto}
-.qrbox canvas.stk{width:230px;height:auto;image-rendering:auto;border:0;border-radius:0;box-shadow:none;filter:drop-shadow(0 3px 8px rgba(0,0,0,.25))}
+.qrbox canvas.stk.hz{width:320px;max-width:92%}.qrbox canvas.stk{width:230px;height:auto;image-rendering:auto;border:0;border-radius:0;box-shadow:none;filter:drop-shadow(0 3px 8px rgba(0,0,0,.25))}
 .link{font-size:13px;color:var(--mut);word-break:break-all;text-align:center}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .msgs{display:flex;flex-direction:column;gap:6px;padding:14px}
@@ -261,7 +261,9 @@ const fileBody = b => { const { u, size, name } = fileMeta(b), ext = (name.match
   return `<a class="filw" href="${esc(u)}?download=${encodeURIComponent(name)}" target="_blank" rel="noopener"><i class="fic">${esc(ext)}</i><span class="fnm"><b>${esc(name)}</b><small>${fSize(size)} · Descargar</small></span></a>`; };
 // vídeos: "vid:" + dirección + "#" + segundos (en el mismo almacén que los archivos)
 const isVideo = b => typeof b === 'string' && b.startsWith('vid:' + FILE_URL);
-const vidBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/#(\d+)$/) || [])[1] || 0; return `<div class="vidw"><video class="mvid" controls playsinline preload="metadata" src="${esc(u)}"></video><span>🎥 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span></div>`; };
+const vidBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/#(\d+)$/) || [])[1] || 0; return `<div class="vidw"><video class="mvid" controls playsinline preload="metadata" poster="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" src="${esc(u)}#t=0.1"></video><span>🎥 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span></div>`; };
+// audios y vídeos: el tic verde sale cuando la otra persona los reproduce (no basta con abrir el chat)
+const isPlayable = b => isAudio(b) || isVideo(b);
 const isLoc = b => typeof b === 'string' && /^loc:-?\d{1,2}(\.\d+)?,-?\d{1,3}(\.\d+)?$/.test(b);
 const prevBody = b => isVideo(b) ? '🎥 Vídeo' : isFile(b) ? '📎 ' + fileMeta(b).name : isPhoto(b) ? '📷 Foto' : isAudio(b) ? '🎤 Audio' : isLoc(b) ? '📍 Ubicación' : (b || '');
 // vista previa de una ubicación: 4 teselas de OpenStreetMap centradas en el punto, con un marcador encima
@@ -1037,7 +1039,7 @@ const histKey = () => 'hist_' + S.user.id;
 // une la copia del móvil con lo que aún hay en el servidor (el servidor manda en lo que tiene; lo borrado se conserva)
 function mergeById(a = [], b = []) { const m = new Map(); a.forEach(x => m.set(x.id, x)); b.forEach(x => m.set(x.id, { ...m.get(x.id), ...x })); return [...m.values()].sort((x, y) => x.id - y.id); }
 let histT = 0;
-function saveHist() { if (!S.user) return; clearTimeout(histT); histT = setTimeout(() => { IDB.set(histKey(), { o: S.msgs, v: S.vmsgs || {}, vr: S.vread || {}, r: S.reads || {} }); ackSoon(); }, 600); }
+function saveHist() { if (!S.user) return; clearTimeout(histT); histT = setTimeout(() => { IDB.set(histKey(), { o: S.msgs, v: S.vmsgs || {}, vr: S.vread || {}, r: S.reads || {}, p: S.played || {} }); ackSoon(); }, 600); }
 // fotos, audios y archivos: copia en la caché del móvil
 const MEDIA_RX = /^(img|aud|fil|vid):(https:\/\/kbkyosyenotqjcgujbmn\.supabase\.co\/storage\/v1\/object\/public\/[^#]+)/;
 const mediaUrl = b => (typeof b === 'string' && b.match(MEDIA_RX) || [])[2] || '';
@@ -1065,10 +1067,17 @@ async function hydrateMedia() {
     let bu = mBlobs.get(u);
     if (!bu && await mediaCached(u)) { try { bu = URL.createObjectURL(await mediaBlob(u)); mBlobs.set(u, bu); } catch (e) {} }
     if (!bu) { if (!IS_PHONE && !el.dataset.asked) { el.dataset.asked = 1; fetch(u, { method: 'HEAD' }).then(r => { if (!r.ok) { histMedia(u); el.closest('.m')?.classList.add('gone'); } }, () => {}); } continue; }
-    if (el.tagName === 'A') { el.dataset.blob = bu; } else el.src = bu;
+    if (el.tagName === 'A') { el.dataset.blob = bu; } else el.src = bu + (el.tagName === 'VIDEO' ? '#t=0.1' : '');
     el.closest('.m')?.classList.remove('gone');
   }
 }
+// al reproducir un audio o vídeo de la otra persona se avisa (su tic se pone verde)
+document.addEventListener('play', e => {
+  const m = e.target.closest?.('[data-pm]'); if (!m || !S.view) return; const id = +m.dataset.pm; if (S.played?.[id]) return;
+  (S.played ||= {})[id] = 1; saveHist();
+  if (S.view.t === 'chat') sb.rpc('mark_played', { p_msg: id }).then(() => {}, () => {});
+  else if (S.view.t === 'vchat') { const v = (S.vchats || []).find(x => x.id === S.view.id); if (v) sb.rpc('visitor_played', { p_chat: v.id, p_token: v.token, p_msg: id }).then(() => {}, () => {}); }
+}, true);
 // archivo: se descarga desde la copia del móvil (o del servidor si aún está)
 document.addEventListener('click', async e => {
   const a = e.target.closest('a.filw'); if (!a) return; e.preventDefault();
@@ -1153,10 +1162,11 @@ async function loadAll() {
   const local = (await IDB.get(histKey())) || {};
   const srv = {}, ids = S.chats.map(x => x.id);
   if (ids.length) {
-    const [{ data }, rd] = await Promise.all([sb.from('messages').select('*').in('chat_id', ids).order('id'), sb.from('chat_reads').select('*').in('chat_id', ids)]);
+    const [{ data }, rd, pl] = await Promise.all([sb.from('messages').select('*').in('chat_id', ids).order('id'), sb.from('chat_reads').select('*').in('chat_id', ids), sb.from('msg_played').select('msg_id').in('chat_id', ids)]);
+    S.played = { ...(local.p || {}), ...Object.fromEntries((pl.data || []).map(r => [r.msg_id, 1])) };
     (data || []).forEach(m => (srv[m.chat_id] ||= []).push(m));
     S.reads = Object.fromEntries((rd.data || []).map(r => [r.chat_id, r]));
-  } else S.reads = {};
+  } else { S.reads = {}; S.played = { ...(local.p || {}) }; }
   S.msgs = {}; ids.forEach(id => { const l = mergeById(local.o?.[id], srv[id]); if (l.length) S.msgs[id] = l; });
   Object.entries(local.r || {}).forEach(([k, r]) => { S.reads[k] = { ...r, ...S.reads[k], visitor_upto: Math.max(r.visitor_upto || 0, S.reads[k]?.visitor_upto || 0) }; });
   // chats de códigos escaneados: copia local + lo nuevo del servidor (en segundo plano, sin marcar como leído)
@@ -1218,8 +1228,8 @@ function subscribe() {
       render(true);
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, ({ new: m }) => {
-      const x = (S.msgs[m.chat_id] || []).find(y => y.id === m.id); if (!x || x.read_at === m.read_at) return;
-      x.read_at = m.read_at; saveHist(); if (S.view?.t === 'chat' && S.view.id === m.chat_id) render(true);
+      const x = (S.msgs[m.chat_id] || []).find(y => y.id === m.id); if (!x || (x.read_at === m.read_at && x.played_at === m.played_at)) return;
+      x.read_at = m.read_at; x.played_at = m.played_at; if (m.played_at) (S.played ||= {})[m.id] = 1; saveHist(); if (S.view?.t === 'chat' && S.view.id === m.chat_id) render(true);
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_reads' }, ({ new: r }) => {
       if (!r?.chat_id) return; const o = S.reads[r.chat_id] || {}; S.reads[r.chat_id] = { ...r, visitor_upto: Math.max(o.visitor_upto || 0, r.visitor_upto || 0) }; saveHist();
@@ -1468,7 +1478,8 @@ async function renderEdit() {
     <label>Información privada (solo tú)</label><input id="f5" value="${esc(c.private_info)}" placeholder="Ej. matrícula, nº de serie…" maxlength="200">
     <div class="section">DISEÑO DEL QR</div>
     ${locked ? '<div class="hint" style="margin:2px 0 8px">Este código viene de una pegatina impresa.</div>' : ''}<div class="dsg">${designsFor(c).map(([k, t]) => `<button type="button" data-dsg="${k}" class="${designOf(c) === k ? 'on' : ''}"><canvas></canvas>${t}</button>`).join('')}</div>
-    <div id="ccol" style="display:${designOf(c) === 'car' ? 'flex' : 'none'};flex-wrap:wrap;gap:8px;margin:6px 0 4px;align-items:center"><span style="font-size:13px;color:#666;width:100%">Color de la pegatina</span>${CAR_COLORS.map(([k, h, t]) => `<button type="button" data-ccol="${k}" title="${t}" aria-label="${t}" style="width:34px;height:34px;border-radius:50%;background:${h};border:3px solid ${carColor(c)[0] === k ? '#2fc23a' : '#fff'};box-shadow:0 0 0 1px #ccc;cursor:pointer"></button>`).join('')}</div>
+    <div id="ccol" style="display:${isCar(c) ? 'flex' : 'none'};flex-wrap:wrap;gap:8px;margin:6px 0 4px;align-items:center"><span style="font-size:13px;color:#666;width:100%">Color de la pegatina</span>${CAR_COLORS.map(([k, h, t]) => `<button type="button" data-ccol="${k}" title="${t}" aria-label="${t}" style="width:34px;height:34px;border-radius:50%;background:${h};border:3px solid ${carColor(c)[0] === k ? '#2fc23a' : '#fff'};box-shadow:0 0 0 1px #ccc;cursor:pointer"></button>`).join('')}
+      <label style="width:100%;margin-top:6px">Texto de la pegatina <span style="font-weight:400;color:#888">(donde pone «Alert»)</span></label><input id="ctxt" value="${esc(carText(c))}" maxlength="14" placeholder="Alert" style="width:100%"><div class="hint" id="ctxh" style="width:100%;margin:2px 0 0">Unas 8 letras: la letra se hace más pequeña si escribes más.</div></div>
     <div class="section"><span class="req">MEDIOS DE COMUNICACIÓN</span></div><div class="hint">Elige al menos uno.</div>
     <label class="chk"><input type="checkbox" id="c0" ${c.ch_info ? 'checked' : ''}> <span style="color:#8d9298">${IC.info(20)}</span> Info <span style="color:#999;font-size:13px">· un texto para quien escanee</span></label>
     <div id="ibox" class="sub" style="display:${c.ch_info ? 'block' : 'none'};margin-left:30px"><div class="hint" style="font-weight:600;color:#555;margin-top:2px">Lo que ve quien escanea</div>
@@ -1476,9 +1487,9 @@ async function renderEdit() {
       <label>Información pública</label><textarea id="f3" rows="3" placeholder="Ej. Si mi coche molesta, avísame con Alert. ¡Gracias!" maxlength="1000">${esc(c.public_desc)}</textarea>
       <div class="hint">Es lo primero que verá quien escanee el código.</div></div>
     <label class="chk"><input type="checkbox" id="c1" ${c.ch_mail ? 'checked' : ''}> <span style="color:#1f86e0">${IC.mail(20)}</span> Mail</label>
-    <label class="chk"><input type="checkbox" id="c2" ${c.ch_alert || designOf(c) === 'car' ? 'checked' : ''} ${designOf(c) === 'car' ? 'disabled' : ''}> <span style="color:#e8352b">${IC.alert(20)}</span> Alert <span id="c2a" style="font-size:13px;color:#888;display:${designOf(c) === 'car' ? 'inline' : 'none'}">(siempre activo)</span></label>
+    <label class="chk"><input type="checkbox" id="c2" ${c.ch_alert || isCar(c) ? 'checked' : ''} ${isCar(c) ? 'disabled' : ''}> <span style="color:#e8352b">${IC.alert(20)}</span> Alert <span id="c2a" style="font-size:13px;color:#888;display:${designOf(c) === 'car' ? 'inline' : 'none'}">(siempre activo)</span></label>
     <label class="chk sub"><input type="checkbox" id="c5" ${c.auto_alert ? 'checked' : ''}> Sonar solo con abrir la web</label>
-    <div id="btbox" class="sub" style="display:${c.ch_alert && designOf(c) === 'car' ? 'block' : 'none'}">
+    <div id="btbox" class="sub" style="display:${c.ch_alert && isCar(c) ? 'block' : 'none'}">
       <label class="chk" style="margin-left:0"><input type="checkbox" id="c8" ${c.bt_auto ? 'checked' : ''} ${NATIVE ? '' : 'disabled'}> <span style="color:#555">${IC.lock(16)}</span> Activar al bajar del coche</label>
       ${NATIVE ? `<div id="btcfg" style="display:${c.bt_auto ? 'block' : 'none'};margin-left:30px">
         <label class="req">Bluetooth del coche</label><select id="f8">${btOptions(c.bt_addr, c.bt_name)}</select>
@@ -1513,15 +1524,25 @@ async function renderEdit() {
     $('#ul').onclick = $('#ulno').onclick = () => { $('#overlay').innerHTML = ''; };
     $('#ulok').onclick = () => { $('#overlay').innerHTML = ''; unlocked = true; go(); };
   };
-  const carPrev = () => { const b = app.querySelector('[data-dsg="car"]'); if (b) drawDesign(b.querySelector('canvas'), { style: { design: 'car', car_color: selCol } }, `${SITE}/s/${c.id || 'EJEMPLO1'}`); };
+  let selTxt = carText(c);
+  const carPrev = () => ['car', 'carh'].forEach(k => { const b = app.querySelector(`[data-dsg="${k}"]`); if (b) drawDesign(b.querySelector('canvas'), { style: { design: k, car_color: selCol, car_text: selTxt } }, `${SITE}/s/${c.id || 'EJEMPLO1'}`); });
+  // texto de la pegatina: solo deja escribir lo que cabe en la pegatina elegida
+  if ($('#ctxt')) { let last = $('#ctxt').value, t = 0;
+    $('#ctxt').addEventListener('input', async e => {
+      const el = e.target, v = el.value.replace(/\s+/g, ' '); const f = await carTextFits(v.trim() || 'Alert'), ok = selDsg === 'carh' ? f.h : f.v;
+      if (!ok) { el.value = last; $('#ctxh').innerHTML = `<b style="color:#e8352b">No cabe más en la pegatina ${selDsg === 'carh' ? 'horizontal' : 'vertical'}.</b>`; return; }
+      last = el.value; selTxt = v.trim() || 'Alert'; $('#ctxh').textContent = f.h && !f.v ? 'Este texto solo cabe en la pegatina horizontal.' : 'Unas 8 letras: la letra se hace más pequeña si escribes más.';
+      clearTimeout(t); t = setTimeout(carPrev, 150);
+    }); }
   app.querySelectorAll('[data-dsg]').forEach(b => {
-    drawDesign(b.querySelector('canvas'), { style: { ...(c.style || {}), design: b.dataset.dsg, car_color: selCol } }, `${SITE}/s/${c.id || 'EJEMPLO1'}`);
-    b.onclick = () => { if (b.dataset.dsg === selDsg) return; askUnlock(() => { selDsg = b.dataset.dsg; app.querySelectorAll('[data-dsg]').forEach(x => x.classList.toggle('on', x === b)); $('#ccol').style.display = selDsg === 'car' ? 'flex' : 'none'; updBt(); }); };
+    drawDesign(b.querySelector('canvas'), { style: { ...(c.style || {}), design: b.dataset.dsg, car_color: selCol, car_text: selTxt } }, `${SITE}/s/${c.id || 'EJEMPLO1'}`);
+    b.onclick = () => { if (b.dataset.dsg === selDsg) return; askUnlock(() => { selDsg = b.dataset.dsg; app.querySelectorAll('[data-dsg]').forEach(x => x.classList.toggle('on', x === b)); $('#ccol').style.display = isCarD(selDsg) ? 'flex' : 'none'; updBt();
+      if (selDsg === 'car' && $('#ctxt')) carTextFits(selTxt).then(f => { if (!f.v) { selTxt = 'Alert'; $('#ctxt').value = 'Alert'; $('#ctxh').innerHTML = '<b style="color:#e8352b">Tu texto no cabía en la pegatina vertical: he vuelto a poner «Alert».</b>'; carPrev(); } }); }); };
   });
   app.querySelectorAll('[data-ccol]').forEach(b => b.onclick = () => askUnlock(() => { selCol = b.dataset.ccol; app.querySelectorAll('[data-ccol]').forEach(x => x.style.borderColor = x === b ? '#2fc23a' : '#fff'); carPrev(); }));
   // "Activar al bajar del coche" solo con Alerta y diseño pegatina de coche
   // con la pegatina de coche, Alert queda siempre activo
-  const updBt = () => { const car = selDsg === 'car', a = $('#c2'); if (a) { if (car) a.checked = true; a.disabled = car; } if ($('#c2a')) $('#c2a').style.display = car ? 'inline' : 'none'; if ($('#btbox')) $('#btbox').style.display = a?.checked && car ? 'block' : 'none'; };
+  const updBt = () => { const car = isCarD(selDsg), a = $('#c2'); if (a) { if (car) a.checked = true; a.disabled = car; } if ($('#c2a')) $('#c2a').style.display = car ? 'inline' : 'none'; if ($('#btbox')) $('#btbox').style.display = a?.checked && car ? 'block' : 'none'; };
   if ($('#c2')) $('#c2').addEventListener('change', updBt);
   if (NATIVE && $('#c8')) {
     $('#c8').onchange = async () => { $('#btcfg').style.display = $('#c8').checked ? 'block' : 'none'; if ($('#c8').checked) { await autoPermStep(true); loadBonded(); } };
@@ -1544,14 +1565,14 @@ async function renderEdit() {
     if (!name) { $('#f1').classList.add('bad'); miss.push('el nombre'); }
     if (!chans) miss.push('al menos un medio de comunicación');
     if ($('#c7').checked && !urlOk) { $('#f7').classList.add('bad'); miss.push('una dirección web válida (ej. www.ejemplo.com)'); }
-    if (NATIVE && $('#c8')?.checked && $('#c2').checked && selDsg === 'car' && !$('#f8').value) { $('#f8').classList.add('bad'); miss.push('el Bluetooth del coche'); }
+    if (NATIVE && $('#c8')?.checked && $('#c2').checked && isCarD(selDsg) && !$('#f8').value) { $('#f8').classList.add('bad'); miss.push('el Bluetooth del coche'); }
     if ($('#c4').checked && !$('#f4').value.trim()) { $('#f4').classList.add('bad'); miss.push('el teléfono (has activado Llamada)'); }
     if (miss.length) { const e = app.querySelector('.err') || Object.assign(document.createElement('div'), { className: 'err' }); e.textContent = 'Falta ' + miss.join(', ') + '.'; $('#sv').before(e); (app.querySelector('.bad') || $('#sv')).scrollIntoView({ block: 'center' }); return; }
-    const style = { ...(c.style || {}), design: selDsg, car: selDsg === 'car', car_color: selCol, hide_trace: !!$('#ht')?.checked }; if (c.style?.car || c.style?.car_code) style.car_code = true;
+    const style = { ...(c.style || {}), design: selDsg, car: isCarD(selDsg), car_color: selCol, car_text: selTxt === 'Alert' ? undefined : selTxt, hide_trace: !!$('#ht')?.checked }; if (c.style?.car || c.style?.car_code) style.car_code = true;
     if (locked && unlocked) style.print_override = true;  // confirmado: el diseño de la pegatina impresa se puede cambiar
     const row = { type: selType, style, name, private_info: $('#f5').value.trim() || null, public_name: pub || null, public_desc: $('#f3').value.trim() || null,
       ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: $('#c6').checked, ch_call: $('#c4').checked, ch_redirect: $('#c7').checked, redirect_url: urlOk ? url : null, phone: $('#f4').value.trim() || null };
-    if (NATIVE && $('#c8')) { const o = $('#f8').selectedOptions[0]; Object.assign(row, { bt_auto: $('#c8').checked && $('#c2').checked && selDsg === 'car', bt_addr: $('#f8').value || null, bt_name: o && o.value ? o.dataset.name : null, bt_drive_off: $('#c9').checked }); }
+    if (NATIVE && $('#c8')) { const o = $('#f8').selectedOptions[0]; Object.assign(row, { bt_auto: $('#c8').checked && $('#c2').checked && isCarD(selDsg), bt_addr: $('#f8').value || null, bt_name: o && o.value ? o.dataset.name : null, bt_drive_off: $('#c9').checked }); }
     S.busy = true; S.err = ''; render();
     const r = isNew ? await sb.from('codes').insert({ ...row, owner_id: S.user.id }).select().single() : await sb.from('codes').update(row).eq('id', c.id).select().single();
     S.busy = false;
@@ -1596,14 +1617,47 @@ async function prettyQR(text, side) {
     rr(X, Y, 7 * p, 1.4 * p); x.globalCompositeOperation = 'destination-out'; rr(X + p, Y + p, 5 * p, 0.9 * p); x.globalCompositeOperation = 'source-over'; rr(X + 2 * p, Y + 2 * p, 3 * p, 0.8 * p); });
   return cv;
 }
-async function drawSticker(canvas, url, hex) {
-  const base = await loadImg('/app/img2014/pegatina_coche.png');
-  canvas.width = base.width; canvas.height = base.height; const x = canvas.getContext('2d', { willReadFrequently: true }); x.drawImage(base, 0, 0); tintRed(x, canvas.width, canvas.height, hex);
-  // recuadro blanco de la pegatina: x 107-1018, y 113-1024 (en una base de 1124 x 1532)
-  const k = base.width / 1124, side = 784 * k, qr = await prettyQR(url, Math.round(side * 2)); x.imageSmoothingQuality = 'high';
-  x.drawImage(qr, 562.5 * k - side / 2, 568.5 * k - side / 2, side, side);
+// texto de la pegatina (donde pone «Alert»): editable, en la letra Comic Neue (libre, parecida a la original)
+const carText = c => { const t = c?.style?.car_text; return typeof t === 'string' && t.trim() ? t.trim() : 'Alert'; };
+const carFont = () => carFont.p ||= (async () => { try { const f = await new FontFace('S2CAlert', 'url(/app/fonts/comic-neue-latin-700-italic.woff2)', { style: 'italic', weight: '700' }).load(); document.fonts.add(f); } catch (e) {} })();
+// sitio del texto en cada base: [x izquierda, línea base, ancho de «Alert» original, ancho máximo]
+const CAR_TXT = { v: [763, 1183, 290, 332], h: [1209, 240, 400, 466] };
+// «Scan 2» (blanco en la plantilla): [x0, x1, y0, y1]
+const CAR_SCAN2 = { v: [347, 721, 1093, 1184], h: [608, 1141, 109, 236] };
+// en las pegatinas claras (amarillo, gris claro) todo el texto va en negro para que se lea
+const carLight = c => ['amarillo', 'gris'].includes(carColor(c)[0]);
+function blackScan2(ctx, [x0, x1, y0, y1], hex) {
+  const cm = Math.min(...[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16))), d = ctx.getImageData(x0 - 4, y0 - 4, x1 - x0 + 9, y1 - y0 + 9), p = d.data;
+  for (let i = 0; i < p.length; i += 4) { const t = Math.max(0, Math.min(1, (Math.min(p[i], p[i + 1], p[i + 2]) - cm) / (255 - cm))); if (t > 0) { p[i] -= 255 * t; p[i + 1] -= 255 * t; p[i + 2] -= 255 * t; } }
+  ctx.putImageData(d, x0 - 4, y0 - 4);
 }
-const DESIGNS = [['square', 'Clásico'], ['round', 'Redondeado'], ['car', 'Scan 2 Alert']];
+// tamaño de letra para que el texto quepa; null si no cabe ni encogiéndolo (mín. la mitad)
+function carTextSize(ctx, text, ref, maxw, force) {
+  ctx.font = 'italic 700 100px S2CAlert'; const s0 = 100 * ref / ctx.measureText('Alert').width, w = ctx.measureText(text).width * s0 / 100;
+  const sz = w <= maxw ? s0 : s0 * maxw / w; return force || sz >= s0 * 0.5 ? sz : null;
+}
+// force: en el PDF (que trae las dos pegatinas) el texto se encoge lo necesario para caber también en la vertical
+function drawCarText(ctx, text, [x, y, ref, maxw], force, col = '#fff') {
+  const sz = carTextSize(ctx, text, ref, maxw, force); if (!sz) return; ctx.font = `italic 700 ${sz}px S2CAlert`; ctx.fillStyle = col; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'; ctx.fillText(text, x, y);
+}
+// ¿cabe este texto en la pegatina vertical y en la horizontal?
+async function carTextFits(text) { await carFont(); const x = document.createElement('canvas').getContext('2d'); return { v: !!carTextSize(x, text, CAR_TXT.v[2], CAR_TXT.v[3]), h: !!carTextSize(x, text, CAR_TXT.h[2], CAR_TXT.h[3]) }; }
+async function drawSticker(canvas, url, hex, c) {
+  const hz = designOf(c) === 'carh', text = carText(c), own = text !== 'Alert';
+  if (own) await carFont();
+  const base = await loadImg(`/app/img2014/pegatina_coche${hz ? '_h' : ''}${own ? '_txt' : ''}.png`);
+  canvas.width = base.width; canvas.height = base.height; const x = canvas.getContext('2d', { willReadFrequently: true }); x.drawImage(base, 0, 0); tintRed(x, canvas.width, canvas.height, hex);
+  x.imageSmoothingQuality = 'high';
+  if (hz) {   // horizontal (2388 x 745): recuadro blanco a la derecha
+    const side = 602 * 0.86, qr = await prettyQR(url, Math.round(side * 2)); x.drawImage(qr, 1707 + 301 - side / 2, 68 + 301 - side / 2, side, side);
+  } else {    // vertical: recuadro blanco x 107-1018, y 113-1024 (en una base de 1124 x 1532)
+    const k = base.width / 1124, side = 784 * k, qr = await prettyQR(url, Math.round(side * 2));
+    x.drawImage(qr, 562.5 * k - side / 2, 568.5 * k - side / 2, side, side);
+  }
+  const light = carLight(c); if (light) blackScan2(x, CAR_SCAN2[hz ? 'h' : 'v'], hex);
+  if (own) drawCarText(x, text, CAR_TXT[hz ? 'h' : 'v'], false, light ? '#000' : '#fff');   // texto propio en blanco como «Scan 2» (negro en las claras)
+}
+const DESIGNS = [['square', 'Clásico'], ['round', 'Redondeado'], ['car', 'Pegatina vertical'], ['carh', 'Pegatina horizontal']];
 // los códigos de pegatinas impresas (generador de imprenta) traen además su propia pegatina
 const designsFor = c => c?.style?.print?.src ? [['print', 'Pegatina impresa'], ...DESIGNS] : DESIGNS;
 // colores de la pegatina de coche (el rojo es el original de la plantilla)
@@ -1620,7 +1674,8 @@ function tintRed(ctx, w, h, hex) {
   ctx.putImageData(d, 0, 0);
 }
 const designOf = c => c?.style?.design || (c?.style?.car ? 'car' : 'square');
-const isCar = c => designOf(c) === 'car';
+const isCarD = d => d === 'car' || d === 'carh';
+const isCar = c => isCarD(designOf(c));
 // QR redondeado con margen blanco
 async function drawRound(canvas, url, side = 480) {
   const q = await prettyQR(url, side), m = Math.round(q.width * 0.08);
@@ -1635,10 +1690,10 @@ async function drawPrinted(canvas, url, pr, big) {
   const qr = await prettyQR(url, Math.round(qs * k * 2)); x.drawImage(qr, qx * k, qy * k, qs * k, qs * k);
 }
 async function drawDesign(canvas, c, url, big) {
-  const d = designOf(c); canvas.classList.toggle('stk', d === 'car' || d === 'print'); canvas.classList.toggle('rnd', d === 'round');
+  const d = designOf(c); canvas.classList.toggle('stk', isCarD(d) || d === 'print'); canvas.classList.toggle('hz', d === 'carh'); canvas.classList.toggle('rnd', d === 'round');
   try {
     if (d === 'print' && c?.style?.print?.src) return await drawPrinted(canvas, url, c.style.print, big);
-    if (d === 'car') return await drawSticker(canvas, url, carColor(c)[1]);
+    if (isCarD(d)) return await drawSticker(canvas, url, carColor(c)[1], c);
     if (d === 'round') return await drawRound(canvas, url, big ? 1600 : 480);
   } catch (e) { canvas.classList.remove('stk', 'rnd'); }
   drawQR(canvas, url, big ? 24 : 8);
@@ -1759,9 +1814,12 @@ function carSheetAsk(c, url, mode) {
 }
 const BMP = '4,2 3,7 2,8 2,26 1,27 1,73 2,74 3,91 4,92 5,102 6,103 6,106 7,107 7,110 8,111 8,114 9,115 10,120 18,134 25,141 29,144 39,149 41,149 48,152 51,152 56,154 60,154 61,155 66,155 67,156 73,156 74,157 85,157 86,158 126,158 127,157 149,157 150,156 154,156 158,153 157,149 149,141 146,140 144,138 141,138 140,137 129,137 128,136 115,136 114,135 105,135 104,134 97,134 96,133 84,132 83,131 79,131 78,130 74,130 66,127 63,127 52,122 48,119 37,107 31,92 31,89 30,88 30,85 28,80 28,76 27,75 26,63 25,62 24,45 23,44 23,30 22,29 22,19 21,18 21,15 19,11 14,6 14,5 8,1';   // contorno del boomerang del logo, en 160×160 (vértice abajo a la izquierda)
 async function carSheetBin(c, url, mirror) {
-    const [base, spec] = await Promise.all([loadImg('/app/img2014/plantilla_coche.png'), fetch('/app/img2014/plantilla_coche.json').then(r => r.json())]);
+    const text = carText(c), own = text !== 'Alert'; if (own) await carFont();
+    const [base, spec] = await Promise.all([loadImg(`/app/img2014/plantilla_coche${own ? '_txt' : ''}.png`), fetch('/app/img2014/plantilla_coche.json').then(r => r.json())]);
     const cv = document.createElement('canvas'); cv.width = base.width; cv.height = base.height;
     const x = cv.getContext('2d', { willReadFrequently: true }); x.drawImage(base, 0, 0); tintRed(x, cv.width, cv.height, carColor(c)[1]); x.imageSmoothingQuality = 'high';
+    const light = carLight(c); if (light) (spec.scan2 || []).forEach(b => blackScan2(x, b, carColor(c)[1]));
+    if (own) (spec.texts || []).forEach(t => drawCarText(x, text, t, true, light ? '#000' : '#fff'));   // el texto propio va en las 4 pegatinas
     const big = Math.max(...spec.panels.map(p => p[2])), q = await prettyQR(url, Math.round(big * 2));
     for (const [px, py, pw, ph] of spec.panels) {
       if (pw === big) {   // centro: código de vinculación entre los 4 boomerangs del logo original (azul, verde, rojo y amarillo)
@@ -1822,8 +1880,8 @@ async function carSheetPdf(c, url, mirror) {
 }
 
 /* ---------- chat ---------- */
-const ownerMsgs = (ch, list) => (withDays(list, m => m.created_at, m => `<div class="m ${m.from_visitor ? 'them' : 'me'}">${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${msgBody(m.body, m.created_at)}<div class="tm">${hm(m.created_at)}${m.from_visitor ? '' : bm(m.id, m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0), m.created_at)}</div></div>`) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
-const visitorMsgs = (v, list) => (withDays(list, m => m.at, m => `<div class="m ${m.mine ? 'me' : 'them'}">${msgBody(m.body, m.at)}<div class="tm">${hm(m.at)}${m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, m.id <= S.vread[v.id], m.at) : ''}</div></div>`) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
+const ownerMsgs = (ch, list) => (withDays(list, m => m.created_at, m => `<div class="m ${m.from_visitor ? 'them' : 'me'}"${m.from_visitor && isPlayable(m.body) ? ` data-pm="${m.id}"` : ''}>${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${msgBody(m.body, m.created_at)}<div class="tm">${hm(m.created_at)}${m.from_visitor ? '' : bm(m.id, isPlayable(m.body) ? !!(m.played_at || S.played?.[m.id]) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at)}</div></div>`) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
+const visitorMsgs = (v, list) => (withDays(list, m => m.at, m => `<div class="m ${m.mine ? 'me' : 'them'}"${!m.mine && isPlayable(m.body) ? ` data-pm="${m.id}"` : ''}>${msgBody(m.body, m.at)}<div class="tm">${hm(m.at)}${m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, isPlayable(m.body) ? !!S.played?.[m.id] : m.id <= S.vread[v.id], m.at) : ''}</div></div>`) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
 // el chat ya está en pantalla: solo se actualizan los mensajes (no se cierra el teclado ni se corta la animación)
 function patchMsgs(key, html) {
   const ms = $('#ms'), cb = $('#cb');
@@ -1982,8 +2040,9 @@ async function vFetch(v, bg) {
   S.vmsgs ||= {}; const l = S.vmsgs[v.id] ||= [];
   const { data } = await sb.rpc('visitor_messages', { p_chat: v.id, p_token: v.token, p_after: l.at(-1)?.id || 0, p_seen: !bg && !document.hidden });
   if (!data?.ok) return;
-  const ru = Math.max(data.read_upto || 0, S.vread[v.id] || 0);
-  const changed = data.messages.length || v.alive !== data.alive || ru !== S.vread[v.id]; v.alive = data.alive; S.vread[v.id] = ru;
+  const ru = Math.max(data.read_upto || 0, S.vread[v.id] || 0); S.played ||= {};
+  const np = (data.played || []).filter(id => !S.played[id]); np.forEach(id => { S.played[id] = 1; }); if (np.length) saveHist();
+  const changed = np.length || data.messages.length || v.alive !== data.alive || ru !== S.vread[v.id]; v.alive = data.alive; S.vread[v.id] = ru;
   data.messages.forEach(m => { if (!l.find(x => x.id === m.id)) l.push(m); });
   if (data.messages.length) { saveHist(); if (data.messages.some(m => mediaUrl(m.body))) setTimeout(cacheAllMedia, 50); }
   if (bg) { if (l.length) v.last = { ...l.at(-1) }; return; }
@@ -2190,7 +2249,7 @@ const TOURS = {
   edit: [
     ['#f1', 'Pon un nombre para reconocer el código. Solo lo ves tú.'],
     ['#f5', 'Aquí puedes apuntar información privada, como la matrícula. También solo para ti.'],
-    ['.dsg', 'Elige el diseño del código: clásico, redondeado o Scan 2 Alert, la pegatina de coche.'],
+    ['.dsg', 'Elige el diseño del código: clásico, redondeado o la pegatina Scan 2 Alert, vertical u horizontal. En la pegatina puedes cambiar el color y el texto.'],
     ['#c0', 'Marca los medios por los que te pueden contactar: info, mail, alerta, chat, llamada o una web.'],
     ['#c0', 'Con info marcado escribes el nombre público y el texto que verá quien escanee.'],
     ['#sv', 'Cuando termines, pulsa guardar.']

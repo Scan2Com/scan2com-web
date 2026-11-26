@@ -45,7 +45,11 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 .top{display:flex;align-items:center;gap:10px}
 .back{background:none;border:0;font:inherit;font-size:15px;color:#1a7fb0;font-weight:600;cursor:pointer;padding:6px 0}
 .locw{display:block;color:inherit;text-decoration:none}.locmap{display:block;position:relative;overflow:hidden;border-radius:12px;max-width:100%;background:#dfe6ea}.locmap img{position:absolute;width:256px;height:256px;max-width:none}.locpin{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-22px 0 0 -11px;background:#e8352b;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 5px rgba(0,0,0,.4)}.loct{display:block;font-size:14px;margin-top:5px}.phw{position:relative;display:block}.pview{position:fixed;inset:0;z-index:60;background:#000;color:#fff;overflow:hidden}.pvs{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;touch-action:none;overflow:hidden}.pvs img{max-width:100%;max-height:100%;object-fit:contain;display:block;transform-origin:center center;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.pvbar{position:absolute;left:0;right:0;display:flex;align-items:center;transition:opacity .2s}.pview.bare .pvbar{opacity:0;pointer-events:none}.pvt{top:0;padding:calc(8px + env(safe-area-inset-top)) 10px 18px;background:linear-gradient(rgba(0,0,0,.7),transparent);gap:8px}.pvbtn{border:0;background:none;color:#fff;width:44px;height:44px;display:grid;place-items:center;cursor:pointer}.pvinfo{display:flex;flex-direction:column;font-size:13px;line-height:1.35}.pvinfo b{font-size:16px;font-weight:600}.pvinfo span{color:#ccc;text-transform:capitalize}.pvf{bottom:0;justify-content:space-around;padding:18px 10px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.7))}.pvact{border:0;background:none;color:#fff;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px;cursor:pointer;padding:6px 18px}.pvm{position:absolute;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(255,255,255,.92);color:#111;padding:9px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}.pvm.show{opacity:1}.phsrc{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 7px;border-radius:10px}.phsrc.cam{background:rgba(26,163,217,.9)}.phsheet{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;z-index:50}.phsheet>div{background:#fff;width:100%;padding:18px;border-radius:20px 20px 0 0;display:flex;flex-direction:column;gap:8px}.phsheet .send{padding:14px;font-size:16px}.send.light{background:#eef6fb;color:#1a6fa0}
-.ws{position:relative}.send .sm{display:none;line-height:0}.send:not(.txt){background:none;color:#1aa3d9;padding:6px 8px;touch-action:none;user-select:none;-webkit-user-select:none}.send:not(.txt) .st{display:none}.send:not(.txt) .sm{display:block}.ws.rec .send{color:#e8352b;transform:scale(1.3)}.ws.rec input,.ws.rec .camb{visibility:hidden}.recst{position:absolute;left:16px;right:60px;top:50%;transform:translateY(-50%);font-size:16px;color:#333;pointer-events:none}.recst b{color:#e8352b}.recst span{color:#999;font-size:12px;margin-left:6px}.aud{display:flex;flex-direction:column;gap:2px}.aud audio{width:230px;max-width:100%;height:40px}.aud span{font-size:12px;opacity:.75}
+.ws{position:relative}.stopi{display:none;width:30px;height:30px;border-radius:50%;background:#e8352b;position:relative;box-shadow:0 0 0 4px rgba(232,53,43,.25);animation:recp 1.2s infinite}.stopi::after{content:'';position:absolute;left:10px;top:10px;width:10px;height:10px;background:#fff;border-radius:2px}.ws.lock .sm svg{display:none}.ws.lock .stopi{display:block}@keyframes recp{50%{box-shadow:0 0 0 8px rgba(232,53,43,.12)}}
+.recx{position:absolute;left:8px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:22px;cursor:pointer;padding:4px;z-index:2}.ws.lock .recst{left:48px}
+.vidw{display:flex;flex-direction:column;gap:2px}.mvid{display:block;width:240px;max-width:100%;max-height:320px;border-radius:12px;background:#000}.vidw span{font-size:12px;color:#777}
+.filw{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;min-width:200px;max-width:260px}.fic{flex:none;width:42px;height:50px;border-radius:6px;background:#3b7ddd;color:#fff;font-style:normal;font-size:11px;font-weight:800;display:grid;place-items:center}.fnm{min-width:0;display:flex;flex-direction:column}.fnm b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fnm small{font-size:12px;color:#888}
+.send .sm{display:none;line-height:0}.send:not(.txt){background:none;color:#1aa3d9;padding:6px 8px;touch-action:none;user-select:none;-webkit-user-select:none}.send:not(.txt) .st{display:none}.send:not(.txt) .sm{display:block}.ws.rec .send{color:#e8352b;transform:scale(1.3)}.ws.rec input,.ws.rec .camb{visibility:hidden}.recst{position:absolute;left:16px;right:60px;top:50%;transform:translateY(-50%);font-size:16px;color:#333;pointer-events:none}.recst b{color:#e8352b}.recst span{color:#999;font-size:12px;margin-left:6px}.aud{display:flex;flex-direction:column;gap:2px}.aud audio{width:230px;max-width:100%;height:40px}.aud span{font-size:12px;opacity:.75}
 .mph{display:block;max-width:220px;max-height:260px;border-radius:12px}.camb{border:0;background:none;padding:4px 8px 4px 0;cursor:pointer;flex:none;display:flex}.camb i{display:block;width:30px;height:30px;background:#1aa3d9;-webkit-mask:url(/app/img2014/camera.png) center/contain no-repeat;mask:url(/app/img2014/camera.png) center/contain no-repeat}.ws .camb{margin-left:-8px}
 .send{border:0;background:var(--green);color:#fff;border-radius:22px;padding:11px 16px;font:inherit;font-weight:600;cursor:pointer}
 .mailbox{display:flex;flex-direction:column;gap:8px}
@@ -77,23 +81,44 @@ const photoTag = b => /#cam$/.test(b) ? '<span class="phsrc cam">📷 Hecha desd
 const AUDIO_URL = 'https://kbkyosyenotqjcgujbmn.supabase.co/storage/v1/object/public/chat-audio/';
 const isAudio = b => typeof b === 'string' && b.startsWith('aud:' + AUDIO_URL);
 const audBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/#(\d+)$/) || [])[1] || 0; return `<div class="aud"><audio controls preload="none" src="${esc(u)}"></audio><span>🎤 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span></div>`; };
+// archivos adjuntos: "fil:" + dirección + "#" + tamaño + "|" + nombre original (igual que en la app)
+const FILE_URL = 'https://kbkyosyenotqjcgujbmn.supabase.co/storage/v1/object/public/chat-files/';
+const isFile = b => typeof b === 'string' && b.startsWith('fil:' + FILE_URL);
+const fileMeta = b => { const [u, m = ''] = b.slice(4).split('#'), i = m.indexOf('|'), size = +m.slice(0, i) || 0; let name = 'archivo'; try { name = decodeURIComponent(m.slice(i + 1)) || name; } catch (e) {} return { u, size, name }; };
+const fSize = n => n >= 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+const fileBody = b => { const { u, size, name } = fileMeta(b), ext = (name.match(/\.(\w{1,5})$/) || [, '?'])[1].toUpperCase();
+  return `<a class="filw" href="${esc(u)}?download=${encodeURIComponent(name)}" target="_blank" rel="noopener"><i class="fic">${esc(ext)}</i><span class="fnm"><b>${esc(name)}</b><small>${fSize(size)} · Descargar</small></span></a>`; };
+const FILE_TYPES = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', odt: 'application/vnd.oasis.opendocument.text', ods: 'application/vnd.oasis.opendocument.spreadsheet', odp: 'application/vnd.oasis.opendocument.presentation', txt: 'text/plain', csv: 'text/csv', zip: 'application/zip', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', heic: 'image/heic', mp3: 'audio/mpeg', m4a: 'audio/mp4', ogg: 'audio/ogg', wav: 'audio/wav', mp4: 'video/mp4', mov: 'video/quicktime', '3gp': 'video/3gpp', webm: 'video/webm' };
+const FILE_MAX = 10 * 1048576;
+const isVideo = b => typeof b === 'string' && b.startsWith('vid:' + FILE_URL);
+const vidBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/#(\d+)$/) || [])[1] || 0; return `<div class="vidw"><video class="mvid" controls playsinline preload="metadata" src="${esc(u)}"></video><span>🎥 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span></div>`; };
+const vidSecs = f => new Promise(ok => { const v = document.createElement('video'), u = URL.createObjectURL(f); v.preload = 'metadata'; v.onloadedmetadata = () => { URL.revokeObjectURL(u); ok(isFinite(v.duration) ? Math.round(v.duration) : 0); }; v.onerror = () => ok(0); v.src = u; });
 const audMime = () => ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus'].find(t => window.MediaRecorder?.isTypeSupported?.(t)) || '';
-// micrófono: con el campo vacío, mantener pulsado graba, soltar envía, deslizar a la izquierda cancela (máx. 2 min)
+// micrófono: con el campo vacío (máx. 2 min). Mantener pulsado graba, soltar envía, deslizar a la izquierda cancela.
+// Un toque graba sin mantener: sale el botón rojo ■ para enviar y la papelera para cancelar (igual que en la app).
 function bindMic(send) {
   const btn = $('#cs'), inp = $('#ci'), bar = btn.closest('.ws');
   const upd = () => btn.classList.toggle('txt', !!inp.value.trim()); inp.addEventListener('input', upd); upd();
-  let rec = null, chunks = [], t0 = 0, x0 = 0, cancel = false, held = false, timer = null, stream = null;
-  const stop = () => { try { if (rec && rec.state !== 'inactive') rec.stop(); } catch (e) {} };
+  let rec = null, chunks = [], t0 = 0, x0 = 0, tDown = 0, cancel = false, held = false, lock = false, starting = false, timer = null, stream = null;
+  const stop = c => { if (c) cancel = true; try { if (rec && rec.state !== 'inactive') rec.stop(); } catch (e) {} };
+  const setLock = () => {
+    lock = true; bar.classList.add('lock');
+    if (!$('#recx')) { const x = document.createElement('button'); x.id = 'recx'; x.className = 'recx'; x.title = 'Cancelar'; x.innerHTML = '🗑️'; x.onpointerdown = ev => ev.preventDefault(); x.onclick = () => stop(true); bar.appendChild(x); }
+  };
   btn.addEventListener('pointerdown', async e => {
     if (inp.value.trim()) return;
-    e.preventDefault(); held = true; x0 = e.clientX; cancel = false; try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+    e.preventDefault();
+    if (rec?.state === 'recording') { if (lock) stop(); return; }
+    if (starting) return;
+    held = true; lock = false; tDown = Date.now(); x0 = e.clientX; cancel = false; try { btn.setPointerCapture(e.pointerId); } catch (_) {}
     if (!window.MediaRecorder || !navigator.mediaDevices?.getUserMedia) return alert('Este navegador no permite grabar audio.');
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (err) { return alert('Permite el micrófono para enviar audios.'); }
-    if (!held) { stream.getTracks().forEach(t => t.stop()); return; }
+    starting = true;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (err) { starting = false; return alert('Permite el micrófono para enviar audios.'); }
+    starting = false;
     const mt = audMime(); rec = new MediaRecorder(stream, mt ? { mimeType: mt, audioBitsPerSecond: 24000 } : { audioBitsPerSecond: 24000 }); chunks = [];
     rec.ondataavailable = ev => { if (ev.data.size) chunks.push(ev.data); };
     rec.onstop = async () => {
-      stream.getTracks().forEach(t => t.stop()); clearInterval(timer); bar.classList.remove('rec'); $('#recst')?.remove();
+      stream.getTracks().forEach(t => t.stop()); clearInterval(timer); bar.classList.remove('rec', 'lock'); $('#recst')?.remove(); $('#recx')?.remove(); lock = false;
       const ms = Date.now() - t0; if (cancel || ms < 800) return;
       const type = (rec.mimeType || mt || 'audio/webm').split(';')[0], blob = new Blob(chunks, { type });
       btn.disabled = true;
@@ -104,12 +129,13 @@ function bindMic(send) {
       } catch (err) { alert('No se ha podido enviar el audio.'); } finally { btn.disabled = false; }
     };
     t0 = Date.now(); rec.start(); bar.classList.add('rec');
+    if (!held) setLock();
     const st = document.createElement('div'); st.id = 'recst'; st.className = 'recst'; bar.appendChild(st);
-    const tick = () => { const s = Math.floor((Date.now() - t0) / 1000); st.innerHTML = `<b>●</b> ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} <span>‹ desliza para cancelar</span>`; if (s >= 120) stop(); };
+    const tick = () => { const s = Math.floor((Date.now() - t0) / 1000); st.innerHTML = `<b>●</b> ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} <span>${lock ? 'pulsa ■ para enviar' : '‹ desliza para cancelar'}</span>`; if (s >= 120) stop(); };
     tick(); timer = setInterval(tick, 250);
   });
-  btn.addEventListener('pointermove', e => { if (rec?.state === 'recording' && x0 - e.clientX > 80) { cancel = true; stop(); } });
-  const end = () => { held = false; if (rec?.state === 'recording') stop(); };
+  btn.addEventListener('pointermove', e => { if (rec?.state === 'recording' && !lock && x0 - e.clientX > 80) stop(true); });
+  const end = () => { held = false; if (rec?.state === 'recording' && !lock) { if (Date.now() - tDown < 450) setLock(); else stop(); } };
   btn.addEventListener('pointerup', end); btn.addEventListener('pointercancel', end);
 }
 // visor de fotos: encajada en pantalla, zoom con dos dedos (o doble toque), arrastrar con un dedo cuando hay zoom,
@@ -117,7 +143,7 @@ function bindMic(send) {
 const pvTime = d => d ? new Date(d).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
 const pvName = (url, at) => { const d = at ? new Date(at) : new Date(), p = n => String(n).padStart(2, '0'); return `scan2com-foto-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.${(url.split('#')[0].match(/\.(\w{3,4})(\?|$)/) || [, 'jpg'])[1]}`; };
 const pvMsg = t => { const m = document.getElementById('pvm'); if (!m) return; m.textContent = t; m.classList.add('show'); clearTimeout(m._t); m._t = setTimeout(() => m.classList.remove('show'), 2600); };
-async function pvData(url) { const b = await (await fetch(url.split('#')[0])).blob(); return { blob: b, b64: await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result.split(',')[1]); f.readAsDataURL(b); }) }; }
+async function pvData(url) { const b = await mBlob(url.split('#')[0]); return { blob: b, b64: await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result.split(',')[1]); f.readAsDataURL(b); }) }; }
 async function pvDownload(url, at) {
   const name = pvName(url, at), P = window.Capacitor?.Plugins;
   try {
@@ -146,7 +172,7 @@ async function pvShare(url, at) {
 }
 function pvHtml(url, at, tag) {
   const src = /#cam$/.test(url) ? '📷 Hecha desde la cámara' : /#gal$/.test(url) ? '🖼️ De la galería' : 'Foto';
-  return `<div class="pview" id="pv"><div class="pvs" id="pvs"><img id="pvi" src="${esc(url.split('#')[0])}" alt="Foto" draggable="false"></div>
+  return `<div class="pview" id="pv"><div class="pvs" id="pvs"><img id="pvi" src="${esc(mBlobs.get(url.split('#')[0]) || url.split('#')[0])}" alt="Foto" draggable="false"></div>
   <div class="pvt pvbar"><button class="pvbtn" id="pvx" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><div class="pvinfo"><b>${src}</b>${at ? `<span>${esc(pvTime(at))}</span>` : ''}</div></div>
   <div class="pvf pvbar"><button class="pvact" id="pvd"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Descargar</button><button class="pvact" id="pvsh"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg>Compartir</button></div>
   <div class="pvm" id="pvm"></div></div>`;
@@ -199,14 +225,15 @@ function locBody(b) {
   const tiles = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([i, j]) => `<img src="https://tile.openstreetmap.org/${z}/${x0 + i}/${y0 + j}.png" alt="" loading="lazy" style="left:${ox + i * 256}px;top:${oy + j * 256}px">`).join('');
   return `<a class="locw" href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}" target="_blank" rel="noopener"><span class="locmap" style="width:${W}px;height:${H}px">${tiles}<i class="locpin"></i></span><span class="loct">📍 Ubicación · <u>abrir mapa</u></span></a>`;
 }
-const msgBody = (b, at) => isAudio(b) ? audBody(b) : isLoc(b) ? locBody(b) : isPhoto(b) ? `<a href="${esc(b.slice(4))}" data-photo="${esc(b.slice(4))}" data-at="${esc(at || '')}" class="phw"><img class="mph" src="${esc(b.slice(4))}" loading="lazy" alt="Foto">${photoTag(b)}</a>` : esc(b);
+const msgBody = (b, at) => isVideo(b) ? vidBody(b) : isFile(b) ? fileBody(b) : isAudio(b) ? audBody(b) : isLoc(b) ? locBody(b) : isPhoto(b) ? `<a href="${esc(b.slice(4))}" data-photo="${esc(b.slice(4))}" data-at="${esc(at || '')}" class="phw"><img class="mph" src="${esc(b.slice(4))}" loading="lazy" alt="Foto">${photoTag(b)}</a>` : esc(b);
 function pickPhoto() {   // primero se elige: hacer la foto ahora o cogerla de la galería
   return new Promise(res => {
     const box = document.createElement('div'); box.className = 'phsheet';
-    box.innerHTML = '<div><button class="send" id="phc">📷 Hacer foto ahora</button><button class="send light" id="phg">🖼️ Elegir de la galería</button><button class="send light" id="phl">📍 Enviar mi ubicación</button></div>';
+    box.innerHTML = '<div><button class="send" id="phc">📷 Hacer foto ahora</button><button class="send light" id="phg">🖼️ Elegir de la galería</button><button class="send light" id="phl">📍 Enviar mi ubicación</button><button class="send light" id="phf">📄 Enviar un archivo o vídeo</button></div>';
     document.body.appendChild(box);
     const pick = cam => { box.remove(); const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; if (cam) i.setAttribute('capture', 'environment'); i.onchange = () => { const f = i.files[0]; res(f ? { f, cam: cam && Date.now() - f.lastModified < 120e3 } : null); }; i.click(); };
     box.onclick = e => { if (e.target === box) { box.remove(); res(null); } }; box.querySelector('#phc').onclick = () => pick(true); box.querySelector('#phg').onclick = () => pick(false); box.querySelector('#phl').onclick = () => { box.remove(); res({ loc: true }); };
+    box.querySelector('#phf').onclick = () => { box.remove(); const i = document.createElement('input'); i.type = 'file'; i.accept = Object.keys(FILE_TYPES).map(e => '.' + e).join(','); i.onchange = () => res(i.files[0] ? { file: i.files[0] } : null); i.click(); };
   });
 }
 async function compressPhoto(f, max = 1280, q = 0.72) {
@@ -366,6 +393,8 @@ async function openChat() {
   } else if (wsText()) {
     await rpc('visitor_send', { p_chat: chat.id, p_token: chat.token, p_body: wsText() });
   }
+  // copia de la conversación en este navegador (el servidor solo la guarda de paso)
+  try { const loc = JSON.parse(localStorage.getItem('scan2com_msgs_' + chat.id) || '[]'); if (Array.isArray(loc) && loc.length && !msgs.length) { msgs = loc; lastMsg = loc.at(-1).id; } } catch (e) {}
   view = 'chat'; renderChat(); fetchMsgs(); clearInterval(poll); poll = setInterval(fetchMsgs, 3000);
   linkChat();
 }
@@ -378,7 +407,7 @@ function renderChat() {
   app.innerHTML = `
     <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div>${sbA ? `<a href="/app/?vchat=${chat.id}" style="font-size:13px;color:#0a8f8f;font-weight:600;text-decoration:none">Mis chats ›</a>` : '<span style="font-size:12px;color:#777">chat anónimo</span>'}</div>
     <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}">${msgBody(m.body, m.at)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
-    ${alive ? `<div class="ws"><button class="camb" id="cph" title="Enviar foto o ubicación"><i></i></button><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs"><span class="st">Enviar</span><span class="sm"><svg width="26" height="26" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></button></div>` : ''}`;
+    ${alive ? `<div class="ws"><button class="camb" id="cph" title="Enviar foto, ubicación o archivo"><i></i></button><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs"><span class="st">Enviar</span><span class="sm"><svg width="26" height="26" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="stopi"></span></span></button></div>` : ''}`;
   $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };
   app.classList.add('full'); const ms = $('#ms'); ms.scrollTop = ms.scrollHeight;
   if ($('#ci')) $('#ci').onfocus = () => setTimeout(fitVV, 300);
@@ -393,6 +422,19 @@ function renderChat() {
         if (!pos) return alert('No se ha podido obtener tu ubicación. Permite la ubicación e inténtalo de nuevo.');
         if (!confirm('¿Enviar tu ubicación actual a este chat? La otra persona la verá en el mapa.')) return;
         const r = await rpc('visitor_send', { p_chat: chat.id, p_token: chat.token, p_body: `loc:${pos.latitude.toFixed(5)},${pos.longitude.toFixed(5)}` }); if (!r.ok && r.error === 'closed') alive = false;
+        return fetchMsgs();
+      }
+      if (p.file) {   // archivo adjunto (PDF, Word, Excel, imagen, audio, vídeo, ZIP), máx. 10 MB
+        const f = p.file, ext = (f.name.match(/\.(\w{1,5})$/) || [, ''])[1].toLowerCase(), type = FILE_TYPES[ext];
+        if (!type) return alert('Ese tipo de archivo no se puede enviar. Prueba con PDF, Word, Excel, imagen, audio, vídeo o ZIP.');
+        if (f.size > FILE_MAX) return alert('El archivo pesa ' + fSize(f.size) + '. El máximo son 10 MB.');
+        const b = $('#cph'); b.disabled = true; b.style.opacity = .4;
+        try {
+          const path = `${chat.id}/${crypto.randomUUID()}.${ext}`;
+          const { error } = await sb.storage.from('chat-files').upload(path, f, { contentType: type }); if (error) throw error;
+          const vid = /^(mp4|mov|3gp|webm)$/.test(ext), body = vid ? 'vid:' + FILE_URL + path + '#' + (await vidSecs(f)) : 'fil:' + FILE_URL + path + '#' + f.size + '|' + encodeURIComponent(f.name.slice(-120));
+          const r = await rpc('visitor_send', { p_chat: chat.id, p_token: chat.token, p_body: body }); if (!r.ok && r.error === 'closed') alive = false;
+        } catch (e) { alert('No se ha podido enviar el archivo.'); }
         return fetchMsgs();
       }
       const b = $('#cph'); b.disabled = true; b.style.opacity = .4;
@@ -410,9 +452,39 @@ async function fetchMsgs() {
   const r = await rpc('visitor_messages', { p_chat: chat.id, p_token: chat.token, p_after: lastMsg, p_seen: !document.hidden });
   if (!r.ok) { if (r.error === 'forbidden') { localStorage.removeItem(chatKey()); chat = null; view = 'home'; clearInterval(poll); render(); } return; }
   const changed = r.messages.length || r.alive !== alive;
-  alive = r.alive; msgs.push(...r.messages); if (r.messages.length) lastMsg = r.messages.at(-1).id;
+  alive = r.alive; r.messages.forEach(m => { if (!msgs.find(x => x.id === m.id)) msgs.push(m); }); if (r.messages.length) lastMsg = r.messages.at(-1).id;
+  if (r.messages.length) { try { localStorage.setItem('scan2com_msgs_' + chat.id, JSON.stringify(msgs.slice(-2000))); } catch (e) {} keepCopy(); }
   if (changed && view === 'chat') { const v = $('#ci')?.value; renderChat(); if (v && $('#ci')) $('#ci').value = v; }
+  hydrate();
 }
+// fotos, audios y archivos: copia en este navegador; luego se avisa al servidor de que ya los tenemos (y puede borrarlos)
+const MCACHE = 'scan2com-media', mBlobs = new Map();
+const mUrl = b => (typeof b === 'string' && b.match(/^(img|aud|fil|vid):(https:\/\/kbkyosyenotqjcgujbmn\.supabase\.co\/storage\/v1\/object\/public\/[^#]+)/) || [])[2] || '';
+async function mBlob(u) {
+  try { const c = await caches.open(MCACHE), r = await c.match(u); if (r) return await r.blob(); } catch (e) {}
+  const r = await fetch(u); if (!r.ok) throw new Error('gone'); const b = await r.clone().blob(); try { await (await caches.open(MCACHE)).put(u, r); } catch (e) {} return b;
+}
+let copyBusy = false, ackedUpto = 0;
+async function keepCopy() {
+  if (copyBusy || !chat) return; copyBusy = true; let upto = 0;
+  try { for (const m of msgs) { const u = mUrl(m.body); if (u) { try { await mBlob(u); } catch (e) { break; } } upto = m.id; } } finally { copyBusy = false; }
+  if (upto > ackedUpto) { const r = await rpc('visitor_ack', { p_chat: chat.id, p_token: chat.token, p_upto: upto }); if (r?.ok) ackedUpto = upto; }
+  hydrate();
+}
+async function hydrate() {
+  for (const el of document.querySelectorAll('#ms img.mph, #ms audio, #ms video.mvid, #ms a.filw')) {
+    const raw = el.dataset.u || (el.tagName === 'A' ? el.getAttribute('href').split('?')[0] : el.getAttribute('src')); if (!raw || raw.startsWith('blob:')) continue;
+    el.dataset.u = raw; const u = raw.split('#')[0]; let bu = mBlobs.get(u);
+    if (!bu) { try { const c = await caches.open(MCACHE), r = await c.match(u); if (r) { bu = URL.createObjectURL(await r.blob()); mBlobs.set(u, bu); } } catch (e) {} }
+    if (bu && el.tagName !== 'A') el.src = bu;
+  }
+}
+document.addEventListener('click', async e => {
+  const a = e.target.closest('a.filw'); if (!a) return; e.preventDefault();
+  const u = (a.dataset.u || a.getAttribute('href')).split('?')[0].split('#')[0], name = decodeURIComponent(a.getAttribute('href').split('download=')[1] || 'archivo');
+  try { const b = await mBlob(u), x = document.createElement('a'); x.href = URL.createObjectURL(b); x.download = name; document.body.appendChild(x); x.click(); x.remove(); setTimeout(() => URL.revokeObjectURL(x.href), 4000); }
+  catch (err) { alert('Este archivo ya no está disponible.'); }
+});
 
 load();
 </script>

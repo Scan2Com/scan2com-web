@@ -121,6 +121,10 @@ ul.ok li:before{content:"";position:absolute;left:0;top:12px;width:20px;height:2
 .bm.hid{opacity:0}
 .ph small.mm{font-size:13px;font-weight:700;opacity:1;text-align:center;line-height:1.2;padding:0 6px}
 .herort{justify-self:center;display:flex;flex-direction:column;align-items:center}.cap.onoff{margin:0;max-width:360px;gap:12px}.cap.onoff b{font-size:18px}
+.priv{padding:56px 0;background:#1d1f22;color:#fff}.priv .sub{color:#c9ccd1}
+.privin{display:grid;grid-template-columns:auto 1fr;gap:30px;align-items:start}.lock{font-size:64px;line-height:1}
+.pp{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.pp div{background:#2a2d31;border-radius:16px;padding:16px}.pp b{display:block;margin-bottom:4px}.pp span{color:#c9ccd1;font-size:15px}
+@media(max-width:760px){.privin{grid-template-columns:1fr}.pp{grid-template-columns:1fr}}
 .pill{display:inline-block;color:#fff;font-size:13px;font-weight:600;padding:4px 12px;border-radius:999px}
 @media(max-width:760px){.uses{grid-template-columns:1fr}}
 .carimg{width:100%;max-width:560px;display:block;margin:0 auto}
@@ -167,6 +171,17 @@ footer a{color:#fff;text-decoration:none}
   </div>
   <div class="cap onoff" style="align-items:center"><span class="pwr on" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></span><span class="pwr" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></span><div><b>ON / OFF</b></div></div></div>
 </div></div>
+
+<section class="priv"><div class="w">
+  <div class="privin">
+    <div class="lock" aria-hidden="true">🔒</div>
+    <div>
+      <h2>Tu número nunca sale de tu bolsillo</h2>
+      <p class="sub" style="margin-bottom:18px">Nada de notas con el teléfono en el parabrisas ni anuncios con tu número a la vista. Con Scan2Com hablas con quien te escanea sin darle tus datos.</p>
+      <div class="pp"><div><b>No te pedimos el teléfono</b><span>Te registras solo con un email.</span></div><div><b>Nadie ve tus datos</b><span>Quien te escribe no ve tu número ni tu email: solo el nombre que pongas al código.</span></div><div><b>Tú tienes el control</b><span>Apaga, bloquea o borra un código cuando quieras.</span></div></div>
+    </div>
+  </div>
+</div></section>
 
 <section id="como"><div class="w">
   <h2>Cómo funciona</h2>

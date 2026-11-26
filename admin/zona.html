@@ -51,7 +51,7 @@ button.or{background:var(--or)}button.light{background:#e6e8eb;color:var(--ink)}
       <div class="row"><button id="go">Entrar</button></div>
       <div class="msg err" id="lerr"></div>
     </div>
-    <div class="box" id="noadm" hidden><h2>Sin permiso</h2><p class="msg err">Esta cuenta no es administradora de Scan2Com.</p><div class="row"><button class="light" id="out2">Cerrar sesión</button></div></div>
+    <div class="box" id="noadm" hidden><h2>Sin permiso</h2><p class="msg err">Esta cuenta no puede enviar avisos por zona. Pide a Scan2Com que la añada al grupo de tu institución.</p><div class="row"><button class="light" id="out2">Cerrar sesión</button></div></div>
     <div id="tool" hidden>
       <div class="box">
         <h2>1 · Zona</h2>
@@ -71,6 +71,7 @@ button.or{background:var(--or)}button.light{background:#e6e8eb;color:var(--ink)}
       </div>
       <div class="box">
         <h2>3 · Aviso</h2>
+        <div id="asw" hidden><label>Enviar como</label><select id="grp"></select></div>
         <label>Tipo de aviso</label>
         <div class="kinds" id="kinds"></div>
         <label>Título</label><input id="ti" maxlength="80" placeholder="Ej. Retirada de vehículos">
@@ -78,6 +79,11 @@ button.or{background:var(--or)}button.light{background:#e6e8eb;color:var(--ink)}
         <div class="row"><button class="or" id="send" disabled>Enviar aviso</button></div>
         <div class="msg" id="smsg"></div>
       </div>
+      <div class="box" id="gbox" hidden><h2>Grupos que pueden enviar avisos</h2>
+        <div class="hint" style="margin-top:0">Cada grupo (Policía de Logroño, Ayuntamiento, Bomberos…) envía y ve solo sus avisos. Añade a sus miembros por el email de su cuenta de Scan2Com.</div>
+        <div id="glist"></div>
+        <div class="row"><input id="gnew" placeholder="Nuevo grupo, p. ej. Policía Local de Logroño" maxlength="80" style="flex:3;margin:0"><button class="light" id="gadd" style="flex:1">Crear</button></div>
+        <div class="msg" id="gmsg"></div></div>
       <div class="box"><h2>Avisos enviados</h2><div id="hist"><div class="empty">Cargando…</div></div><div class="row"><button class="light" id="out">Cerrar sesión</button></div></div>
     </div>
   </div>
@@ -169,7 +175,7 @@ $('#send').onclick = async () => {
   const n = S.users;
   if (!confirm(`Se enviará «${$('#ti').value.trim()}» a ${n} persona${n === 1 ? '' : 's'} en un radio de ${fmtM(radM())}. Esta acción no se puede deshacer. ¿Enviar?`)) return;
   $('#send').disabled = true; $('#smsg').className = 'msg'; $('#smsg').textContent = 'Enviando…';
-  const { data, error } = await sb.rpc('zone_send', { p_title: $('#ti').value.trim(), p_body: $('#bo').value.trim(), p_kind: S.kind, ...args() });
+  const { data, error } = await sb.rpc('zone_send', { p_title: $('#ti').value.trim(), p_body: $('#bo').value.trim(), p_kind: S.kind, p_group: $('#grp').value ? +$('#grp').value : null, ...args() });
   if (error || !data?.ok) { $('#smsg').className = 'msg err'; $('#smsg').textContent = error?.message || data?.error || 'No se ha podido enviar.'; checkSend(); return; }
   $('#smsg').className = 'msg ok'; $('#smsg').textContent = `✓ Aviso enviado a ${data.users} persona${data.users === 1 ? '' : 's'}.`;
   $('#ti').value = $('#bo').value = ''; S.kind = ''; $('#kinds').querySelectorAll('.on').forEach(x => x.classList.remove('on')); checkSend(); hist();
@@ -179,7 +185,7 @@ $('#send').onclick = async () => {
 async function hist() {
   const { data } = await sb.rpc('zone_history');
   const it = data?.items || [];
-  $('#hist').innerHTML = it.length ? it.map((h, i) => `<div class="h" data-i="${i}">${(KINDS.find(k => k[0] === h.kind) || KINDS[4])[1]} <b>${esc(h.title)}</b> · ${h.users} avisad${h.users === 1 ? 'a' : 'as'}, ${h.read} lo ${h.read === 1 ? 'ha' : 'han'} leído<small>${new Date(h.at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })} · ${fmtM(h.radius)} · ${{ both: 'coches y personas', cars: 'coches', people: 'personas' }[h.targets]}</small><small>${esc(h.body)}</small></div>`).join('') : '<div class="empty">Todavía no has enviado ningún aviso.</div>';
+  $('#hist').innerHTML = it.length ? it.map((h, i) => `<div class="h" data-i="${i}">${(KINDS.find(k => k[0] === h.kind) || KINDS[4])[1]} <b>${esc(h.title)}</b>${h.group && (S.role.admin || S.role.groups.length > 1) ? ` <span style="color:var(--mut)">· ${esc(h.group)}</span>` : ''} · ${h.users} avisad${h.users === 1 ? 'a' : 'as'}, ${h.read} lo ${h.read === 1 ? 'ha' : 'han'} leído<small>${new Date(h.at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })} · ${fmtM(h.radius)} · ${{ both: 'coches y personas', cars: 'coches', people: 'personas' }[h.targets]}</small><small>${esc(h.body)}</small></div>`).join('') : '<div class="empty">Todavía no has enviado ningún aviso.</div>';
   $('#hist').querySelectorAll('[data-i]').forEach(d => d.onclick = () => {
     const h = it[+d.dataset.i]; if (past) past.remove();
     past = L.circle([h.lat, h.lng], { radius: h.radius, color: '#888', dashArray: '6 6', weight: 2, fillOpacity: .06 }).addTo(map).bindTooltip(h.title).openTooltip();
@@ -187,13 +193,47 @@ async function hist() {
   });
 }
 
-/* ---------- acceso: solo cuentas de la tabla admins ---------- */
+/* ---------- grupos: «Enviar como» y, para administradores, crear grupos y añadir miembros ---------- */
+async function groups() {
+  let all = S.role.groups;
+  if (S.role.admin) {
+    const { data } = await sb.rpc('admin_zone_groups'); all = data?.items || [];
+    $('#gbox').hidden = false;
+    $('#glist').innerHTML = all.length ? all.map(g => `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>${esc(g.name)}</b> <span class="hint">· ${g.sent} aviso${g.sent === 1 ? '' : 's'}</span> <button class="light" data-gdel="${g.id}" style="min-height:30px;padding:2px 10px;font-size:12px;float:right">Borrar grupo</button>
+      ${g.members.map(m => `<div style="font-size:13px;display:flex;align-items:center;gap:6px;margin-top:4px">${esc(m.email)} <button class="light" data-mdel="${g.id}:${m.user_id}" style="min-height:26px;padding:0 8px;font-size:12px">quitar</button></div>`).join('') || '<div class="hint">Sin miembros todavía.</div>'}
+      <div class="row" style="margin-top:6px"><input data-mem="${g.id}" type="email" placeholder="email del miembro" style="flex:3;margin:0;font-size:14px;padding:7px"><button class="light" data-madd="${g.id}" style="flex:1;min-height:36px;font-size:13px">Añadir</button></div></div>`).join('') : '<div class="hint">Todavía no hay grupos.</div>';
+    $('#glist').querySelectorAll('[data-madd]').forEach(b => b.onclick = async () => {
+      const em = $(`[data-mem="${b.dataset.madd}"]`).value.trim(); if (!em) return;
+      const { data } = await sb.rpc('admin_zone_member_add', { p_group: +b.dataset.madd, p_email: em });
+      $('#gmsg').className = 'msg ' + (data?.ok ? 'ok' : 'err'); $('#gmsg').textContent = data?.ok ? `✓ ${em} añadido` : data?.error === 'user_not_found' ? `No hay ninguna cuenta de Scan2Com con el email ${em}. Tiene que registrarse primero en la app.` : 'No se ha podido añadir.';
+      groups();
+    });
+    $('#glist').querySelectorAll('[data-mdel]').forEach(b => b.onclick = async () => { const [g, u] = b.dataset.mdel.split(':'); await sb.rpc('admin_zone_member_del', { p_group: +g, p_user: u }); groups(); });
+    $('#glist').querySelectorAll('[data-gdel]').forEach(b => b.onclick = async () => { if (!confirm('¿Borrar este grupo? Sus miembros ya no podrán enviar avisos. Los avisos enviados se conservan.')) return; await sb.rpc('admin_zone_group_del', { p_group: +b.dataset.gdel }); groups(); hist(); });
+  }
+  // «Enviar como»: si hay que elegir (varios grupos o administrador con grupos)
+  const opts = (S.role.admin ? [['', 'Scan2Com (administración)']] : []).concat(all.map(g => [g.id, g.name]));
+  const cur = $('#grp').value;
+  $('#grp').innerHTML = opts.map(([v, n]) => `<option value="${v}">${esc(n)}</option>`).join('');
+  if (opts.some(o => String(o[0]) === cur)) $('#grp').value = cur;
+  $('#asw').hidden = opts.length < 2;
+}
+$('#gadd').onclick = async () => {
+  const n = $('#gnew').value.trim(); if (n.length < 2) return;
+  const { data } = await sb.rpc('admin_zone_group_add', { p_name: n });
+  $('#gmsg').className = 'msg ' + (data?.ok ? 'ok' : 'err'); $('#gmsg').textContent = data?.ok ? `✓ Grupo «${n}» creado` : 'No se ha podido crear.';
+  $('#gnew').value = ''; groups();
+};
+
+/* ---------- acceso: administradores y miembros de grupos ---------- */
 async function start(session) {
   $('#login').hidden = !!session; $('#tool').hidden = true; $('#noadm').hidden = true; $('#who').textContent = session?.user?.email || '';
   if (!session) return;
-  const { data } = await sb.from('admins').select('user_id').eq('user_id', session.user.id).maybeSingle();
-  if (!data) { $('#noadm').hidden = false; return; }
-  $('#tool').hidden = false; setTimeout(() => map.invalidateSize(), 50); draw(); hist();
+  // pueden entrar los administradores de Scan2Com y los miembros de un grupo (Policía de…, Ayuntamiento de…)
+  const { data: role } = await sb.rpc('my_zone_role');
+  S.role = role || { admin: false, groups: [] };
+  if (!S.role.admin && !S.role.groups.length) { $('#noadm').hidden = false; return; }
+  $('#tool').hidden = false; setTimeout(() => map.invalidateSize(), 50); draw(); hist(); groups();
 }
 $('#out').onclick = $('#out2').onclick = () => sb.auth.signOut();
 $('#go').onclick = async () => {

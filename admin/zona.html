@@ -62,10 +62,7 @@ button.or{background:var(--or)}button.light{background:#e6e8eb;color:var(--ink)}
         <div class="rng"><input type="range" id="rad" min="0" max="100" value="38"><output id="radv">300 m</output></div>
         <label>A quién avisar</label>
         <select id="tg"><option value="both">Coches aparcados y personas en la zona</option><option value="cars">Solo dueños de coches aparcados en la zona</option><option value="people">Solo personas que están en la zona</option></select>
-        <div class="row">
-          <label style="margin:0">Coches: última posición de hace menos de<select id="cd"><option value="1">1 día</option><option value="7">7 días</option><option value="30" selected>30 días</option><option value="90">90 días</option></select></label>
-          <label style="margin:0">Personas: ubicación de hace menos de<select id="ph"><option value="2">2 horas</option><option value="12">12 horas</option><option value="24" selected>24 horas</option><option value="168">7 días</option></select></label>
-        </div>
+        <div class="hint">Se usa la última ubicación conocida de cada persona y de cada coche. Quien recibe el aviso ve la zona en un mapa y sabe si le afecta.</div>
       </div>
       <div class="box">
         <h2>2 · Destinatarios</h2>
@@ -110,7 +107,7 @@ function draw(fit) {
 }
 map.on('click', e => { S.c = e.latlng; draw(map.getZoom() < 12); });   // si el mapa está muy alejado, se acerca al área
 $('#rad').oninput = () => draw();
-$('#tg').onchange = $('#cd').onchange = $('#ph').onchange = () => preview();
+$('#tg').onchange = () => preview();
 $('#qs').onclick = async () => {
   const q = $('#q').value.trim(); if (!q) return;
   try {
@@ -148,7 +145,7 @@ $('#me').onclick = () => {
 
 /* ---------- destinatarios ---------- */
 let pt = null;
-function args() { return { p_lat: S.c.lat, p_lng: S.c.lng, p_radius: radM(), p_targets: $('#tg').value, p_car_days: +$('#cd').value, p_person_hours: +$('#ph').value }; }
+function args() { return { p_lat: S.c.lat, p_lng: S.c.lng, p_radius: radM(), p_targets: $('#tg').value }; }
 function preview() {
   clearTimeout(pt); if (!S.c) return;
   $('#sT').textContent = 'Calculando…';

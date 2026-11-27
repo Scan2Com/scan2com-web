@@ -366,6 +366,8 @@ html.dark .dsg button.on{border-color:#2fc23a;background:#1b2a20;color:#8fe39a}.
 @keyframes regrow{from{transform:translateX(var(--bmx,-6px)) rotate(-315deg) scale(0)}to{transform:translateX(var(--bmx,-6px)) rotate(225deg) scale(1)}}
 .compose .camb i{background:#7d8590}html.dark .compose .camb i{background:#8d979b}
 .micb{color:#2fc23a}
+.avtabs{display:flex;gap:4px;margin-bottom:6px;overflow-x:auto}.avtabs button{border:0;background:none;font-size:22px;padding:4px 8px;border-radius:10px;cursor:pointer;opacity:.6}.avtabs button.on{background:var(--v2muted);opacity:1}
+.avgrid{max-height:150px;overflow-y:auto}
 .camwrap .bfr{inset:8%}.camwrap .bfr i{width:22%;height:22%;color:#ffffffee;filter:drop-shadow(0 1px 3px #0008)}
 </style>
 </head>
@@ -2383,16 +2385,18 @@ function v2AvHtml(spec, name, s, k, blocked) {
 function v2AvPick(k) {
   const ch = S.chats.find(x => x.id === k), v = !ch && (S.vchats || []).find(x => x.id === k); if (!ch && !v) return;
   const name = ch ? ch.name : (v.name || v.public_name || 'Chat'); let sel = (ch ? ch.avatar : v.avatar) || 'm:' + AVC[0];
+  const CATS = [['⭐', AVE.join(' ')], ...EMOJI]; let cat = 0;
   const opt = (spec, inner) => '<button class="avo' + (spec === sel ? ' on' : '') + '" data-av="' + esc(spec) + '">' + inner + (spec === sel ? FRAME() : '') + '</button>';
   const draw = () => {
     $('#overlay').innerHTML = '<div class="sheet keep" id="avs"><div class="v2sheet" onclick="event.stopPropagation()"><div style="display:flex;gap:12px;align-items:center">' + v2AvHtml(sel, name, 54, k) + '<div><div class="v2st">Imagen de ' + esc(name) + '</div><div class="v2ss">Solo la ves tú. ' + esc(name) + ' no sabe qué imagen le has puesto.</div></div></div>'
       + '<div class="v2sec">ANTIFAZ</div><div class="avr">' + AVC.map(c => opt('m:' + c, v2AvHtml('m:' + c, name, 40, k))).join('') + '</div>'
       + '<div class="v2sec">INICIAL</div><div class="avr">' + AVC.map(c => opt('i:' + c, v2AvHtml('i:' + c, name, 40, k))).join('') + '</div>'
-      + '<div class="v2sec">DIBUJO</div><div class="avr">' + AVE.map(e => opt('e:' + e, v2AvHtml('e:' + e, name, 40, k))).join('') + '</div>'
+      + '<div class="v2sec">DIBUJO O EMOJI</div><div class="avtabs">' + CATS.map((c, i) => '<button data-cat="' + i + '"' + (i === cat ? ' class="on"' : '') + '>' + c[0] + '</button>').join('') + '</div><div class="avr avgrid">' + CATS[cat][1].split(' ').filter(Boolean).map(e => opt('e:' + e, v2AvHtml('e:' + e, name, 40, k))).join('') + '</div>'
       + '<div style="display:flex;gap:8px;margin-top:14px"><button class="btn light" id="avf">📷 Foto de tu galería</button><button class="btn teal" id="avy">Guardar</button></div>'
       + '<div class="v2ss" style="margin-top:8px">La foto se queda solo en este móvil: no se sube a ningún sitio.</div></div></div>';
     $('#avs').onclick = () => { $('#overlay').innerHTML = ''; };
-    document.querySelectorAll('#avs [data-av]').forEach(b => b.onclick = () => { sel = b.dataset.av; draw(); });
+    document.querySelectorAll('#avs [data-av]').forEach(b => b.onclick = () => { const y = $('.avgrid')?.scrollTop; sel = b.dataset.av; draw(); if ($('.avgrid')) $('.avgrid').scrollTop = y; });
+    document.querySelectorAll('#avs [data-cat]').forEach(b => b.onclick = () => { cat = +b.dataset.cat; draw(); });
     $('#avf').onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = async () => { const f = i.files?.[0]; if (!f) return;
       try { const img = await createImageBitmap(f), s = 160, cv = document.createElement('canvas'); cv.width = cv.height = s; const x = cv.getContext('2d'), m = Math.min(img.width, img.height);
         x.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, s, s); ls.set('sa_avp_' + k, cv.toDataURL('image/jpeg', .82)); sel = 'p'; draw(); } catch (e) { toast('No se ha podido usar esa foto.'); } }; i.click(); };

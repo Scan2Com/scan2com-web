@@ -826,7 +826,9 @@ const S = { user: null, screen: 'welcome', tab: 'codes', view: null, codes: [], 
 const app = $('#app');
 ['/app/alert_red.png', '/app/alert_white.png'].forEach(s => { const i = new Image(); i.src = s; });
 
-function toast(t, go) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); el.onclick = () => { el.classList.remove('show'); go && go(); }; clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 4000); }
+// sin mensajitos de confirmación (Guardado, Copiado, Borrado…): solo errores, avisos útiles y mensajes nuevos (decisión de Luis)
+const QUIET = /^(Guardado|Copiado|Contraseña copiada|Contraseña cambiada|Usuario vinculado|Audio cancelado|Chat borrado|Chat quitado de tu lista|Código borrado|Mensaje borrado para todos|Mensajes? borrados? para ti|Borrado para ti|Mensaje (des)?fijado.*|★ Añadido a favoritos.*|Quitado de favoritos|Contacto (des)?bloqueado.*|Te puede llamar desde este chat|Ya no te puede llamar desde este chat|Avisos configurados ✓|Imagen guardada|“.*” (activado|desactivado.*)|“.*” guardado como lugar seguro|.* (ya no puede escribir|puede volver a escribir))$/;
+function toast(t, go) { if (!go && QUIET.test(String(t))) return; const el = $('#toast'); el.textContent = t; el.classList.add('show'); el.onclick = () => { el.classList.remove('show'); go && go(); }; clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 4000); }
 function beep() { try { const a = new (window.AudioContext || window.webkitAudioContext)(); [0, .35, .7].forEach(t => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = 880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.3, a.currentTime + t); g.gain.exponentialRampToValueAtTime(.001, a.currentTime + t + .3); o.start(a.currentTime + t); o.stop(a.currentTime + t + .3); }); navigator.vibrate && navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) {} }
 function notify(title, body) { try { if (notifOn()) return; if ('Notification' in window && Notification.permission === 'granted' && document.hidden) new Notification(title, { body, icon: '/app/icon-192.png' }); } catch (e) {} }
 

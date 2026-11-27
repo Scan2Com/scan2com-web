@@ -3109,6 +3109,7 @@ function appBack() {
   if (ov && ov.innerHTML.trim()) { if (!ov.querySelector('#trm')) ov.innerHTML = ''; return true; }
   const bk = $('#bk');
   if ((S.view || (!S.user && S.screen && S.screen !== 'welcome')) && bk) { bk.click(); return true; }
+  if (S.view && S.user) { S.view = null; render(); return true; }   // pantallas sin flecha (p. ej. Ver código): atrás vuelve a la lista
   if (S.user && S.tab && S.tab !== 'codes') { S.tab = 'codes'; render(); return true; }
   return false;
 }

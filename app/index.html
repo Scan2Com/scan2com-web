@@ -1447,7 +1447,7 @@ function bmSync() {
     if (want === 'part') {   // reproducido en parte: se queda a ese porcentaje del camino de vuelta, con el % al lado
       const was = (S.bmPct ||= {})[id]; el.style.setProperty('--p', (was ?? (cur === 'home' ? 100 : 0)) / 100);
       bmPlace(el, cur === 'part' ? 'part' : cur || 'left'); S.bmPos[id] = 'part'; S.bmPct[id] = pct;
-      requestAnimationFrame(() => { el.classList.remove('left', 'home'); el.classList.add('part'); el.style.setProperty('--p', pct / 100); });
+      requestAnimationFrame(() => { el.classList.remove('left', 'home'); el.classList.add('part'); if ((was ?? -1) !== pct && (was != null || cur)) { el.classList.add('fly'); setTimeout(() => el.classList.remove('fly'), 1150); } el.style.setProperty('--p', pct / 100); });   // al moverse, gira
       return;
     }
     if (el !== lastEl) { S.bmPos[id] = want; return bmPlace(el, want); }   // solo se mueve el del último mensaje

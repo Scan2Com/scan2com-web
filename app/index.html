@@ -1990,6 +1990,17 @@ function drawCarText(ctx, text, [x, y, ref, maxw], force, col = '#fff') {
 const HZ_EXT = 1400, HZ_CUT = 1690;
 const hzExt = text => { const m = document.createElement('canvas').getContext('2d'); m.font = 'italic 700 100px S2CAlert'; const s0 = 100 * CAR_TXT.h[2] / m.measureText('Alert').width; return Math.min(HZ_EXT, Math.max(0, Math.ceil(m.measureText(text).width * s0 / 100 - CAR_TXT.h[3] + 12))); };
 async function carTextFits(text) { await carFont(); const x = document.createElement('canvas').getContext('2d'); return { v: !!carTextSize(x, text, CAR_TXT.v[2], CAR_TXT.v[3]), h: !!carTextSize(x, text, CAR_TXT.h[2], CAR_TXT.h[3] + HZ_EXT) }; }
+// sin halo claro en el borde: la plantilla trae el contorno suavizado contra blanco; esos píxeles grises
+// junto a lo transparente pasan a negro con transparencia (sobre fondo oscuro ya no se ve una línea clara)
+function noHalo(ctx, w, h) {
+  const d = ctx.getImageData(0, 0, w, h), q = d.data, R = 4, near = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x0 = 0; x0 < w; x0++) if (q[(y * w + x0) * 4 + 3] === 0)
+    for (let dy = -R; dy <= R; dy++) { const yy = y + dy; if (yy < 0 || yy >= h) continue; for (let dx = -R; dx <= R; dx++) { const xx = x0 + dx; if (xx >= 0 && xx < w) near[yy * w + xx] = 1; } }
+  for (let y = 0; y < h; y++) for (let x0 = 0; x0 < w; x0++) if (y < R || y >= h - R || x0 < R || x0 >= w - R) near[y * w + x0] = 1;   // el borde de la imagen cuenta como fuera
+  for (let j = 0; j < w * h; j++) { if (!near[j]) continue; const i = j * 4, r = q[i], g = q[i + 1], b = q[i + 2], a = q[i + 3]; if (!a) continue;
+    if (Math.max(r, g, b) - Math.min(r, g, b) < 14) { const v = (r + g + b) / 3; q[i] = q[i + 1] = q[i + 2] = 0; q[i + 3] = Math.round(a * (1 - v / 255)); } else if (a < 255) { q[i] = q[i + 1] = q[i + 2] = 0; } }
+  ctx.putImageData(d, 0, 0);
+}
 async function drawSticker(canvas, url, hex, c) {
   const hz = designOf(c) === 'carh', text = carText(c), own = text !== 'Alert';
   if (own) await carFont();
@@ -1998,7 +2009,7 @@ async function drawSticker(canvas, url, hex, c) {
   canvas.width = W + ext; canvas.height = H; const x = canvas.getContext('2d', { willReadFrequently: true });
   if (ext) { x.drawImage(base, 0, 0, HZ_CUT, H, 0, 0, HZ_CUT, H); x.drawImage(base, HZ_CUT - 6, 0, 6, H, HZ_CUT, 0, ext, H); x.drawImage(base, HZ_CUT, 0, W - HZ_CUT, H, HZ_CUT + ext, 0, W - HZ_CUT, H); } else x.drawImage(base, 0, 0);
   tintRed(x, canvas.width, canvas.height, hex);
-  { const d = x.getImageData(0, 0, canvas.width, canvas.height), q = d.data; for (let i = 3; i < q.length; i += 4) if (q[i] < 250 && q[i] > 0) { q[i - 3] = q[i - 2] = q[i - 1] = 0; } x.putImageData(d, 0, 0); }   // sin halo claro en el borde (los píxeles semitransparentes del contorno, en negro)
+  noHalo(x, canvas.width, canvas.height);
   x.imageSmoothingQuality = 'high';
   if (hz) {   // horizontal (2388 x 745): recuadro blanco a la derecha
     const side = 602 * 0.86, qr = await prettyQR(url, Math.round(side * 2)); x.drawImage(qr, 1707 + ext + 301 - side / 2, 68 + 301 - side / 2, side, side);

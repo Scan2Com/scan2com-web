@@ -2371,9 +2371,9 @@ const QRMINI = {};
 function qrMini(c) { const url = SITE + '/s/' + c.id; if (QRMINI[url]) return QRMINI[url];
   try { const q = qrcode(0, 'M'); q.addData(url); q.make(); const n = q.getModuleCount(); let r = ''; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (q.isDark(y, x)) r += 'M' + x + ' ' + y + 'h1v1h-1z';
     return QRMINI[url] = '<svg viewBox="-1 -1 ' + (n + 2) + ' ' + (n + 2) + '" width="100%" height="100%" shape-rendering="crispEdges"><rect x="-1" y="-1" width="' + (n + 2) + '" height="' + (n + 2) + '" fill="#fff"/><path d="' + r + '" fill="#111"/></svg>'; } catch (e) { return ''; } }
-// colores de los boomerangs de un código según sus medios (los de las pegatinas): rojo Alert, amarillo Chat, azul Contacto (Mail y Llamada), verde Info o web
+// colores de los boomerangs de un código según sus medios (decisión de Luis): rojo Alert, verde Chat, amarillo Llamada, azul Mail; gris si está apagado
 function codeCols(c) { const g = '#8d979b'; if (!c.is_on) return [g, g, g, g];
-  return [c.ch_alert || c.auto_alert ? '#e8352b' : g, c.ch_chat ? '#e8b923' : g, c.ch_mail || c.ch_call ? '#1f86e0' : g, c.ch_info || c.ch_redirect ? '#2fc23a' : g]; }
+  return [c.ch_alert || c.auto_alert ? '#e8352b' : g, c.ch_chat ? '#2fc23a' : g, c.ch_call ? '#e8b923' : g, c.ch_mail ? '#1f86e0' : g]; }
 
 /* ---------- chat ---------- */
 const ownerMsgs = (ch, list) => (v2Msgs(ch.id, list, { side: 'o', other: ch.name || 'Chat', id: m => m.id, at: m => m.created_at, mine: m => !m.from_visitor, who: m => m.from_visitor ? 'v' : 'o:' + (m.sender_id || ''),
@@ -2734,7 +2734,7 @@ const TOUR = [
   ['item', 'Cuando alguien lo escanee con la cámara de su móvil, podrá escribirte sin ver tu teléfono ni tu email.'],
   ['pw', 'Con el interruptor de la derecha lo enciendes o lo apagas cuando no quieras que te molesten.'],
   ['edit', 'En los ajustes eliges qué puede hacer quien lo escanee: avisarte con una alerta, mandarte un mensaje, chatear contigo o ir a una web.'],
-  ['qr', 'Tocando el código lo ves en grande, para imprimirlo, pegarlo donde quieras o compartirlo. Los boomerangs de sus esquinas te dicen qué medios tiene: rojo, alerta; amarillo, chat; azul, mail o llamada; y verde, información o web. Si están grises, ese medio está apagado.'],
+  ['qr', 'Tocando el código lo ves en grande, para imprimirlo, pegarlo donde quieras o compartirlo. Los boomerangs de sus esquinas te dicen qué medios tiene: rojo, alerta; verde, chat; amarillo, llamada; y azul, mail. Si están grises, ese medio está apagado.'],
   ['fab', 'Y con el botón más creas nuevos códigos o vinculas tus pegatinas. Eso es todo.']
 ];
 // recorridos hablados del resto de pantallas: [selector a resaltar, texto]; los pasos cuyo botón no está se saltan

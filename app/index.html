@@ -1743,7 +1743,7 @@ async function togglePower(id) {
   const c = codeOf(id); if (!c || c.owner_id !== S.user.id) return toast('Solo el dueño puede encender o apagar este código.');
   c.is_on = !c.is_on; render();
   const { error } = await sb.from('codes').update({ is_on: c.is_on }).eq('id', id);
-  if (error) { c.is_on = !c.is_on; render(); toast('No se ha podido guardar.'); } else toast(c.is_on ? `“${c.name}” activado` : `“${c.name}” desactivado: sus chats se cierran salvo los favoritos`);
+  if (error) { c.is_on = !c.is_on; render(); toast('No se ha podido guardar.'); } else toast(c.is_on ? `“${c.name}” activado` : `“${c.name}” desactivado: nadie nuevo puede entrar; los chats ya abiertos siguen funcionando`);
 }
 
 /* ---------- editar / crear código ---------- */
@@ -2059,7 +2059,7 @@ function renderQR() {
 
 /* ---------- ayuda "¿Cómo se usa?" (plegable; se recuerda si la abres) ---------- */
 const HOWTO = {
-  chats: ['¿Cómo funcionan los chats?', ['Aquí están las conversaciones de <b>tus códigos</b> (alguien escaneó un código tuyo) y de los <b>códigos que tú escaneas</b> con la cámara de la app.', 'Toca un chat para escribir. Nadie ve tu teléfono ni tu email.', '<b>Ponles nombre a tus chats</b>: aquí no hay números de teléfono y el anonimato es total (solo existe el email de tu cuenta, que nadie ve), así que cada chat llega con un nombre genérico. Entra en él y pulsa el lápiz ✎.', '★ marca un chat como favorito: sigue abierto aunque apagues o borres el código.', 'Activa <b>Mostrar trazabilidad</b> (abajo) para verlos agrupados por código y saber de dónde sale cada nombre.']],
+  chats: ['¿Cómo funcionan los chats?', ['Aquí están las conversaciones de <b>tus códigos</b> (alguien escaneó un código tuyo) y de los <b>códigos que tú escaneas</b> con la cámara de la app.', 'Toca un chat para escribir. Nadie ve tu teléfono ni tu email.', '<b>Ponles nombre a tus chats</b>: aquí no hay números de teléfono y el anonimato es total (solo existe el email de tu cuenta, que nadie ve), así que cada chat llega con un nombre genérico. Entra en él y pulsa el lápiz ✎.', 'Un chat abierto sigue funcionando aunque apagues o borres el código: el código es solo la puerta de entrada. Solo lo cierra el bloqueo (⋮).', '★ marca un chat como favorito: sube arriba de la lista.', 'Activa <b>Mostrar trazabilidad</b> (abajo) para verlos agrupados por código y saber de dónde sale cada nombre.']],
   edit: ['¿Cómo se configura un código?', ['<b>Nombre</b> e <b>información privada</b>: solo los ves tú.', '<b>Diseño del QR</b>: Clásico, Redondeado o Pegatina de coche.', '<b>Medios de comunicación</b>: elige cómo te pueden contactar quienes lo escaneen (Info, Mail, Alert, Chat, Llamada o Redirección web).', 'Con <b>Info</b> marcado escribes el nombre público y el texto que verá quien escanee.', 'Pulsa <b>Guardar</b>. Puedes apagar el código cuando quieras con el botón de encendido.']],
   qr: ['¿Cómo se usa este código?', ['Pégalo o compártelo: quien lo escanee con la cámara del móvil verá tu pantalla pública y podrá contactarte por los medios activos.', '<b>Ver lo que ve quien escanea</b> te enseña esa pantalla.', 'El botón de encendido lo activa o desactiva al momento.', 'Arriba: <b>compartir</b> la imagen, <b>guardarla</b> y, en las pegatinas de coche, <b>PDF</b> para imprimir la hoja de 4 pegatinas a tamaño real.']]
 };

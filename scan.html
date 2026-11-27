@@ -84,17 +84,18 @@ body{background:#121517;color:#e8eaed}
 .brand{color:#e8eaed;font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:15px;letter-spacing:.01em}.brand img{border-radius:6px}
 .card{background:#1b2023;color:#e8eaed;border-radius:18px;position:relative;margin:10px 8px}
 .card h1{font-weight:700;letter-spacing:-.01em}.card p{color:#b9bec3}
-.card.info{border:1.5px solid color-mix(in srgb,#e8b923 40%,transparent);background:color-mix(in srgb,#e8b923 7%,#1b2023)}.card.info h1{color:#f1c936}.card.info p{color:#e9dca8}
+.card.info{border:0;background:color-mix(in srgb,#e8b923 7%,#1b2023)}.card.info h1{color:#f1c936}.card.info p{color:#e9dca8}
 .bfr{position:absolute;inset:-7px;pointer-events:none}.bfr i{position:absolute;width:22px;height:22px;display:block}.bfr i svg{width:100%;height:100%;display:block}
 .bfr .tl{left:0;top:0}.bfr .tr{right:0;top:0;transform:scaleX(-1)}.bfr .bl{left:0;bottom:0;transform:scaleY(-1)}.bfr .br{right:0;bottom:0;transform:scale(-1,-1)}
 .ws{background:#1b2023;border:1.5px solid #2a3035}.ws input{color:#e8eaed}.ws input::placeholder{color:#7d8590}
 .status{color:#9aa0a6}
-.act{background:#1b2023!important;border:1.5px solid color-mix(in srgb,var(--ac) 45%,transparent);color:var(--ac)!important;box-shadow:none!important}
+.act{position:relative;background:#1b2023!important;border:0;color:var(--ac)!important;box-shadow:none!important;overflow:visible}.act .bfr{inset:-5px}.act .bfr i{width:18px;height:18px}.acts{gap:14px;padding:0 6px}
 .act svg{color:var(--ac);fill:currentColor}
 .mail{--ac:#1f86e0}.alert{--ac:#e8352b}.chat,.call{--ac:#2fc23a}
 .act.call{height:56px;flex-direction:row;font-size:16px;background:color-mix(in srgb,#2fc23a 14%,#1b2023)!important}
 .inst{background:#1b2023!important;color:#e8eaed!important;border:1.5px solid color-mix(in srgb,#2fc23a 45%,transparent);box-shadow:none!important}.inst small{color:#9aa0a6}
 .hint,.note{color:#9aa0a6}
+.blogo{position:relative;width:26px;height:26px;display:inline-block;margin-right:2px}.blogo .bfr{inset:0}.blogo .bfr i{width:11px;height:11px}.blogo .bl-l{position:absolute;left:3px;right:3px;top:12px;height:2px;border-radius:1px;background:#e8352b}
 </style>
 </head>
 <body>
@@ -299,6 +300,7 @@ const BMP2 = 'M53.7 0.0C51.9 0.2 47.7 0.5 44.7 0.9C41.7 1.3 38.7 1.7 35.7 2.3C32
 const BMS = '<svg viewBox="-2 -2 104 104"><path d="' + BMP2 + '" fill="currentColor"/></svg>';
 const FRAMEW = cols => '<span class="bfr">' + ['tl', 'tr', 'bl', 'br'].map((k, i) => '<i class="' + k + '" style="color:' + cols[i] + '">' + BMS + '</i>').join('') + '</span>';
 const codeColsW = c => { const g = '#8d979b', ch = c.channels || {}; if (c.status === 'off') return [g, g, g, g]; if (c.group) return ['#2fc23a', '#2fc23a', '#2fc23a', '#2fc23a']; return [ch.alert || c.auto_alert ? '#e8352b' : g, ch.chat || ch.call ? '#2fc23a' : g, c.public_desc ? '#e8b923' : g, ch.mail ? '#1f86e0' : g]; };
+const BLOGO = `<span class="blogo">${FRAMEW(['#e8352b', '#2fc23a', '#e8b923', '#1f86e0'])}<i class="bl-l"></i></span>`;
 const LOGO = `<img src="/app/logo.png" width="28" height="28" alt="Scan2Com">`;
 const I = {
   mail: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z" opacity=".25"/><path d="M3 5h18v2l-9 6-9-6zM3 9l9 6 9-6v10H3z"/></svg>',
@@ -358,26 +360,26 @@ function render() {
   // chat de grupo: solo con la app (así todos reciben los avisos de los mensajes nuevos)
   if (code.group && !off) {
     const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    app.innerHTML = `<div class="brand">${LOGO} Scan2Com</div>
-      <div class="card info">${FRAMEW(codeColsW(code))}<h1>${esc(code.public_name || 'Chat de grupo')}</h1>${code.public_desc ? `<p>${esc(code.public_desc)}</p>` : ''}</div>
+    app.innerHTML = `<div class="brand">${BLOGO} Scan2Com</div>
+      <div class="card info">${FRAMEW(Array(4).fill('#e8b923'))}<h1>${esc(code.public_name || 'Chat de grupo')}</h1>${code.public_desc ? `<p>${esc(code.public_desc)}</p>` : ''}</div>
       <div class="card" style="text-align:center"><div style="font-size:40px">👥</div><h2 style="margin:6px 0">Esto es un chat de grupo</h2>
         <p>Para entrar, <b>instala la app de Scan2Com</b> y escanea este código <b>desde la app</b>. Así recibirás los mensajes del grupo en tu móvil.</p>
         <p style="font-size:14px;opacity:.8">Entrarás con un alias al azar (por ejemplo «Zorro azul»): nadie verá tu teléfono ni tu email.</p>
-        ${ios ? '<p style="font-size:14px"><b>iPhone:</b> la app estará muy pronto en la App Store.</p>' : '<a class="act chat" style="display:flex;justify-content:center;text-decoration:none;margin-top:10px" href="/app/scan2com.apk">⬇️ Descargar la app (Android)</a>'}</div>`;
+        ${ios ? '<p style="font-size:14px"><b>iPhone:</b> la app estará muy pronto en la App Store.</p>' : '<a class="act chat" style="display:flex;justify-content:center;text-decoration:none;margin-top:10px" href="/app/scan2com.apk">' + FRAMEW(Array(4).fill('#2fc23a')) + '⬇️ Descargar la app (Android)</a>'}</div>`;
     return;
   }
   const any = (!off && (ch.mail || ch.alert || ch.chat)) || !!AUTH;
   app.innerHTML = `
-    <div class="brand">${LOGO} Scan2Com</div>
+    <div class="brand">${BLOGO} Scan2Com</div>
     ${off ? `<div class="offbox"><div class="offic"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></div><div class="offt">Código desactivado temporalmente</div><div class="offs">El dueño lo ha apagado: ahora no se le puede escribir.</div></div>` : ''}
-    <div class="card info">${FRAMEW(codeColsW(code))}<h1>${esc(code.public_name || 'Scan2Com')}</h1>${off ? '' : `<p>${esc(code.public_desc || '')}</p>`}</div>
+    <div class="card info">${FRAMEW(Array(4).fill('#e8b923'))}<h1>${esc(code.public_name || 'Scan2Com')}</h1>${off ? '' : `<p>${esc(code.public_desc || '')}</p>`}</div>
     ${any ? `<div class="ws"><input id="ws" placeholder="Escribe y envía" maxlength="1000"></div>` : ''}
     <div class="status ${statusErr ? 'err' : ''}">${esc(status)}${pending && !statusErr ? '<div style="font-size:14px;margin-top:4px">Esperando a que el dueño lo lea<span class="wait"></span></div>' : ''}</div>
-    ${!off && ch.call && code.call_app ? `<button class="act call appcall" id="bCall">${I.call}Llamar por la app</button>` : !off && ch.call && code.phone ? `<div class="callrow"><a class="act call" href="tel:${esc(code.phone)}">${I.call}${esc(code.phone)}</a></div>` : ''}
+    ${!off && ch.call && code.call_app ? `<button class="act call appcall" id="bCall">${FRAMEW(Array(4).fill('#2fc23a'))}${I.call}Llamar por la app</button>` : !off && ch.call && code.phone ? `<div class="callrow"><a class="act call" href="tel:${esc(code.phone)}">${I.call}${esc(code.phone)}</a></div>` : ''}
     <div class="acts">
-      <button class="act mail ${off || !ch.mail ? 'hidden' : ''}" id="bMail">${I.mail}Mail</button>
-      <button class="act alert ${off || !ch.alert ? 'hidden' : ''} ${busy ? 'busy' : ''}" id="bAlert">${busy ? I.spin : I.alert}Alert</button>
-      <button class="act chat ${(off && !chat) || !ch.chat ? 'hidden' : ''}" id="bChat">${I.chat}Chat${chat ? ' ·' : ''}</button>
+      <button class="act mail ${off || !ch.mail ? 'hidden' : ''}" id="bMail">${FRAMEW(Array(4).fill('#1f86e0'))}${I.mail}Mail</button>
+      <button class="act alert ${off || !ch.alert ? 'hidden' : ''} ${busy ? 'busy' : ''}" id="bAlert">${FRAMEW(Array(4).fill('#e8352b'))}${busy ? I.spin : I.alert}Alert</button>
+      <button class="act chat ${(off && !chat) || !ch.chat ? 'hidden' : ''}" id="bChat">${FRAMEW(Array(4).fill('#2fc23a'))}${I.chat}Chat${chat ? ' ·' : ''}</button>
     </div>
     ${AUTH ? `<button class="act" id="bPol" style="background:#0b2a6b;color:#fff;width:100%;height:64px;margin-top:10px;flex-direction:row;gap:10px;justify-content:center"><img src="/app/img2014/police.png" width="26" height="30" alt="">Aviso de autoridad</button><div style="font-size:12px;color:#777;text-align:center;margin-top:4px">${esc(AUTH.body)} · agente ${esc(AUTH.badge)}. Suena aunque el código esté apagado.</div>` : ''}
     <div class="foot">Ni el dueño ni tú veis el teléfono o el email del otro.</div>
@@ -410,7 +412,7 @@ function watchRead(eventId, token, kind) {
   }, 4000);
 }
 function renderRead() {
-  app.innerHTML = `<div class="brand">${LOGO} Scan2Com</div>
+  app.innerHTML = `<div class="brand">${BLOGO} Scan2Com</div>
     <div class="tick"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="56" fill="#2fc23a"/><path d="M34 62l17 17 36-38" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <h2>${readKind === 'alert' ? 'Alerta recibida' : 'Mensaje leído'}</h2>
       <p style="margin:0;color:#555">El dueño de “${esc(code.public_name)}” ya lo ha visto. ¡Gracias por avisar!</p></div>

@@ -1810,7 +1810,7 @@ async function renderEdit() {
     </details><details class="blk" ${isNew ? 'open' : ''}><summary>DISEÑO DEL QR</summary>
     ${locked ? '<div class="hint" style="margin:2px 0 8px">Este código viene de una pegatina impresa.</div>' : ''}<div class="dsg">${designsFor(c).map(([k, t]) => `<button type="button" data-dsg="${k}" class="${designOf(c) === k ? 'on' : ''}">${FRAME()}<canvas></canvas>${t}</button>`).join('')}</div>
     <div id="ccol" style="display:${isCar(c) ? 'flex' : 'none'};flex-wrap:wrap;gap:8px;margin:6px 0 4px;align-items:center"><span style="font-size:13px;color:#666;width:100%">Color de la pegatina</span>${CAR_COLORS.map(([k, h, t]) => `<button type="button" data-ccol="${k}" title="${t}" aria-label="${t}" style="width:34px;height:34px;border-radius:50%;background:${h};border:3px solid ${carColor(c)[0] === k ? '#2fc23a' : '#fff'};box-shadow:0 0 0 1px #ccc;cursor:pointer"></button>`).join('')}
-      <label style="width:100%;margin-top:6px">Texto de la pegatina <span style="font-weight:400;color:#888">(donde pone «Alert»)</span></label><input id="ctxt" value="${esc(carText(c))}" maxlength="14" placeholder="Alert" style="width:100%"><div class="hint" id="ctxh" style="width:100%;margin:2px 0 0">Unas 8 letras: la letra se hace más pequeña si escribes más.</div></div>
+      <label style="width:100%;margin-top:6px">Texto de la pegatina <span style="font-weight:400;color:#888">(donde pone «Alert»)</span></label><input id="ctxt" value="${esc(carText(c))}" maxlength="30" placeholder="Alert" style="width:100%"><div class="hint" id="ctxh" style="width:100%;margin:2px 0 0">Vertical: unas 8 letras (la letra se hace más pequeña). Horizontal: la pegatina se alarga hacia la derecha.</div></div>
     </details><details class="blk" open><summary><span class="req">MEDIOS DE COMUNICACIÓN</span></summary><div class="hint">Elige al menos uno.</div>
     <label class="chk"><input type="checkbox" id="c0" ${c.ch_info ? 'checked' : ''}> <span style="color:#e8b923">${IC.info(20)}</span> Info <span style="color:#999;font-size:13px">· un texto para quien escanee</span></label>
     <div id="ibox" class="sub" style="display:${c.ch_info ? 'block' : 'none'};margin-left:30px"><div class="hint" style="font-weight:600;color:#555;margin-top:2px">Lo que ve quien escanea</div>
@@ -1868,7 +1868,7 @@ async function renderEdit() {
     $('#ctxt').addEventListener('input', async e => {
       const el = e.target, v = el.value.replace(/\s+/g, ' '); const f = await carTextFits(v.trim() || 'Alert'), ok = selDsg === 'carh' ? f.h : f.v;
       if (!ok) { el.value = last; $('#ctxh').innerHTML = `<b style="color:#e8352b">No cabe más en la pegatina ${selDsg === 'carh' ? 'horizontal' : 'vertical'}.</b>`; return; }
-      last = el.value; selTxt = v.trim() || 'Alert'; $('#ctxh').textContent = f.h && !f.v ? 'Este texto solo cabe en la pegatina horizontal.' : 'Unas 8 letras: la letra se hace más pequeña si escribes más.';
+      last = el.value; selTxt = v.trim() || 'Alert'; $('#ctxh').textContent = f.h && !f.v ? 'Este texto solo cabe en la pegatina horizontal.' : 'Vertical: unas 8 letras (la letra se hace más pequeña). Horizontal: la pegatina se alarga hacia la derecha.';
       clearTimeout(t); t = setTimeout(carPrev, 150);
     }); }
   app.querySelectorAll('[data-dsg]').forEach(b => {
@@ -1986,21 +1986,27 @@ function drawCarText(ctx, text, [x, y, ref, maxw], force, col = '#fff') {
   const sz = carTextSize(ctx, text, ref, maxw, force); if (!sz) return; ctx.font = `italic 700 ${sz}px S2CAlert`; ctx.fillStyle = col; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'; ctx.fillText(text, x, y);
 }
 // ¿cabe este texto en la pegatina vertical y en la horizontal?
-async function carTextFits(text) { await carFont(); const x = document.createElement('canvas').getContext('2d'); return { v: !!carTextSize(x, text, CAR_TXT.v[2], CAR_TXT.v[3]), h: !!carTextSize(x, text, CAR_TXT.h[2], CAR_TXT.h[3]) }; }
+// la pegatina horizontal se alarga hacia la derecha con el texto (hasta HZ_EXT px más) en vez de encoger la letra
+const HZ_EXT = 1400, HZ_CUT = 1690;
+const hzExt = text => { const m = document.createElement('canvas').getContext('2d'); m.font = 'italic 700 100px S2CAlert'; const s0 = 100 * CAR_TXT.h[2] / m.measureText('Alert').width; return Math.min(HZ_EXT, Math.max(0, Math.ceil(m.measureText(text).width * s0 / 100 - CAR_TXT.h[3] + 12))); };
+async function carTextFits(text) { await carFont(); const x = document.createElement('canvas').getContext('2d'); return { v: !!carTextSize(x, text, CAR_TXT.v[2], CAR_TXT.v[3]), h: !!carTextSize(x, text, CAR_TXT.h[2], CAR_TXT.h[3] + HZ_EXT) }; }
 async function drawSticker(canvas, url, hex, c) {
   const hz = designOf(c) === 'carh', text = carText(c), own = text !== 'Alert';
   if (own) await carFont();
   const base = await loadImg(`/app/img2014/pegatina_coche${hz ? '_h' : ''}${own ? '_txt' : ''}.png`);
-  canvas.width = base.width; canvas.height = base.height; const x = canvas.getContext('2d', { willReadFrequently: true }); x.drawImage(base, 0, 0); tintRed(x, canvas.width, canvas.height, hex);
+  const ext = hz && own ? hzExt(text) : 0, W = base.width, H = base.height;
+  canvas.width = W + ext; canvas.height = H; const x = canvas.getContext('2d', { willReadFrequently: true });
+  if (ext) { x.drawImage(base, 0, 0, HZ_CUT, H, 0, 0, HZ_CUT, H); x.drawImage(base, HZ_CUT - 6, 0, 6, H, HZ_CUT, 0, ext, H); x.drawImage(base, HZ_CUT, 0, W - HZ_CUT, H, HZ_CUT + ext, 0, W - HZ_CUT, H); } else x.drawImage(base, 0, 0);
+  tintRed(x, canvas.width, canvas.height, hex);
   x.imageSmoothingQuality = 'high';
   if (hz) {   // horizontal (2388 x 745): recuadro blanco a la derecha
-    const side = 602 * 0.86, qr = await prettyQR(url, Math.round(side * 2)); x.drawImage(qr, 1707 + 301 - side / 2, 68 + 301 - side / 2, side, side);
+    const side = 602 * 0.86, qr = await prettyQR(url, Math.round(side * 2)); x.drawImage(qr, 1707 + ext + 301 - side / 2, 68 + 301 - side / 2, side, side);
   } else {    // vertical: recuadro blanco x 107-1018, y 113-1024 (en una base de 1124 x 1532)
     const k = base.width / 1124, side = 784 * k, qr = await prettyQR(url, Math.round(side * 2));
     x.drawImage(qr, 562.5 * k - side / 2, 568.5 * k - side / 2, side, side);
   }
   const light = carLight(c); if (light) blackScan2(x, CAR_SCAN2[hz ? 'h' : 'v'], hex);
-  if (own) drawCarText(x, text, CAR_TXT[hz ? 'h' : 'v'], false, light ? '#000' : '#fff');   // texto propio en blanco como «Scan 2» (negro en las claras)
+  if (own) { const t = CAR_TXT[hz ? 'h' : 'v']; drawCarText(x, text, ext ? [t[0], t[1], t[2], t[3] + ext] : t, false, light ? '#000' : '#fff'); }   // texto propio en blanco como «Scan 2» (negro en las claras)
 }
 const DESIGNS = [['square', 'Clásico'], ['round', 'Redondeado'], ['car', 'Pegatina vertical'], ['carh', 'Pegatina horizontal']];
 // los códigos de pegatinas impresas (generador de imprenta) traen además su propia pegatina
@@ -2141,7 +2147,7 @@ function pdfFromJpeg(jpgDataUrl, pw, ph, wmm, hmm, pagew = 210, pageh = 297, not
 // elegir: normal (papel de pegatina normal) o en espejo (vinilo transparente que se pega por dentro del cristal)
 function carSheetAsk(c, url, mode) {
   const box = inner => `<div class="sheet keep" id="pdfs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
-    <div style="font-size:19px;font-weight:700;margin-bottom:4px">PDF de pegatinas de coche</div>
+    <div style="font-size:19px;font-weight:700;margin-bottom:4px">PDF de pegatinas</div>
     <div style="font-size:14px;color:#555;margin-bottom:14px">${mode === 'mail' ? `Te lo enviamos a <b style="color:#222">${esc(S.user.email || 'tu email')}</b><br>` : ''}PDF formato A4</div>${inner}</div></div>`;
   // primero: generar el PDF en la app o enviarlo por email; después, normal o en espejo
   $('#overlay').innerHTML = mode ? box(`
@@ -2215,11 +2221,11 @@ async function carSheetPdf(c, url, mirror) {
     const { bin, name } = await carSheetBin(c, url, mirror), P = window.Capacitor?.Plugins;
     if (NATIVE && P?.Share && P?.Filesystem) {
       const f = await P.Filesystem.writeFile({ path: name, data: btoa(bin), directory: 'CACHE' });
-      busy(false); return await P.Share.share({ title: 'Pegatinas de coche Scan2Com', text: 'Hoja A4 con 4 pegatinas de coche a tamaño real. Imprime al 100 %, sin ajustar a la página.', files: [f.uri], dialogTitle: 'Enviar PDF' });
+      busy(false); return await P.Share.share({ title: 'Pegatinas Scan2Com', text: 'Hoja A4 con 4 pegatinas a tamaño real. Imprime al 100 %, sin ajustar a la página.', files: [f.uri], dialogTitle: 'Enviar PDF' });
     }
     const blob = new Blob([Uint8Array.from(bin, ch => ch.charCodeAt(0))], { type: 'application/pdf' }), file = new File([blob], name, { type: 'application/pdf' });
     busy(false);
-    if (navigator.canShare && navigator.canShare({ files: [file] })) return await navigator.share({ title: 'Pegatinas de coche Scan2Com', files: [file] });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) return await navigator.share({ title: 'Pegatinas Scan2Com', files: [file] });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 30000);
   } catch (e) { busy(false); if (!/abort|cancel/i.test(String(e?.message || e))) toast('No se ha podido crear el PDF.'); }
 }
@@ -2901,7 +2907,7 @@ const TOURS = {
     ['#ed', 'Con este botón cambias su configuración: nombre, diseño y medios de contacto.'],
     ['#sh', 'Con este lo compartes por WhatsApp, por correo o donde quieras.'],
     ['#dl', 'Con este guardas la imagen en tu móvil.'],
-    ['#pdf', 'Y con el botón rojo de PDF creas la hoja para imprimir cuatro pegatinas de coche a tamaño real.']
+    ['#pdf', 'Y con el botón rojo de PDF creas la hoja para imprimir cuatro pegatinas a tamaño real.']
   ],
   edit: [
     ['#f1', 'Pon un nombre para reconocer el código. Solo lo ves tú.'],

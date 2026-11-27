@@ -1401,7 +1401,7 @@ const pcHint = () => IS_PHONE ? '' : `<div class="pchint">📱 ${Date.now() - ph
 async function loadAll() {
   const [c, ch, f, ev, pl] = await Promise.all([
     sb.from('codes').select('*').order('created_at'),
-    sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note,avatar').order('created_at', { ascending: false }),
+    sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note,avatar,calls').order('created_at', { ascending: false }),
     sb.from('chat_favorites').select('chat_id'),
     sb.from('events').select('*').order('created_at', { ascending: false }).limit(100),
     sb.from('safe_places').select('*').order('id')
@@ -1497,7 +1497,7 @@ function subscribe() {
   channel?.unsubscribe();
   channel = sb.channel('owner')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async ({ new: m }) => {
-      if (!S.chats.find(c => c.id === m.chat_id)) { const { data } = await sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note,avatar').eq('id', m.chat_id).single(); if (data) S.chats.unshift(data); }
+      if (!S.chats.find(c => c.id === m.chat_id)) { const { data } = await sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note,avatar,calls').eq('id', m.chat_id).single(); if (data) S.chats.unshift(data); }
       const list = (S.msgs[m.chat_id] ||= []); if (!list.find(x => x.id === m.id)) list.push(m); saveHist(); if (mediaUrl(m.body)) cacheAllMedia();
       if (m.from_visitor) {
         const viewing = S.view?.t === 'chat' && S.view.id === m.chat_id && !document.hidden;
@@ -1632,7 +1632,7 @@ function renderHome() {
   }
   if (tab === 'codes') {
     const codes = S.codes.filter(c => match(c.name, c.public_name, c.private_info));
-    const medios = c => [(c.ch_alert || c.auto_alert) && ['Alert', '#e8352b'], c.ch_chat && ['Chat', '#2fc23a'], c.ch_call && ['Llamada', '#e8b923'], c.ch_mail && ['Mail', '#1f86e0'], c.ch_info && ['Info', ''], c.ch_redirect && ['Web', '']].filter(Boolean);
+    const medios = c => [(c.ch_alert || c.auto_alert) && ['Alert', '#e8352b'], (c.ch_chat || c.ch_call) && [c.ch_call ? 'Chat y llamadas' : 'Chat', '#2fc23a'], c.ch_mail && ['Mail', '#1f86e0'], c.ch_info && ['Info', '#e8b923'], c.ch_redirect && ['Web', '']].filter(Boolean);
     body = codes.length ? codes.map(c => `<div class="item ${c.is_on ? '' : 'off'}" data-code="${c.id}">
         <div class="qrt" data-qr="${c.id}" title="Ver código">${FRAME(codeCols(c))}<div class="q">${qrMini(c)}</div></div>
         <div class="grow" style="min-width:0"><div class="t">${esc(c.name || c.public_name || 'Sin nombre')}</div>${c.private_info || c.owner_id !== S.user.id ? `<div class="s">${esc(c.private_info || '')}${c.owner_id !== S.user.id ? ' · compartido contigo' : ''}</div>` : ''}<div class="chips">${medios(c).map(([x, col]) => `<span${col && c.is_on ? ` class="mc" style="--mc:${col}"` : ''}>${x}</span>`).join('') || '<span>Sin medios</span>'}</div></div>
@@ -1765,7 +1765,7 @@ async function renderEdit() {
     <div id="ccol" style="display:${isCar(c) ? 'flex' : 'none'};flex-wrap:wrap;gap:8px;margin:6px 0 4px;align-items:center"><span style="font-size:13px;color:#666;width:100%">Color de la pegatina</span>${CAR_COLORS.map(([k, h, t]) => `<button type="button" data-ccol="${k}" title="${t}" aria-label="${t}" style="width:34px;height:34px;border-radius:50%;background:${h};border:3px solid ${carColor(c)[0] === k ? '#2fc23a' : '#fff'};box-shadow:0 0 0 1px #ccc;cursor:pointer"></button>`).join('')}
       <label style="width:100%;margin-top:6px">Texto de la pegatina <span style="font-weight:400;color:#888">(donde pone «Alert»)</span></label><input id="ctxt" value="${esc(carText(c))}" maxlength="14" placeholder="Alert" style="width:100%"><div class="hint" id="ctxh" style="width:100%;margin:2px 0 0">Unas 8 letras: la letra se hace más pequeña si escribes más.</div></div>
     <div class="section"><span class="req">MEDIOS DE COMUNICACIÓN</span></div><div class="hint">Elige al menos uno.</div>
-    <label class="chk"><input type="checkbox" id="c0" ${c.ch_info ? 'checked' : ''}> <span style="color:#8d9298">${IC.info(20)}</span> Info <span style="color:#999;font-size:13px">· un texto para quien escanee</span></label>
+    <label class="chk"><input type="checkbox" id="c0" ${c.ch_info ? 'checked' : ''}> <span style="color:#e8b923">${IC.info(20)}</span> Info <span style="color:#999;font-size:13px">· un texto para quien escanee</span></label>
     <div id="ibox" class="sub" style="display:${c.ch_info ? 'block' : 'none'};margin-left:30px"><div class="hint" style="font-weight:600;color:#555;margin-top:2px">Lo que ve quien escanea</div>
       <label>Nombre público</label><input id="f2" value="${esc(c.public_name)}" placeholder="Ej. Mi coche" maxlength="60">
       <label>Información pública</label><textarea id="f3" rows="3" placeholder="Ej. Si mi coche molesta, avísame con Alert. ¡Gracias!" maxlength="1000">${esc(c.public_desc)}</textarea>
@@ -1782,16 +1782,17 @@ async function renderEdit() {
         <div class="hint">No se activa en tus lugares seguros (⋮ → Lugares seguros: ${(S.places || []).length}).</div></div>`
       : '<div class="hint" style="margin-left:30px">Disponible en la app Android.</div>'}
     </div>
-    <label class="chk"><input type="checkbox" id="c3" ${c.ch_chat ? 'checked' : ''}> <span style="color:#2fc23a">${IC.chat(20)}</span> Chat</label>
+    <label class="chk"><input type="checkbox" id="c3" ${c.ch_chat || c.ch_call ? 'checked' : ''}> <span style="color:#2fc23a">${IC.chat(20)}</span> Chat</label>
     <label class="chk sub"><input type="checkbox" id="c6" ${c.group_chat ? 'checked' : ''}> En grupo con los usuarios vinculados</label>
-    <label class="chk"><input type="checkbox" id="c4" ${c.ch_call ? 'checked' : ''}> <span style="color:#e8b923">${IC.phone(20)}</span> Llamada</label>
-    <label class="chk"><input type="checkbox" id="c7" ${c.ch_redirect ? 'checked' : ''}> <span style="color:#7e868b">${IC.globe(20)}</span> Redirección web</label>
-    <div id="rbox" style="display:${c.ch_redirect ? 'block' : 'none'}"><label class="req">Dirección web</label><input id="f7" type="url" inputmode="url" value="${esc(c.redirect_url)}" placeholder="www.ejemplo.com" maxlength="500">
-      <div class="hint">Quien escanee irá directamente a esta web, sin ver los demás medios. Puedes cambiarla cuando quieras, aunque el código ya esté impreso.</div></div>
-    <div id="cbox" style="display:${c.ch_call ? 'block' : 'none'};margin:0 0 6px 30px">
+    <div id="chbox" style="display:${c.ch_chat || c.ch_call ? 'block' : 'none'}"><label class="chk sub"><input type="checkbox" id="c4" ${c.ch_call ? 'checked' : ''}> <span style="color:#2fc23a">${IC.phone(18)}</span> Con llamadas <span style="font-size:13px;color:#888">· también te pueden llamar</span></label>
+    <div id="cbox" style="display:${c.ch_call ? 'block' : 'none'};margin:0 0 6px 60px">
       <label class="chk sub" style="margin-left:0"><input type="radio" name="cm" id="cmA" ${c.call_app !== false ? 'checked' : ''}> Por la app · <span style="font-size:13px;color:#888">te llaman sin ver tu número</span></label>
       <label class="chk sub" style="margin-left:0"><input type="radio" name="cm" id="cmT" ${c.call_app === false ? 'checked' : ''}> A mi teléfono · <span style="font-size:13px;color:#888">se muestra el número</span></label></div>
     <div id="pbox" style="display:${c.ch_call && c.call_app === false ? 'block' : 'none'}"><label id="l4" class="req">Teléfono que se mostrará</label><input id="f4" value="${esc(c.phone)}" placeholder="Ej. 600 000 000" type="tel" maxlength="20"></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="c7" ${c.ch_redirect ? 'checked' : ''}> <span style="color:#7e868b">${IC.globe(20)}</span> Redirección web</label>
+    <div id="rbox" style="display:${c.ch_redirect ? 'block' : 'none'}"><label class="req">Dirección web</label><input id="f7" type="url" inputmode="url" value="${esc(c.redirect_url)}" placeholder="www.ejemplo.com" maxlength="500">
+      <div class="hint">Quien escanee irá directamente a esta web, sin ver los demás medios. Puedes cambiarla cuando quieras, aunque el código ya esté impreso.</div></div>
     ${isNew ? '' : `<div class="section">USUARIOS VINCULADOS</div><div style="font-size:13px;color:#777">También reciben las alertas y los chats de este código.</div>
       <div>${mem.map(m => `<span class="pill">${IC.avatar(16, true)} ${esc(m.display_name || 'usuario')}<button class="back" style="font-size:13px" data-rm="${m.user_id}">✕</button></span>`).join('') || '<div style="font-size:13px;color:#999;margin:6px 0">Nadie vinculado.</div>'}</div>
       <div style="display:flex;gap:6px;align-items:center"><input id="f6" type="email" placeholder="Email de otro usuario de Scan2Com" style="margin:6px 0"><button class="btn sm light" id="addm">Vincular</button></div>`}
@@ -1839,7 +1840,7 @@ async function renderEdit() {
   $('#c0').onchange = () => { $('#ibox').style.display = $('#c0').checked ? 'block' : 'none'; if ($('#c0').checked) $('#f2').focus(); };   // primero el nombre público
   $('#c7').onchange = () => { $('#rbox').style.display = $('#c7').checked ? 'block' : 'none'; if ($('#c7').checked) $('#f7').focus(); };
   const callUi = focus => { const on = $('#c4').checked, tel = on && $('#cmT').checked; $('#cbox').style.display = on ? 'block' : 'none'; $('#pbox').style.display = tel ? 'block' : 'none'; if (tel && focus) $('#f4').focus(); };
-  $('#c4').onchange = () => callUi(true); $('#cmA').onchange = $('#cmT').onchange = () => callUi(true);
+  $('#c4').onchange = () => callUi(true); $('#c3').addEventListener('change', () => { const on = $('#c3').checked; $('#chbox').style.display = on ? 'block' : 'none'; if (!on) { $('#c4').checked = false; callUi(); } }); $('#cmA').onchange = $('#cmT').onchange = () => callUi(true);
   app.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { await sb.from('code_members').delete().eq('code_id', c.id).eq('user_id', b.dataset.rm); await loadMembers(c.id); });
   if ($('#addm')) $('#addm').onclick = async () => { const em = $('#f6').value.trim(); if (!em) return; const { data } = await sb.rpc('add_member', { p_code: c.id, p_email: em }); if (data?.ok) { toast('Usuario vinculado'); loadMembers(c.id); } else toast(data?.error === 'user_not_found' ? 'Ese email no tiene cuenta en Scan2Com. Pídele que se registre primero.' : 'No se ha podido vincular.'); };
   if ($('#del')) $('#del').onclick = async () => { if ($('#del').dataset.sure) { await sb.from('codes').delete().eq('id', c.id); S.codes = S.codes.filter(x => x.id !== c.id); S.view = null; toast('Código borrado'); render(); } else { $('#del').dataset.sure = 1; $('#del').textContent = 'Pulsa otra vez para borrar definitivamente'; } };
@@ -1859,7 +1860,7 @@ async function renderEdit() {
     const style = { ...(c.style || {}), design: selDsg, car: isCarD(selDsg), car_color: selCol, car_text: selTxt === 'Alert' ? undefined : selTxt, hide_trace: !!$('#ht')?.checked }; if (c.style?.car || c.style?.car_code) style.car_code = true;
     if (locked && unlocked) style.print_override = true;  // confirmado: el diseño de la pegatina impresa se puede cambiar
     const row = { type: selType, style, name, private_info: $('#f5').value.trim() || null, public_name: pub || null, public_desc: $('#f3').value.trim() || null,
-      ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: $('#c6').checked, ch_call: $('#c4').checked, call_app: !$('#cmT').checked, ch_redirect: $('#c7').checked, redirect_url: urlOk ? url : null, phone: $('#f4').value.trim() || null };
+      ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: $('#c6').checked, ch_call: $('#c3').checked && $('#c4').checked, call_app: !$('#cmT').checked, ch_redirect: $('#c7').checked, redirect_url: urlOk ? url : null, phone: $('#f4').value.trim() || null };
     if (NATIVE && $('#c8')) { const o = $('#f8').selectedOptions[0]; Object.assign(row, { bt_auto: $('#c8').checked && $('#c2').checked && isCarD(selDsg), bt_addr: $('#f8').value || null, bt_name: o && o.value ? o.dataset.name : null, bt_drive_off: $('#c9').checked }); }
     S.busy = true; S.err = ''; render();
     const r = isNew ? await sb.from('codes').insert({ ...row, owner_id: S.user.id }).select().single() : await sb.from('codes').update(row).eq('id', c.id).select().single();
@@ -2019,7 +2020,7 @@ async function showScannedQR(id, name) {
 function renderQR() {
   const c = codeOf(S.view.id); if (!c) { S.view = null; return render(); }
   const url = `${SITE}/s/${c.id}`, own = c.owner_id === S.user.id;
-  const chans = [c.ch_info && MCOL.info + IC.info(14) + ' Info', c.ch_mail && MCOL.mail + IC.mail(14) + ' Mail', c.ch_alert && MCOL.alert + (IC.alert(14) + ' Alert' + (isCar(c) ? ' (siempre activo)' : '') + (c.auto_alert ? ' (al abrir)' : '')), c.ch_chat && MCOL.chat + IC.chat(14) + ' Chat', c.ch_call && MCOL.call + IC.phone(14) + ' Llamada', c.ch_redirect && c.redirect_url && MCOL.web + IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean).map(x => x.split('|'));
+  const chans = [c.ch_info && MCOL.info + IC.info(14) + ' Info', c.ch_mail && MCOL.mail + IC.mail(14) + ' Mail', c.ch_alert && MCOL.alert + (IC.alert(14) + ' Alert' + (isCar(c) ? ' (siempre activo)' : '') + (c.auto_alert ? ' (al abrir)' : '')), (c.ch_chat || c.ch_call) && MCOL.chat + IC.chat(14) + (c.ch_call ? ' Chat y ' + IC.phone(14) + ' llamadas' : ' Chat'), c.ch_redirect && c.redirect_url && MCOL.web + IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean).map(x => x.split('|'));
   const nChats = S.chats.filter(x => x.code_id === c.id).length;
   app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(24)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes del código">${IC.sliders(24)}</button>` : ''}${isCar(c) ? `<button class="ib pdfb" id="pdf" title="PDF para imprimir (4 pegatinas, tamaño real)">${IC.pdf(22)}PDF</button>` : ''}</div>
     <div class="namebar">${esc(c.name).toUpperCase()}</div>
@@ -2060,7 +2061,7 @@ function renderQR() {
 /* ---------- ayuda "¿Cómo se usa?" (plegable; se recuerda si la abres) ---------- */
 const HOWTO = {
   chats: ['¿Cómo funcionan los chats?', ['Aquí están las conversaciones de <b>tus códigos</b> (alguien escaneó un código tuyo) y de los <b>códigos que tú escaneas</b> con la cámara de la app.', 'Toca un chat para escribir. Nadie ve tu teléfono ni tu email.', '<b>Ponles nombre a tus chats</b>: aquí no hay números de teléfono y el anonimato es total (solo existe el email de tu cuenta, que nadie ve), así que cada chat llega con un nombre genérico. Entra en él y pulsa el lápiz ✎.', 'Un chat abierto sigue funcionando aunque apagues o borres el código: el código es solo la puerta de entrada. Solo lo cierra el bloqueo (⋮).', '★ marca un chat como favorito: sube arriba de la lista.', 'Activa <b>Mostrar trazabilidad</b> (abajo) para verlos agrupados por código y saber de dónde sale cada nombre.']],
-  edit: ['¿Cómo se configura un código?', ['<b>Nombre</b> e <b>información privada</b>: solo los ves tú.', '<b>Diseño del QR</b>: Clásico, Redondeado o Pegatina de coche.', '<b>Medios de comunicación</b>: elige cómo te pueden contactar quienes lo escaneen (Info, Mail, Alert, Chat, Llamada o Redirección web).', 'Con <b>Info</b> marcado escribes el nombre público y el texto que verá quien escanee.', 'Pulsa <b>Guardar</b>. Puedes apagar el código cuando quieras con el botón de encendido.']],
+  edit: ['¿Cómo se configura un código?', ['<b>Nombre</b> e <b>información privada</b>: solo los ves tú.', '<b>Diseño del QR</b>: Clásico, Redondeado o Pegatina de coche.', '<b>Medios de comunicación</b>: elige cómo te pueden contactar quienes lo escaneen (Info, Mail, Alert, Chat —con o sin llamadas— o Redirección web).', 'Con <b>Info</b> marcado escribes el nombre público y el texto que verá quien escanee.', 'Pulsa <b>Guardar</b>. Puedes apagar el código cuando quieras con el botón de encendido.']],
   qr: ['¿Cómo se usa este código?', ['Pégalo o compártelo: quien lo escanee con la cámara del móvil verá tu pantalla pública y podrá contactarte por los medios activos.', '<b>Ver lo que ve quien escanea</b> te enseña esa pantalla.', 'El botón de encendido lo activa o desactiva al momento.', 'Arriba: <b>compartir</b> la imagen, <b>guardarla</b> y, en las pegatinas de coche, <b>PDF</b> para imprimir la hoja de 4 pegatinas a tamaño real.']]
 };
 const howto = k => { const [t, items] = HOWTO[k]; return `<details class="howto" data-howto="${k}" ${ls.get('sa_howto_' + k, false) ? 'open' : ''}><summary>${t}</summary><ul>${items.map(x => `<li>${x}</li>`).join('')}</ul></details>`; };
@@ -2413,11 +2414,11 @@ const QRMINI = {};
 function qrMini(c) { const url = SITE + '/s/' + c.id; if (QRMINI[url]) return QRMINI[url];
   try { const q = qrcode(0, 'M'); q.addData(url); q.make(); const n = q.getModuleCount(); let r = ''; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (q.isDark(y, x)) r += 'M' + x + ' ' + y + 'h1v1h-1z';
     return QRMINI[url] = '<svg viewBox="-1 -1 ' + (n + 2) + ' ' + (n + 2) + '" width="100%" height="100%" shape-rendering="crispEdges"><rect x="-1" y="-1" width="' + (n + 2) + '" height="' + (n + 2) + '" fill="#fff"/><path d="' + r + '" fill="#111"/></svg>'; } catch (e) { return ''; } }
-// colores de los boomerangs de un código según sus medios (decisión de Luis): rojo Alert, verde Chat, amarillo Llamada, azul Mail; gris si está apagado
-// color de cada medio (etiquetas y boomerangs): rojo Alert, verde Chat, amarillo Llamada, azul Mail; Info y web en gris
-const MCOL = { alert: '#e8352b|', chat: '#2fc23a|', call: '#e8b923|', mail: '#1f86e0|', info: '#8d979b|', web: '#8d979b|' };
+// colores de los boomerangs de un código según sus medios (decisión de Luis): rojo Alert, verde Chat (con o sin llamadas), amarillo Info, azul Mail; gris si está apagado
+// color de cada medio (etiquetas y boomerangs): rojo Alert, verde Chat y llamadas, amarillo Info, azul Mail; web en gris
+const MCOL = { alert: '#e8352b|', chat: '#2fc23a|', call: '#2fc23a|', mail: '#1f86e0|', info: '#e8b923|', web: '#8d979b|' };
 function codeCols(c) { const g = '#8d979b'; if (!c.is_on) return [g, g, g, g];
-  return [c.ch_alert || c.auto_alert ? '#e8352b' : g, c.ch_chat ? '#2fc23a' : g, c.ch_call ? '#e8b923' : g, c.ch_mail ? '#1f86e0' : g]; }
+  return [c.ch_alert || c.auto_alert ? '#e8352b' : g, c.ch_chat || c.ch_call ? '#2fc23a' : g, c.ch_info ? '#e8b923' : g, c.ch_mail ? '#1f86e0' : g]; }
 
 /* ---------- chat ---------- */
 const ownerMsgs = (ch, list) => (v2Msgs(ch.id, list, { side: 'o', other: ch.name || 'Chat', id: m => m.id, at: m => m.created_at, mine: m => !m.from_visitor, who: m => m.from_visitor ? 'v' : 'o:' + (m.sender_id || ''),
@@ -2501,11 +2502,13 @@ function renderChat() {
   $('#cm').onclick = () => {
     $('#overlay').innerHTML = `<div class="sheet keep" id="cms"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">${face(ch.blocked, 44)}<div><b>${esc(ch.name)}</b><div style="font-size:13px;color:#777">${ch.blocked ? 'Contacto bloqueado: no puede escribirte' : 'Contacto activo'}</div></div></div>
+      ${ch.blocked ? '' : `<label class="chk" style="margin:0 0 10px"><input type="checkbox" id="pc" ${ch.calls ? 'checked' : ''}> ${IC.phone(18)} Permitir que me llame <span style="font-size:13px;color:#888">· por la app, sin ver tu número</span></label>`}
       <button class="btn light" id="bl" style="margin-bottom:8px">${ch.blocked ? 'Desbloquear contacto' : 'Bloquear contacto'}</button>
       <button class="btn light" id="dc" style="color:var(--red);margin-bottom:8px">${IC.trash(18)} Borrar chat</button>
       <button class="btn light" id="hw">${IC.play(16)} Cómo funciona el chat</button></div></div>`;
     $('#cms').onclick = () => { $('#overlay').innerHTML = ''; };
     $('#hw').onclick = () => chatHelp();
+    if ($('#pc')) $('#pc').onchange = async () => { const v = $('#pc').checked; ch.calls = v; const { error } = await sb.from('chats').update({ calls: v }).eq('id', ch.id); if (error) { ch.calls = !v; $('#pc').checked = !v; toast('No se ha podido cambiar.'); } else toast(v ? 'Te puede llamar desde este chat' : 'Ya no te puede llamar desde este chat'); };
     $('#bl').onclick = async () => { const v = !ch.blocked; $('#overlay').innerHTML = ''; ch.blocked = v; render(); const { error } = await sb.from('chats').update({ blocked: v }).eq('id', ch.id); if (error) { ch.blocked = !v; render(); toast('No se ha podido cambiar.'); } else toast(v ? 'Contacto bloqueado: ya no puede escribirte' : 'Contacto desbloqueado'); };
     $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { $('#overlay').innerHTML = ''; await sb.from('chats').delete().eq('id', ch.id); S.chats = S.chats.filter(x => x.id !== ch.id); S.view = null; S.tab = 'chats'; toast('Chat borrado'); render(); } else { $('#dc').dataset.sure = 1; $('#dc').textContent = 'Pulsa otra vez para borrar el chat'; } };
   };

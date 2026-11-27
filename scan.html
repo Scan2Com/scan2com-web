@@ -299,7 +299,7 @@ const id = (location.pathname.match(/\/s\/([A-Za-z0-9]+)/) || [])[1] || new URLS
 let code = null, status = '', statusErr = false, busy = false, view = 'home';
 const chatKey = () => 'scan2com_chat_' + id;
 let chat = null; try { chat = JSON.parse(localStorage.getItem(chatKey())); } catch (e) {}
-let lastMsg = 0, msgs = [], poll = null, alive = true, pending = null, readPoll = null, readKind = '';
+let lastMsg = 0, msgs = [], poll = null, alive = true, chatCalls = null, pending = null, readPoll = null, readKind = '';
 
 const vv = window.visualViewport; function fitVV() { document.documentElement.style.setProperty('--vvh', (vv ? vv.height : innerHeight) + 'px'); if (document.querySelector('.full')) { window.scrollTo(0, 0); const b = document.querySelector('.full .scrollme'); if (b) b.scrollTop = b.scrollHeight; } }
 vv ? vv.addEventListener('resize', fitVV) : addEventListener('resize', fitVV); fitVV();
@@ -450,7 +450,7 @@ async function linkChat() {
 
 function renderChat() {
   app.innerHTML = `
-    <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div>${code.call_app && alive ? `<button class="tcall" id="tcall" title="Llamar">${I.call}</button>` : ''}${sbA ? `<a href="/app/?vchat=${chat.id}" style="font-size:13px;color:#0a8f8f;font-weight:600;text-decoration:none">Mis chats ›</a>` : '<span style="font-size:12px;color:#777">chat anónimo</span>'}</div>
+    <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div>${(chatCalls ?? code.call_app) && alive ? `<button class="tcall" id="tcall" title="Llamar">${I.call}</button>` : ''}${sbA ? `<a href="/app/?vchat=${chat.id}" style="font-size:13px;color:#0a8f8f;font-weight:600;text-decoration:none">Mis chats ›</a>` : '<span style="font-size:12px;color:#777">chat anónimo</span>'}</div>
     <div class="msgs scrollme" id="ms">${msgs.length ? wMsgs() : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
     ${alive ? `<div class="ws"><button class="camb" id="cph" title="Enviar foto, ubicación o archivo"><i></i></button><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs"><span class="st">Enviar</span><span class="sm"><svg width="26" height="26" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="stopi"></span></span></button></div>` : ''}`;
   $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };
@@ -550,7 +550,7 @@ async function fetchMsgs() {
   const r = await rpc('visitor_messages', { p_chat: chat.id, p_token: chat.token, p_after: lastMsg, p_seen: !document.hidden });
   if (!r.ok) { if (r.error === 'forbidden') { localStorage.removeItem(chatKey()); chat = null; view = 'home'; clearInterval(poll); render(); } return; }
   const changed = r.messages.length || r.alive !== alive;
-  alive = r.alive; r.messages.forEach(m => { if (!msgs.find(x => x.id === m.id)) msgs.push(m); }); if (r.messages.length) lastMsg = r.messages.at(-1).id;
+  alive = r.alive; if (r.calls != null) chatCalls = r.calls; r.messages.forEach(m => { if (!msgs.find(x => x.id === m.id)) msgs.push(m); }); if (r.messages.length) lastMsg = r.messages.at(-1).id;
   if (r.messages.length) { try { localStorage.setItem('scan2com_msgs_' + chat.id, JSON.stringify(msgs.slice(-2000))); } catch (e) {} keepCopy(); }
   if (changed && view === 'chat') { const v = $('#ci')?.value; renderChat(); if (v && $('#ci')) $('#ci').value = v; }
   hydrate();

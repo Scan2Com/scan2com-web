@@ -334,6 +334,17 @@ function render() {
   if (view === 'chat') return renderChat();
   if (view === 'mail') return renderMail();
   const off = code.status === 'off', ch = code.channels || {};
+  // chat de grupo: solo con la app (así todos reciben los avisos de los mensajes nuevos)
+  if (code.group && !off) {
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    app.innerHTML = `<div class="brand">${LOGO} Scan2Com</div>
+      <div class="card"><h1>${esc(code.public_name || 'Chat de grupo')}</h1>${code.public_desc ? `<p>${esc(code.public_desc)}</p>` : ''}</div>
+      <div class="card" style="text-align:center"><div style="font-size:40px">👥</div><h2 style="margin:6px 0">Esto es un chat de grupo</h2>
+        <p>Para entrar, <b>instala la app de Scan2Com</b> y escanea este código <b>desde la app</b>. Así recibirás los mensajes del grupo en tu móvil.</p>
+        <p style="font-size:14px;opacity:.8">Entrarás con un alias al azar (por ejemplo «Zorro azul»): nadie verá tu teléfono ni tu email.</p>
+        ${ios ? '<p style="font-size:14px"><b>iPhone:</b> la app estará muy pronto en la App Store.</p>' : '<a class="act chat" style="display:flex;justify-content:center;text-decoration:none;margin-top:10px" href="/app/scan2com.apk">⬇️ Descargar la app (Android)</a>'}</div>`;
+    return;
+  }
   const any = (!off && (ch.mail || ch.alert || ch.chat)) || !!AUTH;
   app.innerHTML = `
     <div class="brand">${LOGO} Scan2Com</div>

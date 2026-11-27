@@ -413,7 +413,7 @@ const vidBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/
 // audios y vídeos: el tic verde sale cuando la otra persona los reproduce (no basta con abrir el chat)
 const isPlayable = b => isAudio(b) || isVideo(b);
 const isLoc = b => typeof b === 'string' && /^loc:-?\d{1,2}(\.\d+)?,-?\d{1,3}(\.\d+)?$/.test(b);
-const prevBody = b => /^rx:\d+:/.test(b || '') ? (b.replace(/^rx:\d+:/, '') ? 'Ha reaccionado ' + b.replace(/^rx:\d+:/, '') : 'Ha quitado su reacción') : (b || '').startsWith('rp:{') ? '↩️ ' + prevBody((() => { try { return JSON.parse(b.slice(3)).b; } catch (e) { return ''; } })()) : /^cal:(missed|\d+)$/.test(b || '') ? (b === 'cal:missed' ? '📞 Llamada perdida' : '📞 Llamada') : isVideo(b) ? '🎥 Vídeo' : isFile(b) ? '📎 ' + fileMeta(b).name : isPhoto(b) ? '📷 Foto' : isAudio(b) ? '🎤 Audio' : isLoc(b) ? '📍 Ubicación' : (b || '');
+const prevBody = b => /^dl(:\d+)?$/.test(b || '') ? '🚫 Mensaje borrado' : /^rx:\d+:/.test(b || '') ? (b.replace(/^rx:\d+:/, '') ? 'Ha reaccionado ' + b.replace(/^rx:\d+:/, '') : 'Ha quitado su reacción') : (b || '').startsWith('rp:{') ? '↩️ ' + prevBody((() => { try { return JSON.parse(b.slice(3)).b; } catch (e) { return ''; } })()) : /^cal:(missed|\d+)$/.test(b || '') ? (b === 'cal:missed' ? '📞 Llamada perdida' : '📞 Llamada') : isVideo(b) ? '🎥 Vídeo' : isFile(b) ? '📎 ' + fileMeta(b).name : isPhoto(b) ? '📷 Foto' : isAudio(b) ? '🎤 Audio' : isLoc(b) ? '📍 Ubicación' : (b || '');
 // vista previa de una ubicación: 4 teselas de OpenStreetMap centradas en el punto, con un marcador encima
 function locBody(b) {
   const [lat, lng] = b.slice(4).split(',').map(Number), z = 15, n = 2 ** z, W = 230, H = 130;
@@ -1438,7 +1438,7 @@ async function loadAll() {
   ]);
   try { const [au, pr] = await Promise.all([sb.rpc('my_authority'), sb.from('profiles').select('terms_version').eq('id', S.user.id).maybeSingle()]);
     S.auth = au.data || null; S.terms = pr.data?.terms_version || null; } catch (e) {}
-  try { const v = await sb.rpc('my_visitor_chats'); S.vchats = v.data || []; } catch (e) { S.vchats = S.vchats || []; }
+  try { const v = await vcList(); S.vchats = v.data || []; } catch (e) { S.vchats = S.vchats || []; }
   try { const [g, z, ad] = await Promise.all([sb.from('user_geo').select('optin').eq('user_id', S.user.id).maybeSingle(), sb.rpc('my_zone_alerts'), sb.rpc('my_zone_role')]);
     S.zone = !!g.data?.optin; S.zrole = ad.data || null; S.admin = !!(ad.data && (ad.data.admin || (ad.data.groups || []).length)); sb.rpc('can_see_feedback').then(r => { S.fbView = r.data === true; }, () => {}); S.zalerts = Array.isArray(z.data) ? z.data : []; } catch (e) { S.zalerts = S.zalerts || []; }
   // pestaña ENVÍOS: solo para las cuentas que pueden enviar avisos por zona; ven el historial de todos los avisos enviados
@@ -2158,6 +2158,7 @@ function pdfFromJpeg(jpgDataUrl, pw, ph, wmm, hmm, pagew = 210, pageh = 297, not
 }
 // elegir: normal (papel de pegatina normal) o en espejo (vinilo transparente que se pega por dentro del cristal)
 function carSheetAsk(c, url, mode) {
+  if (!isCar(c)) return carSheetPdf(c, url, false);   // Clásico / Redondeado: hoja de 12 QR, sin elegir espejo
   const box = inner => `<div class="sheet keep" id="pdfs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
     <div style="font-size:19px;font-weight:700;margin-bottom:4px">PDF de pegatinas</div>
     <div style="font-size:14px;color:#555;margin-bottom:14px">${mode === 'mail' ? `Te lo enviamos a <b style="color:#222">${esc(S.user.email || 'tu email')}</b><br>` : ''}PDF formato A4</div>${inner}</div></div>`;
@@ -2176,7 +2177,22 @@ function carSheetAsk(c, url, mode) {
   if ($('#pdfm')) $('#pdfm').onclick = () => go(true);
 }
 const BMP = '4,2 3,7 2,8 2,26 1,27 1,73 2,74 3,91 4,92 5,102 6,103 6,106 7,107 7,110 8,111 8,114 9,115 10,120 18,134 25,141 29,144 39,149 41,149 48,152 51,152 56,154 60,154 61,155 66,155 67,156 73,156 74,157 85,157 86,158 126,158 127,157 149,157 150,156 154,156 158,153 157,149 149,141 146,140 144,138 141,138 140,137 129,137 128,136 115,136 114,135 105,135 104,134 97,134 96,133 84,132 83,131 79,131 78,130 74,130 66,127 63,127 52,122 48,119 37,107 31,92 31,89 30,88 30,85 28,80 28,76 27,75 26,63 25,62 24,45 23,44 23,30 22,29 22,19 21,18 21,15 19,11 14,6 14,5 8,1';   // contorno del boomerang del logo, en 160×160 (vértice abajo a la izquierda)
+// códigos Clásico y Redondeado: hoja A4 con 12 QR de 5,5 cm (3 × 4) y líneas de corte suaves
+async function plainSheetBin(c, url) {
+  const k = 12, pg = document.createElement('canvas'); pg.width = 210 * k; pg.height = 297 * k; const g = pg.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, pg.width, pg.height);
+  const q = document.createElement('canvas'); await drawDesign(q, c, url);
+  const S = 55, cell = 62, cols = 3, rows = 4, x0 = (210 - cols * cell) / 2, y0 = 22;
+  g.strokeStyle = '#d6d6d6'; g.lineWidth = 2; g.setLineDash([12, 10]);
+  for (let r = 0; r < rows; r++) for (let cc = 0; cc < cols; cc++) {
+    const x = (x0 + cc * cell) * k, y = (y0 + r * cell) * k; g.strokeRect(x, y, cell * k, cell * k);
+    g.drawImage(q, x + (cell - S) / 2 * k, y + (cell - S) / 2 * k, S * k, S * k);
+  }
+  g.setLineDash([]); g.fillStyle = '#444'; g.textAlign = 'center'; g.font = `${Math.round(3.2 * k)}px Arial, Helvetica, sans-serif`;
+  g.fillText('Imprime al 100 % (sin «ajustar a la página») y recorta por las líneas. Cada código mide 5,5 cm.', pg.width / 2, (y0 + rows * cell + 9) * k);
+  return { bin: pdfFromJpeg(pg.toDataURL('image/jpeg', 0.92), pg.width, pg.height, 210, 297), name: `scan2com-codigos-${c.id}.pdf` };
+}
 async function carSheetBin(c, url, mirror) {
+  if (!isCar(c)) return plainSheetBin(c, url);
     const text = carText(c), own = true; await carFont();
     const [base, spec] = await Promise.all([loadImg(`/app/img2014/plantilla_coche${own ? '_txt' : ''}.png`), fetch('/app/img2014/plantilla_coche.json').then(r => r.json())]);
     const cv = document.createElement('canvas'); cv.width = base.width; cv.height = base.height;
@@ -2251,6 +2267,7 @@ const FRAME = (cols) => '<span class="bfr">' + ['tl', 'tr', 'bl', 'br'].map((k, 
 // reacciones y respuestas viajan como mensajes normales (de paso por el servidor, guardados en el móvil)
 //   reacción: "rx:<id>:<emoji>" (emoji vacío = quitarla) · respuesta: "rp:" + {"i":id,"w":quién,"t":trocito,"b":mensaje}
 const isRx = b => typeof b === 'string' && /^rx:\d+:/.test(b);
+const dlParse = b => { const m = typeof b === 'string' && b.match(/^dl:(\d+)$/); return m ? +m[1] : 0; };
 const rxParse = b => { const m = typeof b === 'string' && b.match(/^rx:(\d+):([\s\S]*)$/); return m ? { to: +m[1], e: m[2] } : null; };
 const rpParse = b => { if (typeof b !== 'string' || !b.startsWith('rp:{')) return null; try { const j = JSON.parse(b.slice(3)); return j && typeof j.b === 'string' ? j : null; } catch (e) { return null; } };
 const unwrap = b => rpParse(b)?.b ?? b;
@@ -2259,7 +2276,8 @@ const pinsOf = k => ls.get('sa_pin_' + k, []), hidOf = k => ls.get('sa_hid_' + k
 // pinta la conversación: oculta lo borrado para mí, junta las reacciones en su mensaje, citas de respuesta y fijados
 function v2Msgs(k, list, o) {
   const hid = new Set(hidOf(k)), pins = pinsOf(k), rx = {}, shown = [];
-  for (const m of list) { const r = rxParse(m.body); if (r) { (rx[r.to] ||= {})[o.who(m)] = r.e; continue; } if (!hid.has(o.id(m))) shown.push(m); }
+  const dl = new Set(list.map(m => dlParse(m.body)).filter(Boolean));   // borrados para todos por el dueño
+  for (const m of list) { const r = rxParse(m.body); if (r) { (rx[r.to] ||= {})[o.who(m)] = r.e; continue; } if (dlParse(m.body) || dl.has(o.id(m))) continue; if (!hid.has(o.id(m))) shown.push(m); }
   V2.rx = rx;
   return withDays(shown, o.at, m => {
     const id = o.id(m), rp = rpParse(m.body), body = rp ? rp.b : m.body, mine = o.mine(m), pin = pins.includes(id);
@@ -2340,7 +2358,7 @@ function v2Menu(el) {
   const r = el.getBoundingClientRect(), H = innerHeight, cur = (V2.rx?.[id] || {})[c.me], pinned = pinsOf(c.k).includes(id), canRx = !isCall(unwrap(c.body(m)));
   const d = document.createElement('div'); d.id = 'mmenu'; d.className = 'mmenu';
   const clone = el.cloneNode(true); clone.classList.add('mclone'); clone.querySelectorAll('.bfr').forEach(x => x.remove());
-  const acts = [['rp', V2I.reply, 'Responder'], ['cp', V2I.copy, 'Copiar'], ['fw', V2I.fwd, 'Reenviar'], ['sel', V2I.sel, 'Elegir'], ['pin', V2I.pin, pinned ? 'Desfijar' : 'Fijar arriba'], ['del', V2I.del, 'Borrar para mí']];
+  const acts = [['rp', V2I.reply, 'Responder'], ['cp', V2I.copy, 'Copiar'], ['fw', V2I.fwd, 'Reenviar'], ['sel', V2I.sel, 'Elegir'], ['pin', V2I.pin, pinned ? 'Desfijar' : 'Fijar arriba'], ['del', V2I.del, 'Borrar para mí']]; { const c0 = v2Ctx(); if (c0?.ch?.is_group) acts.push(['dla', V2I.del, 'Borrar para todos']); }
   d.innerHTML = '<div class="mdim"></div>' + (canRx ? '<div class="mrx">' + RXE.map(e => '<button data-e="' + e + '"' + (cur === e ? ' class="on"' : '') + '>' + e + '</button>').join('') + '</div>' : '')
     + '<div class="macts">' + acts.map(([k, ic, t]) => '<button data-a="' + k + '"' + (k === 'del' ? ' class="red"' : '') + '>' + ic + '<span>' + t + '</span></button>').join('') + '</div>';
   d.appendChild(clone); document.body.appendChild(d);
@@ -2354,7 +2372,13 @@ function v2Menu(el) {
   d.querySelector('.mdim').onclick = close; clone.onclick = close;
   if (rx) rx.onclick = e => { const b = e.target.closest('[data-e]'); if (!b) return; close(); v2React(id, b.dataset.e); };
   ac.onclick = e => { const a = e.target.closest('[data-a]')?.dataset.a; if (!a) return; close();
-    if (a === 'rp') v2Reply(id); if (a === 'cp') v2Copy([id]); if (a === 'fw') v2Forward([id]); if (a === 'sel') v2SelStart(id); if (a === 'pin') v2Pin(id); if (a === 'del') v2Hide([id]); };
+    if (a === 'rp') v2Reply(id); if (a === 'cp') v2Copy([id]); if (a === 'fw') v2Forward([id]); if (a === 'sel') v2SelStart(id); if (a === 'pin') v2Pin(id); if (a === 'del') v2Hide([id]); if (a === 'dla') v2DelAll(id); };
+}
+// dueño de un grupo: quitar un mensaje para todos (queda un aviso que lo oculta en todos los móviles y se vacía en el servidor)
+async function v2DelAll(id) {
+  const c = v2Ctx(); if (!c?.ch) return; if (!confirm('¿Borrar este mensaje para todos los del grupo?')) return;
+  const { data, error } = await sb.from('messages').insert({ chat_id: c.ch.id, from_visitor: false, sender_id: S.user.id, body: 'dl:' + id }).select().single();
+  if (error) return toast('No se ha podido borrar.'); (S.msgs[c.ch.id] ||= []).push(data); sb.rpc('owner_wipe_message', { p_msg: id }).then(() => {}, () => {}); render(true); toast('Mensaje borrado para todos');
 }
 // gestos en los mensajes: mantener pulsado (menú), deslizar a la derecha (responder), tocar en modo selección
 (() => {
@@ -2504,10 +2528,10 @@ const ownerMsgs = (ch, list) => (v2Msgs(ch.id, list, { side: 'o', other: ch.name
   pm: m => m.from_visitor && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
   top: m => m.from_visitor && m.member_id ? memTop(m.member_id) : !m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : '',
   tick: m => m.from_visitor ? '' : bm(m.id, isPlayable(unwrap(m.body)) ? !!(m.played_at || pctOf(m.id) >= 100) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at, isPlayable(unwrap(m.body)) ? Math.max(m.played_pct || 0, pctOf(m.id)) : 0) }) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
-const visitorMsgs = (v, list) => (v2Msgs(v.id, list, { side: 'v', other: v.name || v.public_name || 'Chat', id: m => m.id, at: m => m.at, mine: m => m.mine, who: m => m.mine ? 'v' : 'o',
+const visitorMsgs = (v, list) => (v.group && v.me ? `<div class="unsep">👥 Eres <b style="color:${GCOL[v.me.color] || '#888'}">${esc(v.me.alias)}</b>${v.me.revealed ? ' (' + esc(v.me.name || '') + ')' : ''}</div>` : '') + (v2Msgs(v.id, list, { side: 'v', other: v.name || v.public_name || 'Chat', id: m => m.id, at: m => m.at, mine: m => m.mine, who: m => m.mid ? 'm' + m.mid : m.mine ? 'v' : 'o',
   pm: m => !m.mine && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
-  top: () => '',
-  tick: m => m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, isPlayable(unwrap(m.body)) ? pctOf(m.id) >= 100 : m.id <= S.vread[v.id], m.at, isPlayable(unwrap(m.body)) ? pctOf(m.id) : 0) : '' }) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
+  top: m => v.group && !m.mine ? (m.owner ? `<div class="who" style="font-weight:700;opacity:1">${esc(v.public_name || 'Dueño')}</div>` : (x => `<div class="who" style="color:${GCOL[x?.color] || '#8d979b'};font-weight:700;opacity:1">${esc(x ? (x.name ? x.name + ' (' + x.alias + ')' : x.alias) : 'Participante')}</div>`)(v.gm?.[m.mid])) : '',
+  tick: m => !v.group && m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, isPlayable(unwrap(m.body)) ? pctOf(m.id) >= 100 : m.id <= S.vread[v.id], m.at, isPlayable(unwrap(m.body)) ? pctOf(m.id) : 0) : '' }) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
 // al abrir un chat: ir al primer mensaje sin leer (con separador) o al final, y mantener esa posición
 // mientras cargan fotos, vídeos y mapas, hasta que el usuario toque o desplace la conversación
 let chatPin = null;
@@ -2609,7 +2633,7 @@ async function openScanned(id) {
   busy(true);
   let c = null;
   try {
-    const [l, p] = await Promise.all([(async () => { try { return await sb.rpc('my_visitor_chats'); } catch (e) { return {}; } })(), sb.rpc('public_code', { p_id: id })]);
+    const [l, p] = await Promise.all([(async () => { try { return await vcList(); } catch (e) { return {}; } })(), sb.rpc('public_code', { p_id: id })]);
     if (l.data) S.vchats = l.data; c = p.data;
   } finally { busy(false); }
   const v = (S.vchats || []).find(x => x.code_id === id);
@@ -2637,16 +2661,15 @@ async function startVChat(id) {
   busy(true);
   try { await startVChat2(id); } finally { busy(false); }
 }
+// chats de códigos ajenos: normales + grupos en los que estoy (desde la app)
+async function vcList() { const [a, b] = await Promise.all([sb.rpc('my_visitor_chats'), sb.rpc('my_group_chats').then(x => x, () => ({}))]); return a.data ? { data: [...(b.data || []), ...a.data] } : a; }
 function busy(on, txt = 'Abriendo…') { let el = $('#busy'); if (!on) return el && el.remove(); if (el) return; el = document.createElement('div'); el.id = 'busy'; el.className = 'busy'; el.innerHTML = `<div style="text-align:center"><i></i>${txt}</div>`; document.body.appendChild(el); }
 async function startVChat2(id) {
-  // chat de grupo: se entra por la página del código (con su alias); se reutiliza la plaza si ya entré
-  const gk = ['scan2com_chat_' + id, 'scan2com_chat_' + String(id).toUpperCase()], open = () => { location.href = '/s/' + String(id).toUpperCase(); };
-  try { if (gk.some(k => JSON.parse(localStorage.getItem(k) || 'null')?.group)) return open(); } catch (e) {}
   const { data: r } = await sb.rpc('start_chat', { p_id: id, p_first: null });
-  if (!r?.ok) return toast(r?.error === 'rate_limited' ? 'Demasiados chats nuevos con este código. Prueba en unos minutos.' : 'Este código no admite chat ahora.');
-  if (r.group) { const v = JSON.stringify({ id: r.chat_id, token: r.token, group: true }); gk.forEach(k => { try { localStorage.setItem(k, v); } catch (e) {} }); return open(); }
+  if (!r?.ok) return toast(r?.error === 'blocked' ? 'El dueño te ha bloqueado en este grupo.' : r?.error === 'rate_limited' ? 'Demasiados chats nuevos con este código. Prueba en unos minutos.' : 'Este código no admite chat ahora.');
+  if (r.group) { try { const l = await vcList(); if (l.data) S.vchats = l.data; } catch (e) {} S.view = { t: 'vchat', id: r.chat_id }; return render(); }   // grupo: la plaza queda en mi cuenta
   await sb.rpc('link_visitor_chat', { p_chat: r.chat_id, p_token: r.token });
-  try { const l = await sb.rpc('my_visitor_chats'); if (l.data) S.vchats = l.data; } catch (e) {}
+  try { const l = await vcList(); if (l.data) S.vchats = l.data; } catch (e) {}
   S.view = { t: 'vchat', id: r.chat_id }; render();
 }
 let vPoll = null;
@@ -2692,7 +2715,8 @@ async function renderVChat() {
 async function vFetch(v, bg) {
   S.vmsgs ||= {}; const l = S.vmsgs[v.id] ||= [];
   const { data } = await sb.rpc('visitor_messages', { p_chat: v.id, p_token: v.token, p_after: l.at(-1)?.id || 0, p_seen: !bg && !document.hidden });
-  if (!data?.ok) return;
+  if (!data?.ok) { if (data?.error === 'blocked' && v.alive) { v.alive = false; render(true); } return; }
+  if (data.group) { const k = JSON.stringify([data.members, data.me]); if (k !== v.gk) { v.gk = k; v.gm = data.members || {}; v.me = data.me; if (!data.messages.length) render(true); } }
   const ru = Math.max(data.read_upto || 0, S.vread[v.id] || 0); S.ppct ||= {};
   const np = Object.entries(data.played_pct || {}).filter(([id, p]) => p > pctOf(+id)); np.forEach(([id, p]) => { S.ppct[+id] = p; }); if (np.length) saveHist();
   const changed = np.length || data.messages.length || v.alive !== data.alive || ru !== S.vread[v.id]; v.alive = data.alive; S.vread[v.id] = ru;
@@ -2706,7 +2730,7 @@ async function vFetch(v, bg) {
 setInterval(async () => {
   if (!S.user || document.hidden || !(S.vchats || []).length) return;
   const old = new Map(S.vchats.map(v => [v.id, v.last?.id || 0]));
-  try { const r = await sb.rpc('my_visitor_chats'); if (!r.data) return; S.vchats = r.data; } catch (e) { return; }
+  try { const r = await vcList(); if (!r.data) return; S.vchats = r.data; } catch (e) { return; }
   let any = false;
   S.vchats.forEach(v => { if (v.last && !v.last.mine && v.last.id > (old.get(v.id) || 0) && !(S.view?.t === 'vchat' && S.view.id === v.id)) {
     S.unread['v' + v.id] = (S.unread['v' + v.id] || 0) + 1; any = true;
@@ -2930,8 +2954,9 @@ const TOURS = {
     ['#f1', 'Pon un nombre para reconocer el código. Solo lo ves tú.'],
     ['#f5', 'Aquí puedes apuntar información privada, como la matrícula. También solo para ti.'],
     ['.dsg', 'Elige el diseño del código: clásico, redondeado o la pegatina Scan 2 Alert, vertical u horizontal. En la pegatina puedes cambiar el color y el texto.'],
-    ['#c0', 'Marca los medios por los que te pueden contactar: info, mail, alerta, chat, llamada o una web.'],
+    ['#c0', 'Marca los medios por los que te pueden contactar: info, mail, alerta, chat con o sin llamadas, o una web.'],
     ['#c0', 'Con info marcado escribes el nombre público y el texto que verá quien escanee.'],
+    ['#c6', 'Con chat de grupo, todos los que escaneen el código desde la app entran en el mismo chat, cada uno con un alias al azar, como Zorro azul. Nadie ve el teléfono de nadie. Tú puedes bloquear a un participante o borrar un mensaje para todos, y si apagas el código no entra nadie nuevo.'],
     ['#sv', 'Cuando termines, pulsa guardar.']
   ]
 };

@@ -124,6 +124,7 @@ label{font-size:13px;color:var(--mut)}
 .bm.now,.bm.now i{transition:none!important}
 .bm.fly i{animation:bmspin .32s linear infinite}
 @keyframes bmspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.unsep{align-self:center;margin:10px 0 4px;padding:4px 14px;border-radius:12px;background:#dcefd0;color:#2e5d1e;font-size:13px;font-weight:600}html.dark .unsep{background:#243a26;color:#b9e0a8}
 .m .who{font-size:11px;opacity:.8;margin-bottom:2px}
 .notice{background:#fff4d6;font-size:13px;padding:9px 14px}
 .phw{position:relative;display:block}.pview{position:fixed;inset:0;z-index:60;background:#000;color:#fff;overflow:hidden}.pvs{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;touch-action:none;overflow:hidden}.pvs img{max-width:100%;max-height:100%;object-fit:contain;display:block;transform-origin:center center;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.pvbar{position:absolute;left:0;right:0;display:flex;align-items:center;transition:opacity .2s}.pview.bare .pvbar{opacity:0;pointer-events:none}.pvt{top:0;padding:calc(8px + env(safe-area-inset-top)) 10px 18px;background:linear-gradient(rgba(0,0,0,.7),transparent);gap:8px}.pvbtn{border:0;background:none;color:#fff;width:44px;height:44px;display:grid;place-items:center;cursor:pointer}.pvinfo{display:flex;flex-direction:column;font-size:13px;line-height:1.35}.pvinfo b{font-size:16px;font-weight:600}.pvinfo span{color:#ccc;text-transform:capitalize}.pvf{bottom:0;justify-content:space-around;padding:18px 10px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.7))}.pvact{border:0;background:none;color:#fff;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px;cursor:pointer;padding:6px 18px}.pvm{position:absolute;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(255,255,255,.92);color:#111;padding:9px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}.pvm.show{opacity:1}.phsrc{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 7px;border-radius:10px}.phsrc.cam{background:rgba(26,163,217,.9)}
@@ -1981,17 +1982,38 @@ async function carSheetPdf(c, url, mirror) {
 /* ---------- chat ---------- */
 const ownerMsgs = (ch, list) => (withDays(list, m => m.created_at, m => `<div class="m ${m.from_visitor ? 'them' : 'me'}"${m.from_visitor && isPlayable(m.body) ? ` data-pm="${m.id}" data-secs="${+(m.body.match(/#(\d+)$/) || [])[1] || 0}"` : ''}>${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${msgBody(m.body, m.created_at)}<div class="tm">${hm(m.created_at)}${m.from_visitor ? '' : bm(m.id, isPlayable(m.body) ? !!(m.played_at || pctOf(m.id) >= 100) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at, isPlayable(m.body) ? Math.max(m.played_pct || 0, pctOf(m.id)) : 0)}</div></div>`) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
 const visitorMsgs = (v, list) => (withDays(list, m => m.at, m => `<div class="m ${m.mine ? 'me' : 'them'}"${!m.mine && isPlayable(m.body) ? ` data-pm="${m.id}" data-secs="${+(m.body.match(/#(\d+)$/) || [])[1] || 0}"` : ''}>${msgBody(m.body, m.at)}<div class="tm">${hm(m.at)}${m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, isPlayable(m.body) ? pctOf(m.id) >= 100 : m.id <= S.vread[v.id], m.at, isPlayable(m.body) ? pctOf(m.id) : 0) : ''}</div></div>`) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
+// al abrir un chat: ir al primer mensaje sin leer (con separador) o al final, y mantener esa posición
+// mientras cargan fotos, vídeos y mapas, hasta que el usuario toque o desplace la conversación
+let chatPin = null;
+function openChatAt(unread) {
+  const cb = $('#cb'), ms = $('#ms'); if (!cb || !ms) return;
+  if (chatPin) chatPin.stop();
+  let target = null;
+  if (unread > 0) {
+    const them = [...ms.querySelectorAll('.m.them')], first = them[Math.max(0, them.length - unread)];
+    if (first) { target = document.createElement('div'); target.className = 'unsep'; target.textContent = unread === 1 ? '1 mensaje sin leer' : unread + ' mensajes sin leer'; first.before(target); }
+  }
+  const apply = () => { if (target && target.isConnected) cb.scrollTop = Math.max(0, target.offsetTop - cb.offsetTop - 8); else cb.scrollTop = cb.scrollHeight; };
+  apply(); requestAnimationFrame(apply);
+  const ro = window.ResizeObserver ? new ResizeObserver(apply) : null; if (ro) ro.observe(ms);
+  ms.addEventListener('load', apply, true);
+  const stop = () => { ro?.disconnect(); ms.removeEventListener('load', apply, true); ['touchstart', 'wheel', 'mousedown'].forEach(e => cb.removeEventListener(e, stop)); clearTimeout(t); if (chatPin?.stop === stop) chatPin = null; };
+  ['touchstart', 'wheel', 'mousedown'].forEach(e => cb.addEventListener(e, stop, { passive: true }));
+  const t = setTimeout(stop, 20000);
+  chatPin = { stop, apply };
+}
 // el chat ya está en pantalla: solo se actualizan los mensajes (no se cierra el teclado ni se corta la animación)
 function patchMsgs(key, html) {
   const ms = $('#ms'), cb = $('#cb');
   if (app.dataset.cv !== key || !ms || !cb) return false;
   const bottom = cb.scrollHeight - cb.scrollTop - cb.clientHeight < 80;
-  if (S.msHtml !== html) { S.msHtml = html; ms.innerHTML = html; if (bottom) cb.scrollTop = cb.scrollHeight; }
+  if (S.msHtml !== html) { const sep = ms.querySelector('.unsep'); S.msHtml = html; ms.innerHTML = html; if (chatPin) { if (sep) chatPin.stop(), cb.scrollTop = cb.scrollHeight; else chatPin.apply(); } else if (bottom) cb.scrollTop = cb.scrollHeight; }
   bmSync(); return true;
 }
 function renderChat() {
   const ch = S.chats.find(x => x.id === S.view.id); if (!ch) { S.view = null; return render(); }
   const code = codeOf(ch.code_id), list = S.msgs[ch.id] || [], fav = S.favs.has(ch.id), off = chatOff(ch);
+  const unreadN = app.dataset.cv?.startsWith('c|' + ch.id + '|') ? 0 : (S.unread[ch.id] || list.filter(m => m.from_visitor && !m.read_at).length);
   if (S.unread[ch.id]) { delete S.unread[ch.id]; ls.set('sa_unread', S.unread); }
   const markRead = () => { if (!document.hidden && list.some(m => m.from_visitor && !m.read_at)) { const now = new Date().toISOString(); list.forEach(m => { if (m.from_visitor && !m.read_at) m.read_at = now; }); sb.rpc('mark_chat_read', { p_chat: ch.id }).then(() => {}, () => {}); } };
   const key = ['c', ch.id, ch.name, ch.blocked, off, fav, code?.name, ch.code_name, ls.get('sa_tour_chat', 0)].join('|');
@@ -2001,8 +2023,8 @@ function renderChat() {
     ${ch.blocked ? '<div class="notice" style="background:#eee">Has bloqueado a este contacto: no puede escribirte. Desbloquéalo desde ⋮.</div>' : ''}${off ? `<div class="notice">${code ? 'Este código está apagado' : 'El código de este chat se ha borrado'}: el chat está cerrado. Márcalo como favorito ★ para mantenerlo activo.</div>` : ''}
     ${screenTour('chat')}${pcHint()}<div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${ownerMsgs(ch, list)}</div></div>
     ${COMPOSE}`;
-  app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight;
-  app.dataset.cv = key; S.msHtml = ownerMsgs(ch, list); bmSync();
+  app.classList.add('full'); const reopen = app.dataset.cv?.startsWith('c|' + ch.id + '|');
+  app.dataset.cv = key; S.msHtml = ownerMsgs(ch, list); if (!reopen) openChatAt(unreadN); else $('#cb').scrollTop = $('#cb').scrollHeight; bmSync();
   markRead();   // abrir el chat = leer los mensajes del visitante (su boomerang vuelve en verde)
   keepKb(); bindScreenTour('chat');
   $('#oi').onfocus = () => setTimeout(fitVV, 300);
@@ -2090,6 +2112,7 @@ async function startVChat2(id) {
 let vPoll = null;
 async function renderVChat() {
   const v = (S.vchats || []).find(x => x.id === S.view.id); if (!v) { S.view = null; return render(); }
+  const unreadN = app.dataset.cv?.startsWith('v|' + v.id + '|') ? 0 : (S.unread['v' + v.id] || 0);
   if (S.unread['v' + v.id]) { delete S.unread['v' + v.id]; ls.set('sa_unread', S.unread); }
   const list = S.vmsgs?.[v.id] || [];
   const key = ['v', v.id, v.name, v.public_name, v.alive, ls.get('sa_tour_chat', 0)].join('|');
@@ -2099,7 +2122,7 @@ async function renderVChat() {
     ${v.alive ? '' : '<div class="notice">El dueño ha cerrado este chat: no puedes escribir ahora.</div>'}
     ${screenTour('chat')}${pcHint()}<div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${visitorMsgs(v, list)}</div></div>
     ${v.alive ? `${COMPOSE}` : ''}`;
-  app.classList.add('full'); const cb = $('#cb'); cb.scrollTop = cb.scrollHeight; app.dataset.cv = key; S.msHtml = visitorMsgs(v, list); bmSync(); keepKb(); bindScreenTour('chat');
+  app.classList.add('full'); const reopen = app.dataset.cv?.startsWith('v|' + v.id + '|'); app.dataset.cv = key; S.msHtml = visitorMsgs(v, list); if (!reopen) openChatAt(unreadN); else $('#cb').scrollTop = $('#cb').scrollHeight; bmSync(); keepKb(); bindScreenTour('chat');
   if ($('#oi')) $('#oi').onfocus = () => setTimeout(fitVV, 300);
   $('#bk').onclick = () => { clearInterval(vPoll); S.view = null; S.tab = 'chats'; render(); };
   $('#ren').onclick = () => $('#nm').onclick();

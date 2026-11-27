@@ -901,12 +901,17 @@ async function fbList() {
   const rows = data || [];
   const urls = {}; await Promise.all(rows.filter(r => r.audio).map(async r => { const { data: u } = await sb.storage.from('feedback').createSignedUrl(r.audio, 3600); urls[r.id] = u?.signedUrl; }));
   const box = $('#fbl'); if (!box) return;
-  box.innerHTML = rows.length ? rows.map(r => `<div style="border-bottom:1px solid #eee;padding:10px 0;${r.done ? 'opacity:.5' : ''}">
+  // temas (los pone Claude al analizar): votos y % de cada uno, de más a menos
+  const th = {}; rows.forEach(r => { if (r.theme) (th[r.theme] ||= []).push(r); }); const tot = rows.filter(r => r.theme).length;
+  const themes = Object.entries(th).sort((a, b) => b[1].length - a[1].length);
+  const top = themes.length ? `<div style="font-weight:700;margin:4px 0 6px">Temas</div>${themes.map(([t, l]) => { const pc = Math.round(l.length / tot * 100); return `<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(t)}</b><span>${l.length} ${l.length === 1 ? 'voto' : 'votos'} · ${pc} %</span></div><div style="height:8px;border-radius:4px;background:#eee;overflow:hidden;margin:3px 0"><div style="height:100%;width:${pc}%;background:#1aa3d9"></div></div>${[...new Set(l.map(r => r.summary).filter(Boolean))].map(x => `<div style="font-size:13px;color:#555">· ${esc(x)}</div>`).join('')}</div>`; }).join('')}<div style="font-weight:700;margin:12px 0 2px">Todas</div>` : '';
+  box.innerHTML = top + (rows.length ? rows.map(r => `<div style="border-bottom:1px solid #eee;padding:10px 0;${r.done ? 'opacity:.5' : ''}">
       <div style="font-size:13px;color:#555"><b>${esc(r.email || '—')}</b> · ${new Date(r.created_at).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${esc(r.screen || '')}</div>
       ${urls[r.id] ? `<audio controls preload="none" src="${esc(urls[r.id])}" style="width:100%;margin-top:6px"></audio>` : ''}
-      ${r.note ? `<div style="margin-top:6px;white-space:pre-wrap">${esc(r.note)}</div>` : ''}
+      ${r.theme ? `<div style="font-size:12px;margin-top:4px"><span style="background:#e6f5fb;color:#0d6e93;border-radius:6px;padding:2px 6px">${esc(r.theme)}</span> ${esc(r.summary || '')}</div>` : ''}
+      ${r.note ? `<div style="margin-top:6px;white-space:pre-wrap">${esc(r.note)}</div>` : ''}${r.transcript ? `<div style="margin-top:6px;font-size:13px;color:#444;font-style:italic">«${esc(r.transcript)}»</div>` : ''}
       <div style="font-size:11px;color:#999;margin-top:4px">${esc(r.version || '')} · ${esc((r.device || '').replace(/.*\((.*?)\).*/, '$1').slice(0, 60))}</div>
-      <button class="btn light" data-fbd="${r.id}" style="margin-top:6px;padding:6px 10px;width:auto;font-size:13px">${r.done ? '↩️ Marcar pendiente' : '✓ Marcar hecho'}</button></div>`).join('') : '<div style="color:#777">Aún no hay opiniones.</div>';
+      <button class="btn light" data-fbd="${r.id}" style="margin-top:6px;padding:6px 10px;width:auto;font-size:13px">${r.done ? '↩️ Marcar pendiente' : '✓ Marcar hecho'}</button></div>`).join('') : '<div style="color:#777">Aún no hay opiniones.</div>');
   box.querySelectorAll('[data-fbd]').forEach(b => b.onclick = async () => { const r = rows.find(x => x.id === +b.dataset.fbd); await sb.from('feedback').update({ done: !r.done }).eq('id', r.id); fbList(); });
 }
 

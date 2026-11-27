@@ -35,6 +35,10 @@ body{font-family:Inter,system-ui,sans-serif;color:var(--ink);max-width:560px;mar
 .tabs button{flex:1;padding:13px 0;border:0;background:none;font:inherit;font-size:14px;font-weight:500;color:#9a9a9a;border-bottom:4px solid transparent;letter-spacing:.06em;cursor:pointer}
 .tabs button.on{color:#fff}.tabs.tabs4 button{font-size:13px;letter-spacing:.02em}
 .qrbar-ib{flex-direction:column;gap:1px;width:auto!important;min-width:52px;height:auto!important;padding:4px 2px!important}.qrbar-ib small{font-size:10px;color:#9aa0a6;font-weight:500}
+details.blk{border-radius:14px;background:var(--v2card,#1b2023);margin:10px 0;padding:0 14px}details.blk[open]{padding-bottom:12px}
+details.blk>summary{list-style:none;cursor:pointer;padding:14px 0;font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--v2sub,#9aa0a6);display:flex;align-items:center;gap:8px}details.blk>summary::-webkit-details-marker{display:none}
+details.blk>summary::after{content:'';margin-left:auto;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s}details.blk[open]>summary::after{transform:rotate(-135deg)}
+details.blk>summary em{font-style:normal;font-weight:500;letter-spacing:0;color:var(--v2txt,#e8eaed);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}details.blk[open]>summary em{display:none}
 .namebar{flex:none;background:#3a3a3a;color:#fff;text-align:center;font-size:14px;font-weight:500;letter-spacing:.06em;padding:13px 12px 17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tabs .ind{position:absolute;left:0;bottom:0;width:33.3333%;height:4px;background:#33b5e5;transition:transform .28s cubic-bezier(.2,.8,.2,1);pointer-events:none}
 #app.homepg{height:var(--vvh,100dvh);min-height:0;overflow:hidden;flex:none}
@@ -1784,13 +1788,14 @@ async function renderEdit() {
   app.innerHTML = `<div class="bar"><button class="back" id="bk">${IC.back(24)}</button><span class="name" style="font-size:16px;font-family:Inter">${isNew ? 'Nuevo código' : 'Ajustes del código'}</span></div><div class="body pad">
     <div style="margin:0 -16px 8px">${screenTour('edit')}</div>
     <div class="hint"><span style="color:#e8352b;font-weight:700">*</span> Obligatorio</div>
+    <details class="blk" ${isNew ? 'open' : ''}><summary>NOMBRE <em>${esc(c.name || '')}</em></summary>
     <label class="req">Nombre (solo lo ves tú)</label><input id="f1" value="${esc(c.name)}" placeholder="Ej. Coche rojo" maxlength="60">
     <label>Información privada (solo tú)</label><input id="f5" value="${esc(c.private_info)}" placeholder="Ej. matrícula, nº de serie…" maxlength="200">
-    <div class="section">DISEÑO DEL QR</div>
+    </details><details class="blk" ${isNew ? 'open' : ''}><summary>DISEÑO DEL QR</summary>
     ${locked ? '<div class="hint" style="margin:2px 0 8px">Este código viene de una pegatina impresa.</div>' : ''}<div class="dsg">${designsFor(c).map(([k, t]) => `<button type="button" data-dsg="${k}" class="${designOf(c) === k ? 'on' : ''}">${FRAME()}<canvas></canvas>${t}</button>`).join('')}</div>
     <div id="ccol" style="display:${isCar(c) ? 'flex' : 'none'};flex-wrap:wrap;gap:8px;margin:6px 0 4px;align-items:center"><span style="font-size:13px;color:#666;width:100%">Color de la pegatina</span>${CAR_COLORS.map(([k, h, t]) => `<button type="button" data-ccol="${k}" title="${t}" aria-label="${t}" style="width:34px;height:34px;border-radius:50%;background:${h};border:3px solid ${carColor(c)[0] === k ? '#2fc23a' : '#fff'};box-shadow:0 0 0 1px #ccc;cursor:pointer"></button>`).join('')}
       <label style="width:100%;margin-top:6px">Texto de la pegatina <span style="font-weight:400;color:#888">(donde pone «Alert»)</span></label><input id="ctxt" value="${esc(carText(c))}" maxlength="14" placeholder="Alert" style="width:100%"><div class="hint" id="ctxh" style="width:100%;margin:2px 0 0">Unas 8 letras: la letra se hace más pequeña si escribes más.</div></div>
-    <div class="section"><span class="req">MEDIOS DE COMUNICACIÓN</span></div><div class="hint">Elige al menos uno.</div>
+    </details><details class="blk" open><summary><span class="req">MEDIOS DE COMUNICACIÓN</span></summary><div class="hint">Elige al menos uno.</div>
     <label class="chk"><input type="checkbox" id="c0" ${c.ch_info ? 'checked' : ''}> <span style="color:#e8b923">${IC.info(20)}</span> Info <span style="color:#999;font-size:13px">· un texto para quien escanee</span></label>
     <div id="ibox" class="sub" style="display:${c.ch_info ? 'block' : 'none'};margin-left:30px"><div class="hint" style="font-weight:600;color:#555;margin-top:2px">Lo que ve quien escanea</div>
       <label>Nombre público</label><input id="f2" value="${esc(c.public_name)}" placeholder="Ej. Mi coche" maxlength="60">
@@ -1809,7 +1814,7 @@ async function renderEdit() {
       : '<div class="hint" style="margin-left:30px">Disponible en la app Android.</div>'}
     </div>
     <label class="chk"><input type="checkbox" id="c3" ${c.ch_chat || c.ch_call ? 'checked' : ''}> <span style="color:#2fc23a">${IC.chat(20)}</span> Chat</label>
-    <label class="chk sub" style="opacity:.45;pointer-events:none"><input type="checkbox" id="c6" disabled> Chat de grupo <span style="font-size:13px;color:#888">· todos los que escaneen entran en el mismo chat</span> <span style="font-size:11px;font-weight:700;color:#e8b923;border:1px solid #e8b923;border-radius:8px;padding:1px 6px;margin-left:4px">PRÓXIMAMENTE</span></label>
+    <label class="chk sub" style="opacity:.45;pointer-events:none"><input type="checkbox" id="c6" disabled> <span style="flex:1">Chat de grupo <span style="font-size:13px;color:#888">· todos los que escaneen entran en el mismo chat</span></span> <span style="flex:none;font-size:11px;font-weight:700;color:#e8b923;border:1px solid #e8b923;border-radius:8px;padding:1px 6px;margin-left:4px">PRÓXIMAMENTE</span></label>
     <div id="chbox" style="display:${c.ch_chat || c.ch_call ? 'block' : 'none'}"><label class="chk sub"><input type="checkbox" id="c4" ${c.ch_call ? 'checked' : ''}> <span style="color:#2fc23a">${IC.phone(18)}</span> Con llamadas <span style="font-size:13px;color:#888">· también te pueden llamar</span></label>
     <div id="cbox" style="display:${c.ch_call ? 'block' : 'none'};margin:0 0 6px 60px">
       <label class="chk sub" style="margin-left:0"><input type="radio" name="cm" id="cmA" ${c.call_app !== false ? 'checked' : ''}> Por la app · <span style="font-size:13px;color:#888">te llaman sin ver tu número</span></label>
@@ -1819,10 +1824,12 @@ async function renderEdit() {
     <label class="chk"><input type="checkbox" id="c7" ${c.ch_redirect ? 'checked' : ''}> <span style="color:#7e868b">${IC.globe(20)}</span> Redirección web</label>
     <div id="rbox" style="display:${c.ch_redirect ? 'block' : 'none'}"><label class="req">Dirección web</label><input id="f7" type="url" inputmode="url" value="${esc(c.redirect_url)}" placeholder="www.ejemplo.com" maxlength="500">
       <div class="hint">Quien escanee irá directamente a esta web, sin ver los demás medios. Puedes cambiarla cuando quieras, aunque el código ya esté impreso.</div></div>
+    </details><details class="blk"><summary>AVANZADO</summary>
     ${isNew ? '' : `<div class="section">USUARIOS VINCULADOS</div><div style="font-size:13px;color:#777">También reciben las alertas y los chats de este código.</div>
       <div>${mem.map(m => `<span class="pill">${IC.avatar(16, true)} ${esc(m.display_name || 'usuario')}<button class="back" style="font-size:13px" data-rm="${m.user_id}">✕</button></span>`).join('') || '<div style="font-size:13px;color:#999;margin:6px 0">Nadie vinculado.</div>'}</div>
       <div style="display:flex;gap:6px;align-items:center"><input id="f6" type="email" placeholder="Email de otro usuario de Scan2Com" style="margin:6px 0"><button class="btn sm light" id="addm">Vincular</button></div>`}
     <label class="chk" style="margin-top:12px"><input type="checkbox" id="ht" ${c.style?.hide_trace ? 'checked' : ''}> Ocultar trazabilidad <span style="font-size:12px;color:#888">· quien escanee no verá el número de este código en sus chats (verá «Código con trazabilidad oculta»). Solo afecta a los chats nuevos: los ya creados se quedan como estaban.</span></label>
+    </details>
     ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}
     <button class="btn" style="margin-top:14px" id="sv" ${S.busy ? 'disabled' : ''}>Guardar</button>
     ${isNew ? '' : `<button class="btn light" style="margin-top:10px;color:var(--red)" id="del">Borrar código</button>`}</div>`;
@@ -1882,6 +1889,7 @@ async function renderEdit() {
     if ($('#c7').checked && !urlOk) { $('#f7').classList.add('bad'); miss.push('una dirección web válida (ej. www.ejemplo.com)'); }
     if (NATIVE && $('#c8')?.checked && $('#c2').checked && isCarD(selDsg) && !$('#f8').value) { $('#f8').classList.add('bad'); miss.push('el Bluetooth del coche'); }
     if ($('#c4').checked && $('#cmT').checked && !$('#f4').value.trim()) { $('#f4').classList.add('bad'); miss.push('el teléfono (has activado Llamada)'); }
+    if (miss.length) app.querySelectorAll('details.blk').forEach(d => { if (d.querySelector('.bad')) d.open = true; });
     if (miss.length) { const e = app.querySelector('.err') || Object.assign(document.createElement('div'), { className: 'err' }); e.textContent = 'Falta ' + miss.join(', ') + '.'; $('#sv').before(e); (app.querySelector('.bad') || $('#sv')).scrollIntoView({ block: 'center' }); return; }
     const style = { ...(c.style || {}), design: selDsg, car: isCarD(selDsg), car_color: selCol, car_text: selTxt === 'Alert' ? undefined : selTxt, hide_trace: !!$('#ht')?.checked }; if (c.style?.car || c.style?.car_code) style.car_code = true;
     if (locked && unlocked) style.print_override = true;  // confirmado: el diseño de la pegatina impresa se puede cambiar

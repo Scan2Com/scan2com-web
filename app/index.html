@@ -1783,7 +1783,7 @@ async function renderEdit() {
       : '<div class="hint" style="margin-left:30px">Disponible en la app Android.</div>'}
     </div>
     <label class="chk"><input type="checkbox" id="c3" ${c.ch_chat || c.ch_call ? 'checked' : ''}> <span style="color:#2fc23a">${IC.chat(20)}</span> Chat</label>
-    <label class="chk sub"><input type="checkbox" id="c6" ${c.group_chat ? 'checked' : ''}> En grupo con los usuarios vinculados</label>
+    <label class="chk sub" style="opacity:.45;pointer-events:none"><input type="checkbox" id="c6" disabled> Chat de grupo <span style="font-size:13px;color:#888">· todos los que escaneen entran en el mismo chat</span> <span style="font-size:11px;font-weight:700;color:#e8b923;border:1px solid #e8b923;border-radius:8px;padding:1px 6px;margin-left:4px">PRÓXIMAMENTE</span></label>
     <div id="chbox" style="display:${c.ch_chat || c.ch_call ? 'block' : 'none'}"><label class="chk sub"><input type="checkbox" id="c4" ${c.ch_call ? 'checked' : ''}> <span style="color:#2fc23a">${IC.phone(18)}</span> Con llamadas <span style="font-size:13px;color:#888">· también te pueden llamar</span></label>
     <div id="cbox" style="display:${c.ch_call ? 'block' : 'none'};margin:0 0 6px 60px">
       <label class="chk sub" style="margin-left:0"><input type="radio" name="cm" id="cmA" ${c.call_app !== false ? 'checked' : ''}> Por la app · <span style="font-size:13px;color:#888">te llaman sin ver tu número</span></label>
@@ -1860,7 +1860,7 @@ async function renderEdit() {
     const style = { ...(c.style || {}), design: selDsg, car: isCarD(selDsg), car_color: selCol, car_text: selTxt === 'Alert' ? undefined : selTxt, hide_trace: !!$('#ht')?.checked }; if (c.style?.car || c.style?.car_code) style.car_code = true;
     if (locked && unlocked) style.print_override = true;  // confirmado: el diseño de la pegatina impresa se puede cambiar
     const row = { type: selType, style, name, private_info: $('#f5').value.trim() || null, public_name: pub || null, public_desc: $('#f3').value.trim() || null,
-      ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: $('#c6').checked, ch_call: $('#c3').checked && $('#c4').checked, call_app: !$('#cmT').checked, ch_redirect: $('#c7').checked, redirect_url: urlOk ? url : null, phone: $('#f4').value.trim() || null };
+      ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: !!c.group_chat, ch_call: $('#c3').checked && $('#c4').checked, call_app: !$('#cmT').checked, ch_redirect: $('#c7').checked, redirect_url: urlOk ? url : null, phone: $('#f4').value.trim() || null };
     if (NATIVE && $('#c8')) { const o = $('#f8').selectedOptions[0]; Object.assign(row, { bt_auto: $('#c8').checked && $('#c2').checked && isCarD(selDsg), bt_addr: $('#f8').value || null, bt_name: o && o.value ? o.dataset.name : null, bt_drive_off: $('#c9').checked }); }
     S.busy = true; S.err = ''; render();
     const r = isNew ? await sb.from('codes').insert({ ...row, owner_id: S.user.id }).select().single() : await sb.from('codes').update(row).eq('id', c.id).select().single();

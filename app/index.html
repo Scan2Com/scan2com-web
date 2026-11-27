@@ -1661,10 +1661,10 @@ function renderHome() {
   if (tab === 'codes') {
     const codes = S.codes.filter(c => match(c.name, c.public_name, c.private_info));
     // solo iconos con el color de su medio (mantener pulsado o pasar el ratón = nombre)
-    const medios = c => [(c.ch_alert || c.auto_alert) && ['Alert', '#e8352b', IC.alert(16)], (c.ch_chat || c.ch_call) && [c.ch_call ? 'Chat y llamadas' : 'Chat', '#2fc23a', IC.chat(16) + (c.ch_call ? '<em class="mcp">' + IC.phone(10) + '</em>' : '')], c.ch_mail && ['Mail', '#1f86e0', IC.mail(16)], c.ch_info && ['Info', '#e8b923', IC.info(16)], c.ch_redirect && ['Web', '#8d979b', IC.globe(16)]].filter(Boolean);
+    const medios = c => [(c.ch_alert || c.auto_alert) && ['Alert', '#e8352b', IC.alert(16)], (c.ch_chat || c.ch_call) && [c.ch_call ? 'Chat y llamadas' : 'Chat', '#2fc23a', IC.chat(16) + (c.ch_call ? '<em class="mcp">' + IC.phone(10) + '</em>' : '')], c.ch_mail && ['Mail', '#1f86e0', IC.mail(16)], c.ch_info && ['Info', '#e8b923', IC.info(16)], c.ch_redirect && ['Web', '#e0249a', IC.globe(16)]].filter(Boolean);
     body = codes.length ? codes.map(c => `<div class="item ${c.is_on ? '' : 'off'}" data-code="${c.id}">
         <div class="qrt" data-qr="${c.id}" title="Ver código">${FRAME(codeCols(c))}<div class="q">${qrMini(c)}</div></div>
-        <div class="grow" style="min-width:0"><div class="t">${esc(c.name || c.public_name || 'Sin nombre')}</div>${c.private_info || c.owner_id !== S.user.id ? `<div class="s">${esc(c.private_info || '')}${c.owner_id !== S.user.id ? ' · compartido contigo' : ''}</div>` : ''}<div class="chips mic">${medios(c).map(([x, col, ic]) => `<span class="mi${c.is_on ? '' : ' moff'}" style="--mc:${col}" title="${x}" data-mt="${x}">${ic}</span>`).join('') || '<span>Sin medios</span>'}</div></div>
+        <div class="grow" style="min-width:0"><div class="t">${esc(c.name || c.public_name || 'Sin nombre')}</div>${c.private_info || c.owner_id !== S.user.id ? `<div class="s">${esc(c.private_info || '')}${c.owner_id !== S.user.id ? ' · compartido contigo' : ''}</div>` : ''}<div class="chips mic">${medios(c).map(([x, col, ic]) => `<span class="mi${c.is_on && !(c.ch_redirect && c.redirect_url && x !== 'Web') ? '' : ' moff'}" style="--mc:${col}" title="${x}" data-mt="${x}">${ic}</span>`).join('') || '<span>Sin medios</span>'}</div></div>
         ${c.owner_id === S.user.id ? `<button class="ib set2" data-edit="${c.id}" title="Ajustes">${IC.sliders(22)}</button>` : ''}<button class="sw2 ${c.is_on ? '' : 'off'}" data-pw="${c.id}" title="Encender / apagar"></button></div>`).join('')
       : `<div class="empty">Aún no tienes códigos.<br>Pulsa <b>+</b> para crear uno o para vincular un pack de pegatinas.</div>`;
     const nb = NATIVE && S.av ? (avMissing() && avRelevant() ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Completa la configuración de avisos</b><br>Sin ella, no te enterarás de alertas ni mensajes con la app cerrada.</div><span class="nbtn">Configurar</span></div>` : '') : !notifOn() && (S.codes.some(c => c.is_on && (c.ch_alert || c.auto_alert || c.ch_chat || c.ch_mail || c.ch_call)) || (S.vchats || []).length) ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Activa las notificaciones</b><br>Sin ellas, no te enterarás de alertas ni mensajes con la app cerrada.</div><span class="nbtn">Activar</span></div>` : '';
@@ -1802,9 +1802,9 @@ async function renderEdit() {
       <label>Información pública</label><textarea id="f3" rows="3" placeholder="Ej. Si mi coche molesta, avísame con Alert. ¡Gracias!" maxlength="1000">${esc(c.public_desc)}</textarea>
       <div class="hint">Es lo primero que verá quien escanee el código.</div></div>
     <label class="chk"><input type="checkbox" id="c1" ${c.ch_mail ? 'checked' : ''}> <span style="color:#1f86e0">${IC.mail(20)}</span> Mail</label>
-    <label class="chk"><input type="checkbox" id="c2" ${c.ch_alert || isCar(c) ? 'checked' : ''} ${isCar(c) ? 'disabled' : ''}> <span style="color:#e8352b">${IC.alert(20)}</span> Alert <span id="c2a" style="font-size:13px;color:#888;display:${designOf(c) === 'car' ? 'inline' : 'none'}">(siempre activo)</span></label>
+    <label class="chk"><input type="checkbox" id="c2" ${c.ch_alert || c.bt_auto ? 'checked' : ''} ${c.bt_auto ? 'disabled' : ''}> <span style="color:#e8352b">${IC.alert(20)}</span> Alert <span id="c2a" style="font-size:13px;color:#888;display:${c.bt_auto ? 'inline' : 'none'}">(siempre activo: coche)</span></label>
     <label class="chk sub"><input type="checkbox" id="c5" ${c.auto_alert ? 'checked' : ''}> Sonar en cuanto quien escanea abre la web</label>
-    <div id="btbox" class="sub" style="display:${c.ch_alert && isCar(c) ? 'block' : 'none'}">
+    <div id="btbox" class="sub" style="display:${c.ch_alert || c.bt_auto ? 'block' : 'none'}">
       <label class="chk" style="margin-left:0"><input type="checkbox" id="c8" ${c.bt_auto ? 'checked' : ''} ${NATIVE ? '' : 'disabled'}> <span style="color:#555">${IC.lock(16)}</span> Activar al bajar del coche</label>
       ${NATIVE ? `<div id="btcfg" style="display:${c.bt_auto ? 'block' : 'none'};margin-left:30px">
         <label class="req">Bluetooth del coche</label><select id="f8">${btOptions(c.bt_addr, c.bt_name)}</select>
@@ -1823,7 +1823,7 @@ async function renderEdit() {
     </div>
     <label class="chk"><input type="checkbox" id="c7" ${c.ch_redirect ? 'checked' : ''}> <span style="color:#7e868b">${IC.globe(20)}</span> Redirección web</label>
     <div id="rbox" style="display:${c.ch_redirect ? 'block' : 'none'}"><label class="req">Dirección web</label><input id="f7" type="url" inputmode="url" value="${esc(c.redirect_url)}" placeholder="www.ejemplo.com" maxlength="500">
-      <div class="hint">Quien escanee irá directamente a esta web, sin ver los demás medios. Puedes cambiarla cuando quieras, aunque el código ya esté impreso.</div></div>
+      <div class="hint" id="rdw" style="color:#d63cc8;font-weight:600;display:none">Los demás medios quedan congelados mientras uses la redirección: se mantienen como los dejaste y vuelven al quitarla.</div><div class="hint">Quien escanee irá directamente a esta web, sin ver los demás medios. Puedes cambiarla cuando quieras, aunque el código ya esté impreso.</div></div>
     </details><details class="blk"><summary>AVANZADO</summary>
     ${isNew ? '' : `<div class="section">USUARIOS VINCULADOS</div><div style="font-size:13px;color:#777">También reciben las alertas y los chats de este código.</div>
       <div>${mem.map(m => `<span class="pill">${IC.avatar(16, true)} ${esc(m.display_name || 'usuario')}<button class="back" style="font-size:13px" data-rm="${m.user_id}">✕</button></span>`).join('') || '<div style="font-size:13px;color:#999;margin:6px 0">Nadie vinculado.</div>'}</div>
@@ -1863,15 +1863,21 @@ async function renderEdit() {
   app.querySelectorAll('[data-ccol]').forEach(b => b.onclick = () => askUnlock(() => { selCol = b.dataset.ccol; app.querySelectorAll('[data-ccol]').forEach(x => x.style.borderColor = x === b ? '#2fc23a' : '#fff'); carPrev(); }));
   // "Activar al bajar del coche" solo con Alerta y diseño pegatina de coche
   // con la pegatina de coche, Alert queda siempre activo
-  const updBt = () => { const car = isCarD(selDsg), a = $('#c2'); if (a) { if (car) a.checked = true; a.disabled = car; } if ($('#c2a')) $('#c2a').style.display = car ? 'inline' : 'none'; if ($('#btbox')) $('#btbox').style.display = a?.checked && car ? 'block' : 'none'; };
+  // Alert «siempre activo» depende de marcar el código como coche (Activar al bajar del coche), no del diseño de la pegatina
+  const updBt = () => { const car = !!$('#c8')?.checked, a = $('#c2'); if (a) { if (car) a.checked = true; a.disabled = car; } if ($('#c2a')) $('#c2a').style.display = car ? 'inline' : 'none'; if ($('#btbox')) $('#btbox').style.display = a?.checked ? 'block' : 'none'; };
   if ($('#c2')) $('#c2').addEventListener('change', updBt);
   if (NATIVE && $('#c8')) {
+    $('#c8').addEventListener('change', updBt);
     $('#c8').onchange = async () => { $('#btcfg').style.display = $('#c8').checked ? 'block' : 'none'; if ($('#c8').checked) { await autoPermStep(true); loadBonded(); } };
     if ($('#c8').checked) { refreshAutoPerm(); loadBonded(); }
   }
   ['c2', 'c5'].forEach(i => { const el = $('#' + i); if (el) el.addEventListener('change', () => { if (el.checked) askNotif(true); }); });
   $('#c0').onchange = () => { $('#ibox').style.display = $('#c0').checked ? 'block' : 'none'; if ($('#c0').checked) $('#f2').focus(); };   // primero el nombre público
-  $('#c7').onchange = () => { $('#rbox').style.display = $('#c7').checked ? 'block' : 'none'; if ($('#c7').checked) $('#f7').focus(); };
+  // redirección: los demás medios se quedan como estén pero congelados mientras se use (quien escanea va directo a la web)
+  const updRd = () => { const on = $('#c7').checked; $('#rbox').style.display = on ? 'block' : 'none'; app.querySelectorAll('#c0,#c1,#c2,#c3,#c4,#c5,#c8').forEach(x => { const l = x.closest('label'); if (l) { l.style.opacity = on ? .4 : ''; l.style.pointerEvents = on ? 'none' : ''; } });
+    ['ibox', 'btbox', 'chbox', 'cbox', 'pbox'].forEach(k => { const e = $('#' + k); if (e) e.style.opacity = on ? .4 : ''; }); if ($('#rdw')) $('#rdw').style.display = on ? 'block' : 'none'; };
+  $('#c7').onchange = () => { updRd(); if ($('#c7').checked) { toast('Mientras uses la redirección, los demás medios quedan congelados (se guardan como están).'); $('#f7').focus(); } };
+  updRd();
   const callUi = focus => { const on = $('#c4').checked, tel = on && $('#cmT').checked; $('#cbox').style.display = on ? 'block' : 'none'; $('#pbox').style.display = tel ? 'block' : 'none'; if (tel && focus) $('#f4').focus(); };
   $('#c4').onchange = () => callUi(true); $('#c3').addEventListener('change', () => { const on = $('#c3').checked; $('#chbox').style.display = on ? 'block' : 'none'; if (!on) { $('#c4').checked = false; callUi(); } }); $('#cmA').onchange = $('#cmT').onchange = () => callUi(true);
   app.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { await sb.from('code_members').delete().eq('code_id', c.id).eq('user_id', b.dataset.rm); await loadMembers(c.id); });
@@ -1887,7 +1893,7 @@ async function renderEdit() {
     if (!name) { $('#f1').classList.add('bad'); miss.push('el nombre'); }
     if (!chans) miss.push('al menos un medio de comunicación');
     if ($('#c7').checked && !urlOk) { $('#f7').classList.add('bad'); miss.push('una dirección web válida (ej. www.ejemplo.com)'); }
-    if (NATIVE && $('#c8')?.checked && $('#c2').checked && isCarD(selDsg) && !$('#f8').value) { $('#f8').classList.add('bad'); miss.push('el Bluetooth del coche'); }
+    if (NATIVE && $('#c8')?.checked && $('#c2').checked && !$('#f8').value) { $('#f8').classList.add('bad'); miss.push('el Bluetooth del coche'); }
     if ($('#c4').checked && $('#cmT').checked && !$('#f4').value.trim()) { $('#f4').classList.add('bad'); miss.push('el teléfono (has activado Llamada)'); }
     if (miss.length) app.querySelectorAll('details.blk').forEach(d => { if (d.querySelector('.bad')) d.open = true; });
     if (miss.length) { const e = app.querySelector('.err') || Object.assign(document.createElement('div'), { className: 'err' }); e.textContent = 'Falta ' + miss.join(', ') + '.'; $('#sv').before(e); (app.querySelector('.bad') || $('#sv')).scrollIntoView({ block: 'center' }); return; }
@@ -1895,7 +1901,7 @@ async function renderEdit() {
     if (locked && unlocked) style.print_override = true;  // confirmado: el diseño de la pegatina impresa se puede cambiar
     const row = { type: selType, style, name, private_info: $('#f5').value.trim() || null, public_name: pub || null, public_desc: $('#f3').value.trim() || null,
       ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: !!c.group_chat, ch_call: $('#c3').checked && $('#c4').checked, call_app: !$('#cmT').checked, ch_redirect: $('#c7').checked, redirect_url: urlOk ? url : null, phone: $('#f4').value.trim() || null };
-    if (NATIVE && $('#c8')) { const o = $('#f8').selectedOptions[0]; Object.assign(row, { bt_auto: $('#c8').checked && $('#c2').checked && isCarD(selDsg), bt_addr: $('#f8').value || null, bt_name: o && o.value ? o.dataset.name : null, bt_drive_off: $('#c9').checked }); }
+    if (NATIVE && $('#c8')) { const o = $('#f8').selectedOptions[0]; Object.assign(row, { bt_auto: $('#c8').checked && $('#c2').checked, bt_addr: $('#f8').value || null, bt_name: o && o.value ? o.dataset.name : null, bt_drive_off: $('#c9').checked }); }
     S.busy = true; S.err = ''; render();
     const r = isNew ? await sb.from('codes').insert({ ...row, owner_id: S.user.id }).select().single() : await sb.from('codes').update(row).eq('id', c.id).select().single();
     S.busy = false;
@@ -2054,14 +2060,14 @@ async function showScannedQR(id, name) {
 function renderQR() {
   const c = codeOf(S.view.id); if (!c) { S.view = null; return render(); }
   const url = `${SITE}/s/${c.id}`, own = c.owner_id === S.user.id;
-  const chans = [c.ch_info && MCOL.info + IC.info(14) + ' Info', c.ch_mail && MCOL.mail + IC.mail(14) + ' Mail', c.ch_alert && MCOL.alert + (IC.alert(14) + ' Alert' + (isCar(c) ? ' (siempre activo)' : '') + (c.auto_alert ? ' (al abrir)' : '')), (c.ch_chat || c.ch_call) && MCOL.chat + IC.chat(14) + (c.ch_call ? ' Chat y ' + IC.phone(14) + ' llamadas' : ' Chat'), c.ch_redirect && c.redirect_url && MCOL.web + IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean).map(x => x.split('|'));
+  const chans = [c.ch_info && MCOL.info + IC.info(14) + ' Info', c.ch_mail && MCOL.mail + IC.mail(14) + ' Mail', c.ch_alert && MCOL.alert + (IC.alert(14) + ' Alert' + (c.bt_auto ? ' (siempre activo)' : '') + (c.auto_alert ? ' (al abrir)' : '')), (c.ch_chat || c.ch_call) && MCOL.chat + IC.chat(14) + (c.ch_call ? ' Chat y ' + IC.phone(14) + ' llamadas' : ' Chat'), c.ch_redirect && c.redirect_url && MCOL.web + IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean).map(x => x.split('|'));
   const nChats = S.chats.filter(x => x.code_id === c.id).length;
   app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes del código">${IC.sliders(24)}</button>` : ''}${isCar(c) ? `<button class="ib pdfb" id="pdf" title="PDF para imprimir (4 pegatinas, tamaño real)">${IC.pdf(22)}PDF</button>` : ''}</div>
     <div class="namebar">${esc(c.name || c.public_name || 'Código')}${c.private_info ? `<div style="font-size:12.5px;font-weight:400;letter-spacing:0;color:#b9bec3;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${IC.lock(11)} ${esc(c.private_info)}</div>` : ''}</div>
     <div class="body"><div class="qrbox"><div class="qrfr" id="qrfr">${FRAME(codeCols(c))}<canvas id="cv"></canvas>${c.is_on ? '<span class="qlas"></span>' : ''}</div><div class="link">${url}</div>
       ${c.is_on ? '' : '<div style="margin-top:6px;font-size:14px;font-weight:600;color:#e8352b">Código apagado: nadie nuevo puede entrar</div>'}</div>
       <div class="pad" style="padding-top:4px">
-        ${own && isCar(c) && c.bt_auto && !c.bt_addr ? `<button class="btn" id="btset" style="margin-bottom:10px;background:#e8352b">${IC.lock(20)}${NATIVE ? 'Elige el Bluetooth de tu coche' : 'Instala la app Android para activarlo al bajar del coche'}</button>` : ''}
+        ${own && c.bt_auto && !c.bt_addr ? `<button class="btn" id="btset" style="margin-bottom:10px;background:#e8352b">${IC.lock(20)}${NATIVE ? 'Elige el Bluetooth de tu coche' : 'Instala la app Android para activarlo al bajar del coche'}</button>` : ''}
         <button class="btn teal" id="op">${IC.eye(20)}Ver lo que ve quien escanea</button>
         <div style="margin:10px -16px 0">${screenTour('qr')}</div>
         <div class="section">LO QUE VE QUIEN ESCANEA</div>
@@ -2449,8 +2455,8 @@ function qrMini(c) { const url = SITE + '/s/' + c.id; if (QRMINI[url]) return QR
     return QRMINI[url] = '<svg viewBox="-1 -1 ' + (n + 2) + ' ' + (n + 2) + '" width="100%" height="100%" shape-rendering="crispEdges"><rect x="-1" y="-1" width="' + (n + 2) + '" height="' + (n + 2) + '" fill="#fff"/><path d="' + r + '" fill="#111"/></svg>'; } catch (e) { return ''; } }
 // colores de los boomerangs de un código según sus medios (decisión de Luis): rojo Alert, verde Chat (con o sin llamadas), amarillo Info, azul Mail; gris si está apagado
 // color de cada medio (etiquetas y boomerangs): rojo Alert, verde Chat y llamadas, amarillo Info, azul Mail; web en gris
-const MCOL = { alert: '#e8352b|', chat: '#2fc23a|', call: '#2fc23a|', mail: '#1f86e0|', info: '#e8b923|', web: '#8d979b|' };
-function codeCols(c) { const g = '#8d979b'; if (!c.is_on) return [g, g, g, g];
+const MCOL = { alert: '#e8352b|', chat: '#2fc23a|', call: '#2fc23a|', mail: '#1f86e0|', info: '#e8b923|', web: '#e0249a|' };
+function codeCols(c) { const g = '#8d979b'; if (!c.is_on) return [g, g, g, g]; if (c.ch_redirect && c.redirect_url) return ['#e0249a', '#e0249a', '#e0249a', '#e0249a'];
   return [c.ch_alert || c.auto_alert ? '#e8352b' : g, c.ch_chat || c.ch_call ? '#2fc23a' : g, c.ch_info ? '#e8b923' : g, c.ch_mail ? '#1f86e0' : g]; }
 
 /* ---------- chat ---------- */

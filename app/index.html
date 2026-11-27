@@ -1749,7 +1749,7 @@ function accountMenu() {
     <button class="btn light" id="sp" style="margin-bottom:8px">${IC.lock(20)}Lugares seguros (${(S.places || []).length})</button>
     ${S.fbView ? `<button class="btn light" id="fbl0" style="margin-bottom:8px">🎙️ Opiniones de la beta</button>` : ''}
     <button class="btn light" id="zn" style="margin-bottom:8px">${IC.alert(20)}Avisos de emergencia en tu zona: <b style="margin-left:4px;color:${S.zone ? '#1a9c16' : '#999'}">${S.zone ? (S.av && (S.av.loc === false || S.av.locOn === false) ? 'falta la ubicación' : 'activados') : 'desactivados'}</b></button>
-    <button class="btn light" id="how" style="margin-bottom:8px">${IC.play(20)}Cómo funciona</button>
+
     <button class="btn light" id="rh" style="margin-bottom:8px">${IC.play(20)}Ayudas de cada pantalla</button>
     ${NATIVE ? (S.ver?.old ? `<a class="btn red" href="${APK_URL}" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.refresh(20)}Actualizar a la última versión<div style="font-size:12px;font-weight:400;opacity:.85">${fmtD(S.ver.apk?.date)}</div></a>` : `<button class="btn light" id="ver" style="margin-bottom:8px">${IC.refresh(20)}${S.ver?.ok ? 'Última versión instalada' : 'Comprobar actualización'}${S.ver?.last ? `<div style="font-size:12px;font-weight:400;color:#777">${fmtD(S.ver.last)}</div>` : ''}</button>`) : ''}
     ${/android/i.test(navigator.userAgent) && !NATIVE ? `<a class="btn red" href="/app/scan2com.apk" download style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.alert(20)}Descargar app Android (sirena a pantalla completa)</a>` : ''}
@@ -1763,7 +1763,7 @@ function accountMenu() {
   if ($('#ver')) $('#ver').onclick = async () => { $('#overlay').innerHTML = ''; await checkVersion(true); };
   $('#rh').onclick = helpsMenu;
   if ($('#fbl0')) $('#fbl0').onclick = fbList;
-  $('#how').onclick = () => { $('#overlay').innerHTML = ''; S.tourForce = true; S.tab = 'codes'; S.view = null; render(); setTimeout(playTour, 100); };
+  if ($('#how')) $('#how').onclick = () => { $('#overlay').innerHTML = ''; S.tourForce = true; S.tab = 'codes'; S.view = null; render(); setTimeout(playTour, 100); };
   $('#lo').onclick = async () => { await pushOff(); await sb.auth.signOut(); location.reload(); };
   $('#nt').onclick = async () => { $('#overlay').innerHTML = ''; if (NATIVE && S.av) return avOpen(true); if (notifOn()) return toast('Las notificaciones ya están activadas en este móvil.'); await enablePush(true); };
   $('#ins').onclick = () => { $('#overlay').innerHTML = ''; toast('En Chrome (Android): menú ⋮ → “Añadir a pantalla de inicio”. En iPhone (Safari): Compartir → “Añadir a pantalla de inicio”.'); };
@@ -1803,7 +1803,7 @@ async function renderEdit() {
       <div class="hint">Es lo primero que verá quien escanee el código.</div></div>
     <label class="chk"><input type="checkbox" id="c1" ${c.ch_mail ? 'checked' : ''}> <span style="color:#1f86e0">${IC.mail(20)}</span> Mail</label>
     <label class="chk"><input type="checkbox" id="c2" ${c.ch_alert || isCar(c) ? 'checked' : ''} ${isCar(c) ? 'disabled' : ''}> <span style="color:#e8352b">${IC.alert(20)}</span> Alert <span id="c2a" style="font-size:13px;color:#888;display:${designOf(c) === 'car' ? 'inline' : 'none'}">(siempre activo)</span></label>
-    <label class="chk sub"><input type="checkbox" id="c5" ${c.auto_alert ? 'checked' : ''}> Sonar solo con abrir la web</label>
+    <label class="chk sub"><input type="checkbox" id="c5" ${c.auto_alert ? 'checked' : ''}> Sonar en cuanto quien escanea abre la web</label>
     <div id="btbox" class="sub" style="display:${c.ch_alert && isCar(c) ? 'block' : 'none'}">
       <label class="chk" style="margin-left:0"><input type="checkbox" id="c8" ${c.bt_auto ? 'checked' : ''} ${NATIVE ? '' : 'disabled'}> <span style="color:#555">${IC.lock(16)}</span> Activar al bajar del coche</label>
       ${NATIVE ? `<div id="btcfg" style="display:${c.bt_auto ? 'block' : 'none'};margin-left:30px">

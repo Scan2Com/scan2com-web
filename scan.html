@@ -78,6 +78,22 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 .wbox button{border:0;background:none;font-size:26px;width:44px;height:44px;border-radius:50%;cursor:pointer}.wbox button.on{background:#eef}.wbox .wr{width:auto;font-size:15px;padding:0 12px;border-radius:14px;background:#f1f3f2}
 .wrp{display:flex;align-items:center;gap:8px;margin-bottom:6px}.wrp .quote{flex:1;margin:0}.wrp button{border:0;background:none;font-size:18px;cursor:pointer}
 .gbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 12px;font-size:13px;background:rgba(127,127,127,.12)}.gbar button{margin-left:auto;border:1px solid currentColor;background:none;color:inherit;border-radius:12px;padding:3px 10px;font-size:12px}.gwho{font-size:11.5px;font-weight:700;margin-bottom:2px}
+.v2bg{}
+/* V2 (27-11-2026): igual que la app — fondo grafito, tarjetas, marco de 4 boomerangs con los colores de los medios, iconos de color */
+body{background:#121517;color:#e8eaed}
+.brand{color:#e8eaed;font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:15px;letter-spacing:.01em}.brand img{border-radius:6px}
+.card{background:#1b2023;color:#e8eaed;border-radius:18px;position:relative;margin:10px 8px}
+.card h1{font-weight:700;letter-spacing:-.01em}.card p{color:#b9bec3}
+.bfr{position:absolute;inset:-7px;pointer-events:none}.bfr i{position:absolute;width:22px;height:22px;display:block}.bfr i svg{width:100%;height:100%;display:block}
+.bfr .tl{left:0;top:0}.bfr .tr{right:0;top:0;transform:scaleX(-1)}.bfr .bl{left:0;bottom:0;transform:scaleY(-1)}.bfr .br{right:0;bottom:0;transform:scale(-1,-1)}
+.ws{background:#1b2023;border:1.5px solid #2a3035}.ws input{color:#e8eaed}.ws input::placeholder{color:#7d8590}
+.status{color:#9aa0a6}
+.act{background:#1b2023!important;border:1.5px solid color-mix(in srgb,var(--ac) 45%,transparent);color:var(--ac)!important;box-shadow:none!important}
+.act svg{color:var(--ac);fill:currentColor}
+.mail{--ac:#1f86e0}.alert{--ac:#e8352b}.chat,.call{--ac:#2fc23a}
+.act.call{height:56px;flex-direction:row;font-size:16px;background:color-mix(in srgb,#2fc23a 14%,#1b2023)!important}
+.inst{background:#1b2023!important;color:#e8eaed!important;border:1.5px solid color-mix(in srgb,#2fc23a 45%,transparent);box-shadow:none!important}.inst small{color:#9aa0a6}
+.hint,.note{color:#9aa0a6}
 </style>
 </head>
 <body>
@@ -278,6 +294,10 @@ async function policeAlert() {
   else { status = { not_eligible: 'Este código no es de coche ni de Alert.', rate_limited: 'Demasiados avisos seguidos. Espera unos minutos.' }[data?.error] || 'No se ha podido enviar el aviso.'; statusErr = true; }
   render();
 }
+const BMP2 = 'M53.7 0.0C51.9 0.2 47.7 0.5 44.7 0.9C41.7 1.3 38.7 1.7 35.7 2.3C32.7 3.0 29.7 3.7 26.7 4.8C23.7 6.0 20.6 6.9 17.7 9.0C14.9 11.1 11.6 14.4 9.4 17.3C7.3 20.2 6.2 23.3 5.1 26.3C4.0 29.3 3.4 32.3 2.8 35.3C2.1 38.2 1.6 41.2 1.2 44.2C0.7 47.2 0.4 50.2 0.2 53.2C0.0 56.2 0.0 59.2 0.0 62.2C-0.0 65.2 0.0 68.2 0.0 71.2C0.0 74.2 -0.0 77.2 0.0 80.2C0.0 83.2 0.0 86.2 0.2 89.2C0.4 92.2 -0.3 97.1 1.2 98.2C2.6 99.2 7.4 97.4 9.2 95.4C11.1 93.4 11.6 89.4 12.2 86.4C12.8 83.4 12.6 80.4 12.9 77.4C13.2 74.4 13.5 71.4 13.8 68.4C14.2 65.4 14.5 62.4 15.0 59.4C15.4 56.5 15.9 53.5 16.6 50.5C17.2 47.5 17.9 44.5 18.9 41.5C19.9 38.5 20.5 35.4 22.4 32.5C24.2 29.6 27.4 26.2 30.2 24.0C33.0 21.8 36.2 20.5 39.2 19.4C42.2 18.2 45.2 17.7 48.2 17.1C51.2 16.4 54.1 15.9 57.1 15.4C60.1 14.9 63.1 14.4 66.1 14.1C69.1 13.7 72.1 13.4 75.1 13.1C78.1 12.8 81.1 12.7 84.1 12.2C87.1 11.8 90.5 12.0 93.1 10.4C95.7 8.8 100.1 4.2 99.8 2.5C99.5 0.9 94.2 0.8 91.2 0.5C88.3 0.1 85.3 0.3 82.3 0.2C79.3 0.2 76.3 0.0 73.3 0.0C70.3 -0.0 67.3 0.0 64.3 0.0C61.3 0.0 57.1 0.0 55.3 0.0C53.5 0.0 55.5 -0.2 53.7 0.0Z';
+const BMS = '<svg viewBox="-2 -2 104 104"><path d="' + BMP2 + '" fill="currentColor"/></svg>';
+const FRAMEW = cols => '<span class="bfr">' + ['tl', 'tr', 'bl', 'br'].map((k, i) => '<i class="' + k + '" style="color:' + cols[i] + '">' + BMS + '</i>').join('') + '</span>';
+const codeColsW = c => { const g = '#8d979b', ch = c.channels || {}; if (c.status === 'off') return [g, g, g, g]; if (c.group) return ['#2fc23a', '#2fc23a', '#2fc23a', '#2fc23a']; return [ch.alert || c.auto_alert ? '#e8352b' : g, ch.chat || ch.call ? '#2fc23a' : g, c.public_desc ? '#e8b923' : g, ch.mail ? '#1f86e0' : g]; };
 const LOGO = `<img src="/app/logo.png" width="28" height="28" alt="Scan2Com">`;
 const I = {
   mail: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z" opacity=".25"/><path d="M3 5h18v2l-9 6-9-6zM3 9l9 6 9-6v10H3z"/></svg>',
@@ -338,7 +358,7 @@ function render() {
   if (code.group && !off) {
     const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     app.innerHTML = `<div class="brand">${LOGO} Scan2Com</div>
-      <div class="card"><h1>${esc(code.public_name || 'Chat de grupo')}</h1>${code.public_desc ? `<p>${esc(code.public_desc)}</p>` : ''}</div>
+      <div class="card">${FRAMEW(codeColsW(code))}<h1>${esc(code.public_name || 'Chat de grupo')}</h1>${code.public_desc ? `<p>${esc(code.public_desc)}</p>` : ''}</div>
       <div class="card" style="text-align:center"><div style="font-size:40px">👥</div><h2 style="margin:6px 0">Esto es un chat de grupo</h2>
         <p>Para entrar, <b>instala la app de Scan2Com</b> y escanea este código <b>desde la app</b>. Así recibirás los mensajes del grupo en tu móvil.</p>
         <p style="font-size:14px;opacity:.8">Entrarás con un alias al azar (por ejemplo «Zorro azul»): nadie verá tu teléfono ni tu email.</p>
@@ -349,8 +369,8 @@ function render() {
   app.innerHTML = `
     <div class="brand">${LOGO} Scan2Com</div>
     ${off ? `<div class="offbox"><div class="offic"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></div><div class="offt">Código desactivado temporalmente</div><div class="offs">El dueño lo ha apagado: ahora no se le puede escribir.</div></div>` : ''}
-    <div class="card"><h1>${esc(code.public_name || 'Scan2Com')}</h1>${off ? '' : `<p>${esc(code.public_desc || '')}</p>`}</div>
-    ${any ? `<div class="ws"><input id="ws" placeholder="Write & Send" maxlength="1000"></div>` : ''}
+    <div class="card">${FRAMEW(codeColsW(code))}<h1>${esc(code.public_name || 'Scan2Com')}</h1>${off ? '' : `<p>${esc(code.public_desc || '')}</p>`}</div>
+    ${any ? `<div class="ws"><input id="ws" placeholder="Escribe y envía" maxlength="1000"></div>` : ''}
     <div class="status ${statusErr ? 'err' : ''}">${esc(status)}${pending && !statusErr ? '<div style="font-size:14px;margin-top:4px">Esperando a que el dueño lo lea<span class="wait"></span></div>' : ''}</div>
     ${!off && ch.call && code.call_app ? `<button class="act call appcall" id="bCall">${I.call}Llamar por la app</button>` : !off && ch.call && code.phone ? `<div class="callrow"><a class="act call" href="tel:${esc(code.phone)}">${I.call}${esc(code.phone)}</a></div>` : ''}
     <div class="acts">

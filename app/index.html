@@ -360,6 +360,7 @@ html:not(.dark) .pinbar{box-shadow:0 1px 3px #0000001a}
 .dsg button{position:relative}.dsg button .bfr{display:none;inset:-7px}.dsg button .bfr i{width:22px;height:22px}.dsg button.on .bfr{display:block}
 .dsg button.on{border-color:#e3e3e3;background:#fff;color:inherit}html.dark .dsg button.on{border-color:#34373b;background:#1e1f22;color:#e8e8e8}
 .pill.mpill{color:var(--mc);border:1.5px solid color-mix(in srgb,var(--mc) 55%,transparent);background:color-mix(in srgb,var(--mc) 12%,transparent)}.pill.mpill svg{color:var(--mc)}
+.chips.mic{gap:6px;margin-top:6px}.chips span.mi{position:relative;width:28px;height:28px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--mc);background:color-mix(in srgb,var(--mc) 18%,transparent)}.chips span.mi svg{width:16px;height:16px}.chips span.mi.moff{color:#8d979b;background:var(--v2muted)}.chips span.mi .mcp{position:absolute;right:-3px;bottom:-3px;width:14px;height:14px;border-radius:50%;background:#2fc23a;color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;box-shadow:0 0 0 2px var(--v2card,#1b2023)}.chips span.mi .mcp svg{width:9px;height:9px}
 .chips span.mc{color:var(--mc);background:color-mix(in srgb,var(--mc) 15%,transparent)}
 .bmfly{position:fixed;z-index:70;pointer-events:none;background:#2fc23a;-webkit-mask-size:100% 100%;mask-size:100% 100%;transform:rotate(225deg)}
 .sendb.regrow .micb{animation:micgrow .55s cubic-bezier(.25,1.4,.5,1) .15s both}
@@ -1632,10 +1633,11 @@ function renderHome() {
   }
   if (tab === 'codes') {
     const codes = S.codes.filter(c => match(c.name, c.public_name, c.private_info));
-    const medios = c => [(c.ch_alert || c.auto_alert) && ['Alert', '#e8352b'], (c.ch_chat || c.ch_call) && [c.ch_call ? 'Chat y llamadas' : 'Chat', '#2fc23a'], c.ch_mail && ['Mail', '#1f86e0'], c.ch_info && ['Info', '#e8b923'], c.ch_redirect && ['Web', '']].filter(Boolean);
+    // solo iconos con el color de su medio (mantener pulsado o pasar el ratón = nombre)
+    const medios = c => [(c.ch_alert || c.auto_alert) && ['Alert', '#e8352b', IC.alert(16)], (c.ch_chat || c.ch_call) && [c.ch_call ? 'Chat y llamadas' : 'Chat', '#2fc23a', IC.chat(16) + (c.ch_call ? '<em class="mcp">' + IC.phone(10) + '</em>' : '')], c.ch_mail && ['Mail', '#1f86e0', IC.mail(16)], c.ch_info && ['Info', '#e8b923', IC.info(16)], c.ch_redirect && ['Web', '#8d979b', IC.globe(16)]].filter(Boolean);
     body = codes.length ? codes.map(c => `<div class="item ${c.is_on ? '' : 'off'}" data-code="${c.id}">
         <div class="qrt" data-qr="${c.id}" title="Ver código">${FRAME(codeCols(c))}<div class="q">${qrMini(c)}</div></div>
-        <div class="grow" style="min-width:0"><div class="t">${esc(c.name || c.public_name || 'Sin nombre')}</div>${c.private_info || c.owner_id !== S.user.id ? `<div class="s">${esc(c.private_info || '')}${c.owner_id !== S.user.id ? ' · compartido contigo' : ''}</div>` : ''}<div class="chips">${medios(c).map(([x, col]) => `<span${col && c.is_on ? ` class="mc" style="--mc:${col}"` : ''}>${x}</span>`).join('') || '<span>Sin medios</span>'}</div></div>
+        <div class="grow" style="min-width:0"><div class="t">${esc(c.name || c.public_name || 'Sin nombre')}</div>${c.private_info || c.owner_id !== S.user.id ? `<div class="s">${esc(c.private_info || '')}${c.owner_id !== S.user.id ? ' · compartido contigo' : ''}</div>` : ''}<div class="chips mic">${medios(c).map(([x, col, ic]) => `<span class="mi${c.is_on ? '' : ' moff'}" style="--mc:${col}" title="${x}" data-mt="${x}">${ic}</span>`).join('') || '<span>Sin medios</span>'}</div></div>
         ${c.owner_id === S.user.id ? `<button class="ib set2" data-edit="${c.id}" title="Ajustes">${IC.sliders(22)}</button>` : ''}<button class="sw2 ${c.is_on ? '' : 'off'}" data-pw="${c.id}" title="Encender / apagar"></button></div>`).join('')
       : `<div class="empty">Aún no tienes códigos.<br>Pulsa <b>+</b> para crear uno o para vincular un pack de pegatinas.</div>`;
     const nb = NATIVE && S.av ? (avMissing() && avRelevant() ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Completa la configuración de avisos</b><br>Sin ella, no te enterarás de alertas ni mensajes con la app cerrada.</div><span class="nbtn">Configurar</span></div>` : '') : !notifOn() && (S.codes.some(c => c.is_on && (c.ch_alert || c.auto_alert || c.ch_chat || c.ch_mail || c.ch_call)) || (S.vchats || []).length) ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Activa las notificaciones</b><br>Sin ellas, no te enterarás de alertas ni mensajes con la app cerrada.</div><span class="nbtn">Activar</span></div>` : '';
@@ -1695,6 +1697,7 @@ function renderHome() {
   app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { const i = TABS.indexOf(b.dataset.tab); $('#tr').style.transform = `translateX(${-i * 100}%)`; $('#ind').style.transform = `translateX(${i * 100}%)`; setTimeout(() => { S.tab = b.dataset.tab; render(); }, 290); });
   app.querySelectorAll('[data-page]').forEach(p => { if (keepScroll[p.dataset.page]) p.scrollTop = keepScroll[p.dataset.page]; });
   app.querySelectorAll('[data-pw]').forEach(b => b.onclick = e => { e.stopPropagation(); togglePower(b.dataset.pw); });
+  app.querySelectorAll('[data-mt]').forEach(b => { let t; b.oncontextmenu = e => e.preventDefault(); b.onpointerdown = e => { e.stopPropagation(); t = setTimeout(() => toast(b.dataset.mt), 400); }; b.onpointerup = b.onpointerleave = () => clearTimeout(t); b.onclick = e => e.stopPropagation(); });
   app.querySelectorAll('[data-edit]').forEach(b => b.onclick = e => { e.stopPropagation(); S.view = { t: 'edit', id: b.dataset.edit }; render(); });
   app.querySelectorAll('[data-qr]').forEach(b => b.onclick = e => { e.stopPropagation(); S.view = { t: 'qr', id: b.dataset.qr }; render(); });
   app.querySelectorAll('[data-code]').forEach(b => b.onclick = () => { S.view = { t: 'qr', id: b.dataset.code }; render(); });

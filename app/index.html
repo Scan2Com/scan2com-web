@@ -40,6 +40,10 @@ details.blk>summary{list-style:none;cursor:pointer;padding:14px 0;font-size:13px
 details.blk>summary::after{content:'';margin-left:auto;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s}details.blk[open]>summary::after{transform:rotate(-135deg)}
 details.blk>summary em{font-style:normal;font-weight:500;letter-spacing:0;color:var(--v2txt,#e8eaed);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}details.blk[open]>summary em{display:none}
 .rbar{height:6px;border-radius:3px;background:rgba(127,127,127,.25);margin-top:6px;overflow:hidden}.rbar i{display:block;height:100%;border-radius:3px;background:#2fc23a;transition:width .6s}.rbt{font-size:12px;color:var(--v2sub,#9aa0a6);margin-top:3px}
+.msec{font-size:12px;font-weight:700;letter-spacing:.07em;color:#8a8f94;margin:14px 2px 4px}
+.mrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-radius:12px;padding:10px 6px;color:inherit;font:inherit;cursor:pointer}.mrow:active{background:rgba(127,127,127,.12)}
+.mri{flex:none;width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:rgba(127,127,127,.14);font-size:17px}.mrt{flex:1;min-width:0;display:flex;flex-direction:column}.mrt b{font-weight:600;font-size:15px}.mrt small{font-size:12.5px;color:#8a8f94;line-height:1.35;margin-top:1px}.mrc{color:#8a8f94;font-size:20px}
+.thsw{position:relative;flex:none;width:64px;height:32px;border-radius:16px;border:0;background:rgba(127,127,127,.2);display:flex;align-items:center;justify-content:space-between;padding:0 7px;font-size:14px;cursor:pointer}.thsw i{position:absolute;top:3px;left:35px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s}.thsw.dk i{left:3px}
 .namebar{flex:none;background:#3a3a3a;color:#fff;text-align:center;font-size:14px;font-weight:500;letter-spacing:.06em;padding:13px 12px 17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tabs .ind{position:absolute;left:0;bottom:0;width:33.3333%;height:4px;background:#33b5e5;transition:transform .28s cubic-bezier(.2,.8,.2,1);pointer-events:none}
 #app.homepg{height:var(--vvh,100dvh);min-height:0;overflow:hidden;flex:none}
@@ -1750,20 +1754,42 @@ function renderHome() {
   if ($('#sq')) $('#sq').oninput = e => { S.q = e.target.value; const pos = e.target.selectionStart; render(); const i = $('#sq'); i.focus(); i.setSelectionRange(pos, pos); };
 }
 
+// menú ⋮ ordenado: Ajustes · Ayuda · Aplicación; modo claro/oscuro con un interruptor sol/luna arriba
+const mrow = (id, ic, t, sub) => `<button class="mrow" id="${id}"><span class="mri">${ic}</span><span class="mrt"><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</span><span class="mrc">›</span></button>`;
+const BTCAR = '<svg width="22" height="20" viewBox="0 0 26 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l6 5-3 2.5V1.5L9 4 3 9"/><path d="M11 17.5h13M12 17.5v-3l2.2-4.5h6.6l2.2 4.5v3"/><circle cx="15" cy="18.5" r="1.4"/><circle cx="21" cy="18.5" r="1.4"/></svg>';
+// ⋮ → Usar Scan2Com en la web: qué funciona y qué no desde el navegador
+function webInfo() {
+  const li = (ok, t) => `<div style="display:flex;gap:10px;margin:7px 0;font-size:14.5px;line-height:1.4"><span style="flex:none">${ok ? '✅' : '➖'}</span><span>${t}</span></div>`;
+  $('#overlay').innerHTML = `<div class="sheet" id="wbs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));text-align:left;max-height:85vh;overflow:auto" onclick="event.stopPropagation()">
+    <div style="font-weight:700;font-size:18px;margin-bottom:4px">Usar Scan2Com en la web</div>
+    <div style="font-size:13.5px;color:#777;margin-bottom:10px">Puedes usar Scan2Com desde el navegador en <b>scan2com.com/app</b>, en el móvil o en el ordenador, con tu misma cuenta.</div>
+    <div class="msec" style="margin-top:6px">IGUAL QUE EN LA APP</div>
+    ${li(1, 'Crear y editar tus códigos, imprimir el PDF y compartirlos.')}${li(1, 'Chatear, enviar fotos, audios y archivos, y llamar por la app.')}${li(1, 'Ver tus avisos y enviar avisos por zona (si tu cuenta puede).')}
+    <div class="msec">LO QUE CAMBIA</div>
+    ${li(0, '<b>Avisos con el navegador cerrado:</b> en Android llegan si permites las notificaciones; en iPhone, solo si añades la web a la pantalla de inicio.')}
+    ${li(0, '<b>Sirena a pantalla completa</b> de las alertas: solo en la app de Android.')}
+    ${li(0, '<b>Pegatina del coche automática</b> (se activa al apagarse el Bluetooth del coche): solo en la app de Android.')}
+    ${li(0, '<b>Chats de grupo:</b> solo se entra escaneando desde la app.')}
+    ${li(0, '<b>Tus mensajes y archivos</b> se guardan en el navegador que uses: si borras sus datos, se pierden. En la app quedan en tu móvil.')}
+    <button class="btn" id="wbx" style="margin-top:12px">Entendido</button></div></div>`;
+  $('#wbs').onclick = $('#wbx').onclick = () => { $('#overlay').innerHTML = ''; };
+}
 function accountMenu() {
   $('#overlay').innerHTML = `<div class="sheet" id="am"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));text-align:left" onclick="event.stopPropagation()">
-    <div style="font-weight:700">${esc(S.user.email)}</div><div style="font-size:13px;color:#777;margin-bottom:14px">Tu email no se muestra nunca a quien escanea tus códigos.</div>
-    <button class="btn light" id="nt" style="margin-bottom:8px">${IC.bell(20)}${NATIVE && S.av ? (avMissing() ? 'Configurar avisos' : 'Avisos configurados ✓') : notifOn() ? 'Notificaciones activadas ✓' : 'Activar notificaciones'}</button>
-    <button class="btn light" id="sp" style="margin-bottom:8px">${IC.lock(20)}Lugares seguros (${(S.places || []).length})</button>
-    ${S.fbView ? `<button class="btn light" id="fbl0" style="margin-bottom:8px">🎙️ Opiniones de la beta</button>` : ''}
-    <button class="btn light" id="zn" style="margin-bottom:8px">${IC.alert(20)}Avisos de emergencia en tu zona: <b style="margin-left:4px;color:${S.zone ? '#1a9c16' : '#999'}">${S.zone ? (S.av && (S.av.loc === false || S.av.locOn === false) ? 'falta la ubicación' : 'activados') : 'desactivados'}</b></button>
-
-    <button class="btn light" id="rh" style="margin-bottom:8px">${IC.play(20)}Ayudas de cada pantalla</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><div style="flex:1;min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis">${esc(S.user.email)}</div><div style="font-size:12.5px;color:#777">Tu email no se muestra nunca a quien escanea tus códigos.</div></div>
+      <button class="thsw ${document.documentElement.classList.contains('dark') ? 'dk' : ''}" id="thm" title="Modo claro / oscuro"><span>☀️</span><span>🌙</span><i></i></button></div>
+    <div class="msec">AJUSTES</div>
+    ${mrow('nt', IC.bell(20), 'Notificaciones', NATIVE && S.av ? (avMissing() ? 'Falta configurar: toca para completarlo' : 'Configuradas ✓') : notifOn() ? 'Activadas ✓' : 'Desactivadas: toca para activarlas')}
+    ${mrow('zn', IC.alert(20), 'Avisos de emergencia en tu zona', S.zone ? (S.av && (S.av.loc === false || S.av.locOn === false) ? 'Falta la ubicación' : 'Activados') : 'Desactivados')}
+    ${mrow('sp', BTCAR, 'Coche: Bluetooth y lugares seguros', `La pegatina del coche se activa sola al apagarse el Bluetooth del coche (al bajarte), salvo en tus lugares seguros (${(S.places || []).length})`)}
+    <div class="msec">AYUDA</div>
+    ${mrow('rh', IC.play(20), 'Ayudas de cada pantalla', 'Te llevo a cada pantalla y te la explico en voz alta')}
+    ${mrow('wb', IC.globe(20), 'Usar Scan2Com en la web', 'Qué cambia si lo usas desde el navegador en vez de la app')}
+    ${S.fbView ? mrow('fbl0', '🎙️', 'Opiniones de la beta', '') : ''}
+    ${NATIVE || /android/i.test(navigator.userAgent) ? '<div class="msec">APLICACIÓN</div>' : ''}
     ${NATIVE ? (S.ver?.old ? `<a class="btn red" href="${APK_URL}" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.refresh(20)}Actualizar a la última versión<div style="font-size:12px;font-weight:400;opacity:.85">${fmtD(S.ver.apk?.date)}</div></a>` : `<button class="btn light" id="ver" style="margin-bottom:8px">${IC.refresh(20)}${S.ver?.ok ? 'Última versión instalada' : 'Comprobar actualización'}${S.ver?.last ? `<div style="font-size:12px;font-weight:400;color:#777">${fmtD(S.ver.last)}</div>` : ''}</button>`) : ''}
     ${/android/i.test(navigator.userAgent) && !NATIVE ? `<a class="btn red" href="/app/scan2com.apk" download style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.alert(20)}Descargar app Android (sirena a pantalla completa)</a>` : ''}
-    <button class="btn light" id="thm" style="margin-bottom:8px">${document.documentElement.classList.contains('dark') ? '☀️ Cambiar a modo claro' : '🌙 Cambiar a modo oscuro'}</button>
-    <button class="btn light" id="ins" style="margin-bottom:8px">${IC.vibrate(20)}Cómo instalar en el móvil</button>
-    <button class="btn red" id="lo">Cerrar sesión</button></div></div>`;
+    <button class="btn light" id="lo" style="color:var(--red);margin-top:6px">Cerrar sesión</button></div></div>`;
   $('#am').onclick = () => { $('#overlay').innerHTML = ''; };
   $('#sp').onclick = placesSheet;
   $('#zn').onclick = () => S.zone && S.av && (S.av.loc === false || S.av.locOn === false) ? zoneHelp() : zoneSheet();
@@ -1774,7 +1800,8 @@ function accountMenu() {
   if ($('#how')) $('#how').onclick = () => { $('#overlay').innerHTML = ''; S.tourForce = true; S.tab = 'codes'; S.view = null; render(); setTimeout(playTour, 100); };
   $('#lo').onclick = async () => { await pushOff(); await sb.auth.signOut(); location.reload(); };
   $('#nt').onclick = async () => { $('#overlay').innerHTML = ''; if (NATIVE && S.av) return avOpen(true); if (notifOn()) return toast('Las notificaciones ya están activadas en este móvil.'); await enablePush(true); };
-  $('#ins').onclick = () => { $('#overlay').innerHTML = ''; toast('En Chrome (Android): menú ⋮ → “Añadir a pantalla de inicio”. En iPhone (Safari): Compartir → “Añadir a pantalla de inicio”.'); };
+  $('#wb').onclick = webInfo;
+  if ($('#ins')) $('#ins').onclick = () => { $('#overlay').innerHTML = ''; toast('En Chrome (Android): menú ⋮ → “Añadir a pantalla de inicio”. En iPhone (Safari): Compartir → “Añadir a pantalla de inicio”.'); };
 }
 
 // mantener pulsada la tarjeta de un código: menú rápido

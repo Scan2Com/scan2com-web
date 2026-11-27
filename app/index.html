@@ -3034,7 +3034,7 @@ function bindTour() {
 async function ensureStarter() {
   if (S.codes.length || ls.get('sa_starter_' + S.user.id, 0)) return;
   // primer código: todos los medios activados (Info, Mail, Alert, Chat con llamadas por la app), sin redirección
-  const { data, error } = await sb.from('codes').insert({ owner_id: S.user.id, type: 'chat', name: 'Mi código', public_name: 'Contacta conmigo',
+  const { data, error } = await sb.from('codes').insert({ owner_id: S.user.id, type: 'chat', name: 'Mi primer código', public_name: 'Contacta conmigo',
     public_desc: 'Hola, puedes escribirme, llamarme o avisarme por aquí sin necesidad de mi teléfono.', ch_info: true, ch_mail: true, ch_alert: true, ch_chat: true, ch_call: true, call_app: true, ch_redirect: false }).select().single();
   if (!error && data) { S.codes.push(data); ls.set('sa_starter_' + S.user.id, 1); }
 }

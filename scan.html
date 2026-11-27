@@ -84,6 +84,7 @@ body{background:#121517;color:#e8eaed}
 .brand{color:#e8eaed;font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:15px;letter-spacing:.01em}.brand img{border-radius:6px}
 .card{background:#1b2023;color:#e8eaed;border-radius:18px;position:relative;margin:10px 8px}
 .card h1{font-weight:700;letter-spacing:-.01em}.card p{color:#b9bec3}
+.card.info{border:1.5px solid color-mix(in srgb,#e8b923 40%,transparent);background:color-mix(in srgb,#e8b923 7%,#1b2023)}.card.info h1{color:#f1c936}.card.info p{color:#e9dca8}
 .bfr{position:absolute;inset:-7px;pointer-events:none}.bfr i{position:absolute;width:22px;height:22px;display:block}.bfr i svg{width:100%;height:100%;display:block}
 .bfr .tl{left:0;top:0}.bfr .tr{right:0;top:0;transform:scaleX(-1)}.bfr .bl{left:0;bottom:0;transform:scaleY(-1)}.bfr .br{right:0;bottom:0;transform:scale(-1,-1)}
 .ws{background:#1b2023;border:1.5px solid #2a3035}.ws input{color:#e8eaed}.ws input::placeholder{color:#7d8590}
@@ -358,7 +359,7 @@ function render() {
   if (code.group && !off) {
     const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     app.innerHTML = `<div class="brand">${LOGO} Scan2Com</div>
-      <div class="card">${FRAMEW(codeColsW(code))}<h1>${esc(code.public_name || 'Chat de grupo')}</h1>${code.public_desc ? `<p>${esc(code.public_desc)}</p>` : ''}</div>
+      <div class="card info">${FRAMEW(codeColsW(code))}<h1>${esc(code.public_name || 'Chat de grupo')}</h1>${code.public_desc ? `<p>${esc(code.public_desc)}</p>` : ''}</div>
       <div class="card" style="text-align:center"><div style="font-size:40px">👥</div><h2 style="margin:6px 0">Esto es un chat de grupo</h2>
         <p>Para entrar, <b>instala la app de Scan2Com</b> y escanea este código <b>desde la app</b>. Así recibirás los mensajes del grupo en tu móvil.</p>
         <p style="font-size:14px;opacity:.8">Entrarás con un alias al azar (por ejemplo «Zorro azul»): nadie verá tu teléfono ni tu email.</p>
@@ -369,7 +370,7 @@ function render() {
   app.innerHTML = `
     <div class="brand">${LOGO} Scan2Com</div>
     ${off ? `<div class="offbox"><div class="offic"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></div><div class="offt">Código desactivado temporalmente</div><div class="offs">El dueño lo ha apagado: ahora no se le puede escribir.</div></div>` : ''}
-    <div class="card">${FRAMEW(codeColsW(code))}<h1>${esc(code.public_name || 'Scan2Com')}</h1>${off ? '' : `<p>${esc(code.public_desc || '')}</p>`}</div>
+    <div class="card info">${FRAMEW(codeColsW(code))}<h1>${esc(code.public_name || 'Scan2Com')}</h1>${off ? '' : `<p>${esc(code.public_desc || '')}</p>`}</div>
     ${any ? `<div class="ws"><input id="ws" placeholder="Escribe y envía" maxlength="1000"></div>` : ''}
     <div class="status ${statusErr ? 'err' : ''}">${esc(status)}${pending && !statusErr ? '<div style="font-size:14px;margin-top:4px">Esperando a que el dueño lo lea<span class="wait"></span></div>' : ''}</div>
     ${!off && ch.call && code.call_app ? `<button class="act call appcall" id="bCall">${I.call}Llamar por la app</button>` : !off && ch.call && code.phone ? `<div class="callrow"><a class="act call" href="tel:${esc(code.phone)}">${I.call}${esc(code.phone)}</a></div>` : ''}

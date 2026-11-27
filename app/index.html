@@ -2338,7 +2338,7 @@ function v2SendFly() {
   // primer tramo: salta hacia arriba girando y se hace un poco más grande
   const leg1 = f.animate([{ transform: 'translate(0,0) rotate(225deg) scale(1)' }, { transform: 'translate(-40px,-90px) rotate(945deg) scale(1.5)' }], { duration: 480, easing: 'cubic-bezier(.2,.7,.35,1)', fill: 'forwards' });
   V2.fly = { el: f, r, t0: Date.now(), leg1 };
-  btn.classList.remove('regrow'); void btn.offsetWidth; btn.classList.add('regrow'); setTimeout(() => btn.classList.remove('regrow'), 1300);
+  btn.classList.remove('regrow'); void btn.offsetWidth; btn.classList.add('regrow'); setTimeout(() => { btn.classList.remove('regrow'); const i = $('#oi'); if (i) btn.classList.toggle('txt', !!i.value.trim()); }, 1500);
   setTimeout(() => { if (V2.fly?.el === f && !V2.fly.leg2) { f.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' }).onfinish = () => f.remove(); V2.fly = null; } }, 4000);
 }
 // segundo tramo: del aire al sitio del acuse del mensaje nuevo, girando; al llegar, el acuse de verdad sigue el viaje a la izquierda

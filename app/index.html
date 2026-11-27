@@ -2806,11 +2806,11 @@ function handleScan(t) {
   if (pack) return claim(pack[1]);
   if (code && S.auth) { S.view = null; render(); return policeSheet(code[1].toUpperCase()); }
   if (code) { const c = codeOf(code[1].toUpperCase()); if (c) { S.view = { t: c.owner_id === S.user.id ? 'edit' : 'qr', id: c.id }; return render(); } stopCam(); app.classList.remove('full'); if (/^https:\/\/(www\.)?scan2com\.com\//i.test(t)) return openScanned(code[1].toUpperCase()); window.open(t, '_blank'); S.view = null; return render(); }
-  if (S.view?.only) { toast('Ese QR no es de Scan2Com: ' + t.slice(0, 60)); S.view.scan = true; return renderPack(); }
+  if (S.view?.only) return foreignQR(t, () => { if (S.view?.only) { S.view.scan = true; renderPack(); } });   // escáner: al cerrar la hoja sigue escaneando
   S.view = null; render(); foreignQR(t);
 }
 // QR que no es de Scan2Com: se hace lo normal según su contenido (web, wifi, teléfono, email, SMS, mapa, contacto o texto)
-function foreignQR(t) {
+function foreignQR(t, onClose) {
   const raw = String(t || '').trim(), u = /^www\./i.test(raw) ? 'https://' + raw : raw; let ic = '🔤', ti = 'Texto', body = esc(raw), acts = [];
   const kv = (str, k) => (str.match(new RegExp('(?:^|;)' + k + ':((?:\\.|[^;])*)', 'i')) || [])[1]?.replace(/\\(.)/g, '$1') || '';
   if (/^https?:\/\//i.test(u)) { ic = '🌐'; ti = 'Enlace web'; body = esc(u); acts = [['Abrir', () => window.open(u, '_blank', 'noopener')]]; }
@@ -2826,7 +2826,7 @@ function foreignQR(t) {
     <div style="font-size:13px;color:#888;margin-bottom:6px">Código QR (no es de Scan2Com)</div>
     <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px"><div style="font-size:30px;line-height:1">${ic}</div><div style="min-width:0"><div style="font-weight:700;margin-bottom:2px">${ti}</div><div style="font-size:14px;word-break:break-all;color:#444">${body}</div></div></div>
     ${acts.map(([l], i) => `<button class="btn ${i ? 'light' : ''}" data-fa="${i}" style="margin-bottom:8px">${l}</button>`).join('')}</div></div>`;
-  $('#fq').onclick = () => { $('#overlay').innerHTML = ''; };
+  $('#fq').onclick = () => { $('#overlay').innerHTML = ''; onClose?.(); };
   $('#fq').querySelectorAll('[data-fa]').forEach(b => b.onclick = () => { acts[+b.dataset.fa][1](); });
 }
 async function claim(id) {

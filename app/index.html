@@ -1211,7 +1211,8 @@ async function zoneGeo(force) {
 const ZONE_INFO = `<ul style="font-size:13px;color:#555;line-height:1.45;padding-left:18px;margin:10px 0">
       <li>Guardamos solo tu <b>última ubicación</b>, cuando abres la app, y dónde quedó tu coche al bajarte (si tienes su pegatina vinculada al Bluetooth).</li>
       <li>Nadie ve tu ubicación: solo se usa para saber si estás dentro de la zona de un aviso.</li>
-      <li>Puedes desactivarlo cuando quieras en ⋮ y <b>se borran tus ubicaciones</b> al momento.</li></ul>`;
+      <li>Puedes desactivarlo cuando quieras en ⋮ y <b>se borran tus ubicaciones</b> al momento.</li></ul>
+    <div style="font-size:13px;color:#555;line-height:1.45;background:#f3f6f8;border-radius:10px;padding:10px 12px;margin:6px 0 10px">🏛️ <b>¿Eres un ayuntamiento, policía o servicio de emergencias?</b> Puedes enviar estos avisos a los vecinos de una zona. <a href="mailto:admin@scan2com.com?subject=Avisos%20por%20zona%20Scan2Com" style="color:#1f86e0;font-weight:600">Escríbenos a admin@scan2com.com</a></div>`;
 const zoneSheetBox = inner => `<div class="sheet keep" id="zs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));text-align:left" onclick="event.stopPropagation()">${inner}</div></div>`;
 // deja lista la ubicación para los avisos por zona: pide el permiso (ventana de Android), abre los ajustes si ya se denegó
 // o la pantalla para encender la ubicación del móvil. 'ok' = ubicación guardada · 'left' = se ha salido a Android (se sigue al volver) · 'fail'
@@ -1780,7 +1781,7 @@ function accountMenu() {
       <button class="thsw ${document.documentElement.classList.contains('dark') ? 'dk' : ''}" id="thm" title="Modo claro / oscuro"><span>☀️</span><span>🌙</span><i></i></button></div>
     <div class="msec">AJUSTES</div>
     ${mrow('nt', IC.bell(20), 'Notificaciones', NATIVE && S.av ? (avMissing() ? 'Falta configurar: toca para completarlo' : 'Configuradas ✓') : notifOn() ? 'Activadas ✓' : 'Desactivadas: toca para activarlas')}
-    ${mrow('zn', IC.alert(20), 'Avisos de emergencia en tu zona', 'Te avisa de incendios, inundaciones, calles cortadas o retirada de coches cerca de ti o de donde dejaste el coche. Los envían la policía y los servicios de emergencia · <b style="color:' + (S.zone ? '#1a9c16' : '#999') + '">' + (S.zone ? (S.av && (S.av.loc === false || S.av.locOn === false) ? 'Falta la ubicación' : 'Activados') : 'Desactivados') + '</b>')}
+    ${mrow('zn', IC.alert(20), 'Avisos de emergencia en tu zona', 'Te avisa de incendios, inundaciones, calles cortadas o retirada de coches cerca de ti o de donde dejaste el coche. Los envían la policía y los servicios de emergencia. ¿Eres un ayuntamiento? Contáctanos · <b style="color:' + (S.zone ? '#1a9c16' : '#999') + '">' + (S.zone ? (S.av && (S.av.loc === false || S.av.locOn === false) ? 'Falta la ubicación' : 'Activados') : 'Desactivados') + '</b>')}
     ${mrow('sp', BTCAR, 'Coche: Bluetooth y lugares seguros', `La pegatina del coche se activa sola al apagarse el Bluetooth del coche (al bajarte), salvo en tus lugares seguros (${(S.places || []).length})`)}
     <div class="msec">AYUDA</div>
     ${mrow('rh', IC.play(20), 'Ayudas de cada pantalla', 'Te llevo a cada pantalla y te la explico en voz alta')}

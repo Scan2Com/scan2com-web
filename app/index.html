@@ -357,6 +357,8 @@ html:not(.dark) .pinbar{box-shadow:0 1px 3px #0000001a}
 @keyframes qlas{0%,100%{top:18%}50%{top:80%}}
 /* escáner: visor de 4 boomerangs blancos */
 .fab{background:#2fc23a;border-radius:18px;box-shadow:0 6px 18px #2fc23a55}
+.dsg button{position:relative}.dsg button .bfr{display:none;inset:-7px}.dsg button .bfr i{width:22px;height:22px}.dsg button.on .bfr{display:block}
+html.dark .dsg button.on{border-color:#2fc23a;background:#1b2a20;color:#8fe39a}.dsg button.on{border-color:#2fc23a}
 .camwrap .bfr{inset:8%}.camwrap .bfr i{width:22%;height:22%;color:#ffffffee;filter:drop-shadow(0 1px 3px #0008)}
 </style>
 </head>
@@ -1747,7 +1749,7 @@ async function renderEdit() {
     <label class="req">Nombre (solo lo ves tú)</label><input id="f1" value="${esc(c.name)}" placeholder="Ej. Coche rojo" maxlength="60">
     <label>Información privada (solo tú)</label><input id="f5" value="${esc(c.private_info)}" placeholder="Ej. matrícula, nº de serie…" maxlength="200">
     <div class="section">DISEÑO DEL QR</div>
-    ${locked ? '<div class="hint" style="margin:2px 0 8px">Este código viene de una pegatina impresa.</div>' : ''}<div class="dsg">${designsFor(c).map(([k, t]) => `<button type="button" data-dsg="${k}" class="${designOf(c) === k ? 'on' : ''}"><canvas></canvas>${t}</button>`).join('')}</div>
+    ${locked ? '<div class="hint" style="margin:2px 0 8px">Este código viene de una pegatina impresa.</div>' : ''}<div class="dsg">${designsFor(c).map(([k, t]) => `<button type="button" data-dsg="${k}" class="${designOf(c) === k ? 'on' : ''}">${FRAME()}<canvas></canvas>${t}</button>`).join('')}</div>
     <div id="ccol" style="display:${isCar(c) ? 'flex' : 'none'};flex-wrap:wrap;gap:8px;margin:6px 0 4px;align-items:center"><span style="font-size:13px;color:#666;width:100%">Color de la pegatina</span>${CAR_COLORS.map(([k, h, t]) => `<button type="button" data-ccol="${k}" title="${t}" aria-label="${t}" style="width:34px;height:34px;border-radius:50%;background:${h};border:3px solid ${carColor(c)[0] === k ? '#2fc23a' : '#fff'};box-shadow:0 0 0 1px #ccc;cursor:pointer"></button>`).join('')}
       <label style="width:100%;margin-top:6px">Texto de la pegatina <span style="font-weight:400;color:#888">(donde pone «Alert»)</span></label><input id="ctxt" value="${esc(carText(c))}" maxlength="14" placeholder="Alert" style="width:100%"><div class="hint" id="ctxh" style="width:100%;margin:2px 0 0">Unas 8 letras: la letra se hace más pequeña si escribes más.</div></div>
     <div class="section"><span class="req">MEDIOS DE COMUNICACIÓN</span></div><div class="hint">Elige al menos uno.</div>
@@ -1770,7 +1772,7 @@ async function renderEdit() {
     </div>
     <label class="chk"><input type="checkbox" id="c3" ${c.ch_chat ? 'checked' : ''}> <span style="color:#2fc23a">${IC.chat(20)}</span> Chat</label>
     <label class="chk sub"><input type="checkbox" id="c6" ${c.group_chat ? 'checked' : ''}> En grupo con los usuarios vinculados</label>
-    <label class="chk"><input type="checkbox" id="c4" ${c.ch_call ? 'checked' : ''}> <span style="color:#2fc23a">${IC.phone(20)}</span> Llamada</label>
+    <label class="chk"><input type="checkbox" id="c4" ${c.ch_call ? 'checked' : ''}> <span style="color:#e8b923">${IC.phone(20)}</span> Llamada</label>
     <label class="chk"><input type="checkbox" id="c7" ${c.ch_redirect ? 'checked' : ''}> <span style="color:#7e868b">${IC.globe(20)}</span> Redirección web</label>
     <div id="rbox" style="display:${c.ch_redirect ? 'block' : 'none'}"><label class="req">Dirección web</label><input id="f7" type="url" inputmode="url" value="${esc(c.redirect_url)}" placeholder="www.ejemplo.com" maxlength="500">
       <div class="hint">Quien escanee irá directamente a esta web, sin ver los demás medios. Puedes cambiarla cuando quieras, aunque el código ya esté impreso.</div></div>

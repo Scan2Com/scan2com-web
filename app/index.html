@@ -2002,7 +2002,7 @@ function noHalo(ctx, w, h) {
   ctx.putImageData(d, 0, 0);
 }
 async function drawSticker(canvas, url, hex, c) {
-  const hz = designOf(c) === 'carh', text = carText(c), own = text !== 'Alert';
+  const hz = designOf(c) === 'carh', text = carText(c), own = true;   // «Alert» también se escribe: blanco como «Scan 2» (negro solo en amarillo y gris claro)
   if (own) await carFont();
   const base = await loadImg(`/app/img2014/pegatina_coche${hz ? '_h' : ''}${own ? '_txt' : ''}.png`);
   const ext = hz && own ? hzExt(text) : 0, W = base.width, H = base.height;
@@ -2177,7 +2177,7 @@ function carSheetAsk(c, url, mode) {
 }
 const BMP = '4,2 3,7 2,8 2,26 1,27 1,73 2,74 3,91 4,92 5,102 6,103 6,106 7,107 7,110 8,111 8,114 9,115 10,120 18,134 25,141 29,144 39,149 41,149 48,152 51,152 56,154 60,154 61,155 66,155 67,156 73,156 74,157 85,157 86,158 126,158 127,157 149,157 150,156 154,156 158,153 157,149 149,141 146,140 144,138 141,138 140,137 129,137 128,136 115,136 114,135 105,135 104,134 97,134 96,133 84,132 83,131 79,131 78,130 74,130 66,127 63,127 52,122 48,119 37,107 31,92 31,89 30,88 30,85 28,80 28,76 27,75 26,63 25,62 24,45 23,44 23,30 22,29 22,19 21,18 21,15 19,11 14,6 14,5 8,1';   // contorno del boomerang del logo, en 160×160 (vértice abajo a la izquierda)
 async function carSheetBin(c, url, mirror) {
-    const text = carText(c), own = text !== 'Alert'; if (own) await carFont();
+    const text = carText(c), own = true; await carFont();
     const [base, spec] = await Promise.all([loadImg(`/app/img2014/plantilla_coche${own ? '_txt' : ''}.png`), fetch('/app/img2014/plantilla_coche.json').then(r => r.json())]);
     const cv = document.createElement('canvas'); cv.width = base.width; cv.height = base.height;
     const x = cv.getContext('2d', { willReadFrequently: true }); x.drawImage(base, 0, 0); tintRed(x, cv.width, cv.height, carColor(c)[1]); x.imageSmoothingQuality = 'high';

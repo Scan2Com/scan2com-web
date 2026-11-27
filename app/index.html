@@ -368,6 +368,7 @@ html:not(.dark) .pinbar{box-shadow:0 1px 3px #0000001a}
 .micb{color:#2fc23a}
 .avtabs{display:flex;gap:4px;margin-bottom:6px;overflow-x:auto}.avtabs button{border:0;background:none;font-size:22px;padding:4px 8px;border-radius:10px;cursor:pointer;opacity:.6}.avtabs button.on{background:var(--v2muted);opacity:1}
 .avgrid{max-height:150px;overflow-y:auto}
+.bm.arr b{animation:tickin .45s cubic-bezier(.3,1.5,.5,1)}@keyframes tickin{from{transform:rotate(-120deg) scale(.4);opacity:.3}to{transform:none;opacity:1}}
 .camwrap .bfr{inset:8%}.camwrap .bfr i{width:22%;height:22%;color:#ffffffee;filter:drop-shadow(0 1px 3px #0008)}
 </style>
 </head>
@@ -1439,7 +1440,7 @@ S.bmPos = {}; S.vread = {}; S.bmBusy = {};
 // tocar "enviar" no debe quitar el foco del cuadro de texto (si no, el teclado se cierra)
 function keepKb() { const b = $('#os'); if (b) { b.onpointerdown = e => e.preventDefault(); b.onmousedown = e => e.preventDefault(); } }
 function bmPlace(el, p) { el.classList.remove('home', 'left', 'fly', 'part'); el.classList.add('now', p); void el.offsetWidth; el.classList.remove('now'); }
-function bmFly(el, from, to) { bmPlace(el, from); el.classList.add('fly'); el.classList.remove(from); el.classList.add(to); setTimeout(() => el.classList.remove('fly'), 1150); }
+function bmFly(el, from, to) { bmPlace(el, from); el.classList.add('fly'); el.classList.remove(from); el.classList.add(to); setTimeout(() => { el.classList.remove('fly'); if (to === 'home') { el.classList.add('arr'); setTimeout(() => el.classList.remove('arr'), 600); } }, 1150); }
 function bmSync() {
   hydrateMedia(); setTimeout(v2After, 0);
   const all = [...document.querySelectorAll('.bm')], lastEl = all.at(-1);
@@ -2338,13 +2339,15 @@ function v2SendFly() {
   document.body.appendChild(f);
   // dónde quedará el acuse del mensaje nuevo: al final de la conversación, junto a la hora, y su sitio de espera a la izquierda
   const cr = cb.getBoundingClientRect(), mr = ms.getBoundingClientRect(), bs = 16 / r.width;
-  const hx = mr.right - 14 - 13 - 16, hy = Math.min(cr.bottom, innerHeight) - 10 - 6 - 17, lx = mr.left + 8;
+  const hx = mr.right - 14 - 6 - 16, hy = Math.min(cr.bottom, innerHeight) - 10 - 6 - 17, lx = mr.left + 8;
   const T = (x, y, a, sc) => 'translate(' + (x - r.left) + 'px,' + (y - r.top) + 'px) rotate(' + a + 'deg) scale(' + sc + ')';
-  const D = 1500, a = f.animate([
-    { transform: T(r.left, r.top, 225, 1), easing: 'cubic-bezier(.25,.6,.4,1)' },
-    { transform: T(r.left - 50, r.top - 120, 225 + 540, 1.45), offset: .28, easing: 'cubic-bezier(.5,0,.6,1)' },
-    { transform: T(hx, hy, 225 + 1080, bs), offset: .52, easing: 'linear' },
-    { transform: T(lx, hy, 225 + 1800, bs), easing: 'cubic-bezier(.3,0,.25,1)' }], { duration: D, fill: 'forwards' });
+  // salto en arco, sin crecer, directo a la esquina de abajo a la derecha del mensaje; de ahí, por la misma franja, a la izquierda
+  const mx = (r.left + hx) / 2, my = Math.min(r.top, hy) - 46;
+  const D = 1400, a = f.animate([
+    { transform: T(r.left, r.top, 225, 1), easing: 'cubic-bezier(.3,.5,.6,1)' },
+    { transform: T(mx, my, 225 + 360, (1 + bs) / 2), offset: .18, easing: 'cubic-bezier(.4,0,.7,.6)' },
+    { transform: T(hx, hy, 225 + 720, bs), offset: .36, easing: 'linear' },
+    { transform: T(lx, hy, 225 + 1620, bs), easing: 'cubic-bezier(.3,0,.25,1)' }], { duration: D, fill: 'forwards' });
   const fl = V2.fly = { el: f, end: Date.now() + D, bm: null };
   a.onfinish = () => { if (fl.bm) fl.bm.style.visibility = ''; f.remove(); if (V2.fly === fl) V2.fly = null; };
   // el botón pasa ya a micrófono, que aparece creciendo desde un punto

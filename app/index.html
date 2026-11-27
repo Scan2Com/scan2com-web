@@ -362,8 +362,8 @@ html:not(.dark) .pinbar{box-shadow:0 1px 3px #0000001a}
 .pill.mpill{color:var(--mc);border:1.5px solid color-mix(in srgb,var(--mc) 55%,transparent);background:color-mix(in srgb,var(--mc) 12%,transparent)}.pill.mpill svg{color:var(--mc)}
 .chips span.mc{color:var(--mc);background:color-mix(in srgb,var(--mc) 15%,transparent)}
 .bmfly{position:fixed;z-index:70;pointer-events:none;background:#2fc23a;-webkit-mask-size:100% 100%;mask-size:100% 100%;transform:rotate(225deg)}
-.sendb.regrow .micb{display:none}.sendb.regrow .bmsend{display:block;animation:regrow .6s cubic-bezier(.25,1.3,.5,1) .3s both}
-@keyframes regrow{from{transform:translateX(var(--bmx,-6px)) rotate(-315deg) scale(0)}to{transform:translateX(var(--bmx,-6px)) rotate(225deg) scale(1)}}
+.sendb.regrow .micb{animation:micgrow .55s cubic-bezier(.25,1.4,.5,1) .15s both}
+@keyframes micgrow{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
 .compose .camb i{background:#7d8590}html.dark .compose .camb i{background:#8d979b}
 .micb{color:#2fc23a}
 .avtabs{display:flex;gap:4px;margin-bottom:6px;overflow-x:auto}.avtabs button{border:0;background:none;font-size:22px;padding:4px 8px;border-radius:10px;cursor:pointer;opacity:.6}.avtabs button.on{background:var(--v2muted);opacity:1}
@@ -1446,7 +1446,8 @@ function bmSync() {
   all.forEach(el => {
     const box = el.closest('.msgs'); if (!box) return;
     const id = el.dataset.bm, pct = +el.dataset.pct || 0, want = el.dataset.read === '1' ? 'home' : pct ? 'part' : 'left', cur = S.bmPos[id];
-    el.style.setProperty('--fly', -Math.max(0, el.parentElement.getBoundingClientRect().right - 18 - box.getBoundingClientRect().left - 6) + 'px');   // se mide desde el sitio fijo (la hora), no desde el boomerang ya movido
+    el.style.setProperty('--fly', -Math.max(0, el.parentElement.getBoundingClientRect().right - 18 - box.getBoundingClientRect().left - 6) + 'px');
+    if (V2.fly?.bm && V2.fly.bm !== el && V2.fly.bm.dataset.bm === id) { V2.fly.bm = el; el.style.visibility = 'hidden'; }   // redibujado a medio vuelo del boomerang de enviar   // se mide desde el sitio fijo (la hora), no desde el boomerang ya movido
     if (want === 'part') {   // reproducido en parte: se queda a ese porcentaje del camino de vuelta, con el % al lado
       const was = (S.bmPct ||= {})[id]; el.style.setProperty('--p', (was ?? (cur === 'home' ? 100 : 0)) / 100);
       bmPlace(el, cur === 'part' ? 'part' : cur || 'left'); S.bmPos[id] = 'part'; S.bmPct[id] = pct;
@@ -1460,7 +1461,7 @@ function bmSync() {
     if (!cur) {   // recién enviado: siempre sale volando a la izquierda; si ya está leído, vuelve después
       S.bmJustSent = 0; S.bmPos[id] = 'left';
       const start = (e = el) => { S.bmBusy[id] = Date.now() + 1300; bmFly(e, 'home', 'left'); if (want === 'home') setTimeout(bmSync, 1350); };
-      if (V2.fly && !V2.fly.leg2) { bmPlace(el, 'home'); S.bmBusy[id] = Date.now() + 2600; if (!v2FlyLand(el, start)) start(); } else start();
+      if (V2.fly && !V2.fly.bm && V2.fly.end > Date.now()) { const fl = V2.fly; fl.bm = el; bmPlace(el, 'left'); el.style.visibility = 'hidden'; S.bmBusy[id] = fl.end + 50; if (want === 'home') setTimeout(bmSync, fl.end - Date.now() + 100); } else start();
       return;
     }
     if (cur === want) return bmPlace(el, want);
@@ -2326,30 +2327,28 @@ function v2After() {
   v2TypSub(); v2TypDraw();
 }
 
-// enviar: el propio boomerang verde salta girando al chat hasta el sitio del acuse del mensaje nuevo;
-// desde ahí sigue girando hacia la izquierda (el viaje de siempre del acuse) y en el botón reaparece otro creciendo y girando desde su centro
+// enviar: el propio boomerang verde salta girando, baja a la línea del acuse del mensaje nuevo y sigue por ella hacia
+// la izquierda, todo en un solo movimiento fluido; en el botón reaparece el micrófono creciendo desde un punto
 function v2SendFly() {
-  const btn = $('#os'), ic = btn?.querySelector('.bmsend'); if (!ic || !btn.classList.contains('txt')) return;
+  const btn = $('#os'), ic = btn?.querySelector('.bmsend'), cb = $('#cb'), ms = $('#ms'); if (!ic || !btn.classList.contains('txt') || !cb || !ms) return;
   const r = ic.getBoundingClientRect(); if (!r.width) return;
   V2.fly?.el.remove(); V2.sentAt = Date.now();
   const f = document.createElement('i'), cs = getComputedStyle(ic); f.className = 'bmfly';
   f.style.cssText = 'left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;-webkit-mask-image:' + cs.webkitMaskImage + ';mask-image:' + (cs.maskImage || cs.webkitMaskImage);
   document.body.appendChild(f);
-  // primer tramo: salta hacia arriba girando y se hace un poco más grande
-  const leg1 = f.animate([{ transform: 'translate(0,0) rotate(225deg) scale(1)' }, { transform: 'translate(-40px,-90px) rotate(945deg) scale(1.5)' }], { duration: 480, easing: 'cubic-bezier(.2,.7,.35,1)', fill: 'forwards' });
-  V2.fly = { el: f, r, t0: Date.now(), leg1 };
-  btn.classList.remove('regrow'); void btn.offsetWidth; btn.classList.add('regrow'); setTimeout(() => { btn.classList.remove('regrow'); const i = $('#oi'); if (i) btn.classList.toggle('txt', !!i.value.trim()); }, 1500);
-  setTimeout(() => { if (V2.fly?.el === f && !V2.fly.leg2) { f.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' }).onfinish = () => f.remove(); V2.fly = null; } }, 4000);
-}
-// segundo tramo: del aire al sitio del acuse del mensaje nuevo, girando; al llegar, el acuse de verdad sigue el viaje a la izquierda
-function v2FlyLand(bmEl, then) {
-  const fl = V2.fly; if (!fl || fl.leg2 || Date.now() - fl.t0 > 3500) return false;
-  fl.leg2 = true; bmEl.style.visibility = 'hidden';
-  const bid = bmEl.dataset.bm;
-  const go = () => { const cur = document.querySelector('.bm[data-bm="' + bid + '"]'); if (cur && cur !== bmEl) { bmEl = cur; bmPlace(bmEl, 'home'); bmEl.style.visibility = 'hidden'; } const br = bmEl.getBoundingClientRect(), s = br.width / fl.r.width;
-    const a = fl.el.animate([{ transform: 'translate(-40px,-90px) rotate(945deg) scale(1.5)' }, { transform: 'translate(' + (br.left - fl.r.left) + 'px,' + (br.top - fl.r.top) + 'px) rotate(' + (1665 - 180) + 'deg) scale(' + s + ')' }], { duration: 520, easing: 'cubic-bezier(.35,.05,.3,1)', fill: 'forwards' });
-    a.onfinish = () => { bmEl.style.visibility = ''; fl.el.remove(); if (V2.fly === fl) V2.fly = null; then(bmEl); }; };
-  fl.leg1.finished.then(go, go); return true;
+  // dónde quedará el acuse del mensaje nuevo: al final de la conversación, junto a la hora, y su sitio de espera a la izquierda
+  const cr = cb.getBoundingClientRect(), mr = ms.getBoundingClientRect(), bs = 16 / r.width;
+  const hx = mr.right - 14 - 13 - 16, hy = Math.min(cr.bottom, innerHeight) - 10 - 6 - 17, lx = mr.left + 8;
+  const T = (x, y, a, sc) => 'translate(' + (x - r.left) + 'px,' + (y - r.top) + 'px) rotate(' + a + 'deg) scale(' + sc + ')';
+  const D = 1500, a = f.animate([
+    { transform: T(r.left, r.top, 225, 1), easing: 'cubic-bezier(.25,.6,.4,1)' },
+    { transform: T(r.left - 50, r.top - 120, 225 + 540, 1.45), offset: .28, easing: 'cubic-bezier(.5,0,.6,1)' },
+    { transform: T(hx, hy, 225 + 1080, bs), offset: .52, easing: 'linear' },
+    { transform: T(lx, hy, 225 + 1800, bs), easing: 'cubic-bezier(.3,0,.25,1)' }], { duration: D, fill: 'forwards' });
+  const fl = V2.fly = { el: f, end: Date.now() + D, bm: null };
+  a.onfinish = () => { if (fl.bm) fl.bm.style.visibility = ''; f.remove(); if (V2.fly === fl) V2.fly = null; };
+  // el botón pasa ya a micrófono, que aparece creciendo desde un punto
+  btn.classList.remove('txt', 'regrow'); void btn.offsetWidth; btn.classList.add('regrow'); setTimeout(() => btn.classList.remove('regrow'), 900);
 }
 // «escribiendo…»: aviso al momento por tiempo real, sin guardar nada en el servidor
 function v2TypSub() {

@@ -454,7 +454,7 @@ async function openCam(chatId, sendBody, fallback) {
   if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return fallback();
   camClose(); CAM = { face: 'environment' };
   const box = document.createElement('div'); box.id = 'camv'; box.className = 'camv';
-  box.innerHTML = `<video id="cvv" playsinline muted autoplay></video><img id="cvp" alt=""><video id="cvr" playsinline controls></video>
+  box.innerHTML = `<video poster="data:image/gif;base64,R0lGODlhAQABAAAAACw=" id="cvv" playsinline muted autoplay></video><img id="cvp" alt=""><video poster="data:image/gif;base64,R0lGODlhAQABAAAAACw=" id="cvr" playsinline controls></video>
     <div class="camtop"><button id="cvx" aria-label="Cerrar">✕</button><span id="cvt"></span><button id="cvf" aria-label="Cambiar de cámara">🔄</button></div>
     <div class="cambot" id="cvb"><div class="camhint">Toca para hacer una foto · mantén pulsado para grabar vídeo</div><button class="shut" id="cvs" aria-label="Foto o vídeo"><i></i></button></div>
     <div class="cambot" id="cvk" style="display:none"><button class="btn light" id="cvn">Repetir</button><button class="btn teal" id="cvy">Enviar ➤</button></div>`;

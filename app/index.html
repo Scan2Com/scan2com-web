@@ -69,6 +69,8 @@ label{font-size:13px;color:var(--mut)}
 .buybar{position:fixed;left:0;right:0;bottom:0;z-index:3;max-width:560px;margin:0 auto;background:#f7f7f7;border-top:1px solid #dcdcdc;color:#8a8a8a;font-size:15px;text-align:center;padding:14px 12px calc(14px + env(safe-area-inset-bottom));cursor:pointer}
 .buybar b{color:#555}
 #app.homepg .fab{bottom:calc(72px + env(safe-area-inset-bottom))}
+.fbk{position:fixed;left:max(18px,calc(50% - 262px));bottom:calc(22px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:#2a2d31;color:#fff;border:0;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,.25);z-index:5;place-items:center;padding:0}.fbk i{position:absolute;top:-4px;right:-6px;font:700 9px/1 Inter,sans-serif;font-style:normal;background:#1aa3d9;color:#fff;border-radius:6px;padding:3px 4px}
+.fbrec{width:76px;height:76px;border-radius:50%;border:4px solid #e8352b;background:#fff;cursor:pointer;display:grid;place-items:center;padding:0}.fbrec span{width:52px;height:52px;border-radius:50%;background:#e8352b;transition:all .2s}.fbrec.on span{width:28px;height:28px;border-radius:6px}
 .fab{position:fixed;right:max(18px,calc(50% - 262px));bottom:calc(22px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:#2a2d31;color:#fff;border:0;font-size:28px;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,.25);z-index:4}
 .toast{position:fixed;left:50%;transform:translate(-50%,-150%);top:10px;width:min(92%,520px);background:#111;color:#fff;border-radius:14px;padding:12px 14px;font-size:14px;transition:.3s;z-index:20;cursor:pointer}
 .toast.show{transform:translate(-50%,0)}
@@ -112,7 +114,9 @@ label{font-size:13px;color:var(--mut)}
 /* el boomerang verde del logo (esquina inferior izquierda), coloreado con currentColor */
 .bm i,.bmsend{display:block;width:16px;height:16px;background:currentColor;-webkit-mask:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAETElEQVR42uWbyYvUUBDGf0nr6LjvyriDyuDoxQUX8CAoIuhJr55EBPGigifBs3+AMP+CelJU8ORFBQURNxBF3MZxX8Zdp5N4SD2mfKbTL90jdr8EHulk0pmuL19Vfa/qBYa2ecBydRxSom0l8Ar4DpwDuuX8iLIAcBxIgEHZvwB6ysSE80AsAGgQussCwmUxumox4QbQCVSAwFfjRwH3xOBI9gnwS/YH5bqKrwBMAZ6JsbECIJLj58B4udY7FoRAR41ob/y+C1jqaywIhdq16G0YscRnBlRy8n0iRnf66v+hBMFRda4b6TsA9Qyc4zMAofLtWj4+TbmEdwDkbQaQ0T4zwFUrlJIBZptadhcYL+ky8U0LuAIwCRhT5hgwQUZpARijAmHpXCCR60oJgJkQAcwuKwAm9c0qcwzwdj7gAoCh/AIfxVARAOZZMaF0LtAlWsArNViEAVMFBHwDIKhjUCC071BxwCsAfpD2APICnPH7bh8B+Ax8cbx+uW+ZwDDgp2OsWOZbJgiBD8CbOk/WUH4xMMOnTBCKMa8dAEiAyXjWJTJGvHbw7Uj2a30KhAaAxwX0wAaf4oAB4L7DUzXXrpbaQOwDC4xRDx382gii6cA6OQ59coFPKtjVK45s921WGAA3M1aJ2MO0y/vwZNFEqOr9dx2Cm3GD2cAWPFg6oxujVx2/Y6i/zxdZbJ7genm6cY4LJJabbMODBZW6/dXvEAf0AqqHpF2jsN0zgvnxp/lznWDeMGsKzygmtW1ANBTebxnnCkKvAiFsZwYskulx4hgLNFt6M+JKW4JwUYx3ZYEG4QRDTdRKu7mFcYPdBd3AdodbwKaMe7c8GKY4OomhpbNRgyAkwElgM3+vQAtbCZBKxvF3MXyrEjlBATcySrIH2AXsBBbK+fdy/9i6t3aX4H9oAPu4EzgLbGyi/BVZShPRGdeAS6I876tiTN4yPq04E0t9JsMJgH6Ka4XGc5usARp1mSWW3gMPgDvAbQHkEfAS+FjAhjDHpjgDtFwANAh7gGOktcDhKITq9ForBlRJi7QvgKfAE5l99st4J8ANKHd1dffIFQCdFo8Ah/5RXzCx4oGLpI6Bb1K/+EDa13grn38IWO8EyAFh1l0r0MdFskIHcFRQLyKQGh3GZSIxwrzHVG3if18BdjTSFA4UffYKHZMmf8xwAaRB0kANWqDp715iqL1XKaoPIK0IX7QUYPSfgCgyIgVGPw32NkI1bT4sQSrJACNuYSAGFQhLGolnGrGZwAHgeg3EDQVbDRTzNtwFIAga1A6hlVLWSHVoE2kHeWwNYWQrS1v5BU1mlLzztpAaCawImhRRFXnKelsArBIhtVKm2F0tWCfoA9YHw/zmSTXjb+MElPnid4tI1xxOlzFRUq1ekd7IViVt80cqS1WF8gOiF76KyrwNnAL6gn/4Go6WweS8tWoAmCizxEYB+KUmWlX1LvRPMTyTxb8Beu9BMfuqDbMAAAAASUVORK5CYII=) center/contain no-repeat;mask:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAETElEQVR42uWbyYvUUBDGf0nr6LjvyriDyuDoxQUX8CAoIuhJr55EBPGigifBs3+AMP+CelJU8ORFBQURNxBF3MZxX8Zdp5N4SD2mfKbTL90jdr8EHulk0pmuL19Vfa/qBYa2ecBydRxSom0l8Ar4DpwDuuX8iLIAcBxIgEHZvwB6ysSE80AsAGgQussCwmUxumox4QbQCVSAwFfjRwH3xOBI9gnwS/YH5bqKrwBMAZ6JsbECIJLj58B4udY7FoRAR41ob/y+C1jqaywIhdq16G0YscRnBlRy8n0iRnf66v+hBMFRda4b6TsA9Qyc4zMAofLtWj4+TbmEdwDkbQaQ0T4zwFUrlJIBZptadhcYL+ky8U0LuAIwCRhT5hgwQUZpARijAmHpXCCR60oJgJkQAcwuKwAm9c0qcwzwdj7gAoCh/AIfxVARAOZZMaF0LtAlWsArNViEAVMFBHwDIKhjUCC071BxwCsAfpD2APICnPH7bh8B+Ax8cbx+uW+ZwDDgp2OsWOZbJgiBD8CbOk/WUH4xMMOnTBCKMa8dAEiAyXjWJTJGvHbw7Uj2a30KhAaAxwX0wAaf4oAB4L7DUzXXrpbaQOwDC4xRDx382gii6cA6OQ59coFPKtjVK45s921WGAA3M1aJ2MO0y/vwZNFEqOr9dx2Cm3GD2cAWPFg6oxujVx2/Y6i/zxdZbJ7genm6cY4LJJabbMODBZW6/dXvEAf0AqqHpF2jsN0zgvnxp/lznWDeMGsKzygmtW1ANBTebxnnCkKvAiFsZwYskulx4hgLNFt6M+JKW4JwUYx3ZYEG4QRDTdRKu7mFcYPdBd3AdodbwKaMe7c8GKY4OomhpbNRgyAkwElgM3+vQAtbCZBKxvF3MXyrEjlBATcySrIH2AXsBBbK+fdy/9i6t3aX4H9oAPu4EzgLbGyi/BVZShPRGdeAS6I876tiTN4yPq04E0t9JsMJgH6Ka4XGc5usARp1mSWW3gMPgDvAbQHkEfAS+FjAhjDHpjgDtFwANAh7gGOktcDhKITq9ForBlRJi7QvgKfAE5l99st4J8ANKHd1dffIFQCdFo8Ah/5RXzCx4oGLpI6Bb1K/+EDa13grn38IWO8EyAFh1l0r0MdFskIHcFRQLyKQGh3GZSIxwrzHVG3if18BdjTSFA4UffYKHZMmf8xwAaRB0kANWqDp715iqL1XKaoPIK0IX7QUYPSfgCgyIgVGPw32NkI1bT4sQSrJACNuYSAGFQhLGolnGrGZwAHgeg3EDQVbDRTzNtwFIAga1A6hlVLWSHVoE2kHeWwNYWQrS1v5BU1mlLzztpAaCawImhRRFXnKelsArBIhtVKm2F0tWCfoA9YHw/zmSTXjb+MElPnid4tI1xxOlzFRUq1ekd7IViVt80cqS1WF8gOiF76KyrwNnAL6gn/4Go6WweS8tWoAmCizxEYB+KUmWlX1LvRPMTyTxb8Beu9BMfuqDbMAAAAASUVORK5CYII=) center/contain no-repeat;transform:rotate(-60deg);transition:transform .35s}
 .bmsend{width:30px!important;height:30px!important;background:#1aa3d9!important;transform:rotate(225deg)}
-.bm.left i{transform:rotate(45deg)}
+.bm.left i,.bm.part i{transform:rotate(45deg)}
+.bm{position:relative}.bm.part{transform:translateX(calc(var(--fly,0px) * (1 - var(--p,0))));color:#9aa0a6;transition:transform 1.1s cubic-bezier(.5,.05,.3,1)}
+.bmp{display:none;position:absolute;left:18px;top:1px;font:600 10px/14px Inter,sans-serif;font-style:normal;color:#9aa0a6;white-space:nowrap}.bm.part .bmp{display:block}
 /* ya leído y quieto: el tic verde de siempre */
 .bm b{display:none}
 .bm.home:not(.fly) i{display:none}
@@ -833,6 +837,77 @@ function openUrl(u) {
   else if (q.get('tab')) { S.tab = q.get('tab'); S.view = null; }
   render();
   if (q.get('zone')) { S.tab = 'alerts'; S.view = null; render(); setTimeout(() => zoneMap(q.get('zone')), 300); }
+  if (q.get('feedback')) setTimeout(fbList, 300);
+}
+
+/* ---------------- opiniones de la beta ----------------
+   Botón redondo abajo a la izquierda en todas las pantallas (mientras dure la beta): graba un audio con la opinión
+   (y, si quiere, un texto). Va a la tabla "feedback" y al almacén privado "feedback"; los administradores reciben un aviso. */
+const BETA = true;
+const FB_ICON = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z"/><rect x="10.2" y="5.6" width="3.6" height="6.2" rx="1.8"/><path d="M8.6 10.2a3.4 3.4 0 0 0 6.8 0M12 13.6v1"/></svg>`;
+const fbScreen = () => S.view?.t ? ({ edit: 'Ajustes del código', qr: 'Ver código', chat: 'Chat', vchat: 'Chat de código escaneado', pack: 'Vincular pegatinas' }[S.view.t] || S.view.t) : ({ codes: 'Códigos', chats: 'Chats', alerts: 'Avisos', sent: 'Envíos' }[S.tab] || S.tab || 'Inicio');
+function fbkPlace() {
+  let b = $('#fbk');
+  if (!BETA || !S.user || S.alarm || $('#camv')) { if (b) b.style.display = 'none'; return; }
+  if (!b) { b = document.createElement('button'); b.id = 'fbk'; b.className = 'fbk'; b.title = 'Enviar tu opinión (beta)'; b.innerHTML = FB_ICON + '<i>BETA</i>'; b.onclick = fbOpen; document.body.appendChild(b); }
+  const cmp = document.querySelector('#app .compose'), tabs = app.classList.contains('homepg');
+  const typing = /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || '') && !document.activeElement.closest('#fbs');
+  b.style.display = typing ? 'none' : 'grid';
+  b.style.bottom = cmp ? `${Math.max(22, innerHeight - cmp.getBoundingClientRect().top + 12)}px` : tabs ? 'calc(72px + env(safe-area-inset-bottom))' : 'calc(22px + env(safe-area-inset-bottom))';
+}
+document.addEventListener('focusin', () => setTimeout(fbkPlace, 50)); document.addEventListener('focusout', () => setTimeout(fbkPlace, 120));
+addEventListener('resize', () => fbkPlace());
+async function fbOpen() {
+  let rec = null, chunks = [], t0 = 0, timer = 0, blob = null, secs = 0, url = null, stream = null;
+  $('#overlay').innerHTML = zoneSheetBox(`<div id="fbs"><div style="font-weight:700;font-size:18px">🎙️ Tu opinión nos ayuda <span style="font-size:11px;background:#1aa3d9;color:#fff;border-radius:6px;padding:2px 6px;vertical-align:middle">BETA</span></div>
+    <div style="font-size:14px;color:#555;margin:6px 0 14px;line-height:1.4">Cuéntanos en un audio qué falla, qué no se entiende o qué mejorarías. Sabremos en qué pantalla estabas (${esc(fbScreen())}).</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><button class="fbrec" id="fbr" aria-label="Grabar"><span></span></button><div id="fbt" style="font-size:14px;color:#555">Toca para grabar</div><audio id="fba" controls style="display:none;width:100%"></audio></div>
+    <textarea id="fbn" rows="2" placeholder="O escríbelo aquí (opcional)" style="width:100%;margin:12px 0 10px;box-sizing:border-box"></textarea>
+    <button class="btn teal" id="fbsend">Enviar</button><button class="btn light" id="zx" style="margin-top:8px">Cancelar</button></div>`);
+  const close = () => { clearInterval(timer); try { rec?.state === 'recording' && rec.stop(); } catch (e) {} stream?.getTracks().forEach(t => t.stop()); if (url) URL.revokeObjectURL(url); $('#overlay').innerHTML = ''; fbkPlace(); };
+  $('#zs').onclick = $('#zx').onclick = close;
+  $('#fbr').onclick = async () => {
+    if (rec?.state === 'recording') return rec.stop();
+    if (!window.MediaRecorder || !navigator.mediaDevices?.getUserMedia) return toast('Este móvil no permite grabar audio aquí: escríbelo.');
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { return toast('Permite el micrófono para grabar tu opinión.'); }
+    const mt = audMime(); rec = new MediaRecorder(stream, mt ? { mimeType: mt, audioBitsPerSecond: 32000 } : {}); chunks = [];
+    rec.ondataavailable = ev => { if (ev.data.size) chunks.push(ev.data); };
+    rec.onstop = () => { clearInterval(timer); stream.getTracks().forEach(t => t.stop()); $('#fbr').classList.remove('on'); secs = Math.round((Date.now() - t0) / 1000);
+      blob = new Blob(chunks, { type: (rec.mimeType || mt || 'audio/webm').split(';')[0] }); if (url) URL.revokeObjectURL(url); url = URL.createObjectURL(blob);
+      $('#fba').src = url; $('#fba').style.display = 'block'; $('#fbt').textContent = `Audio de ${secs} s · toca para grabar otra vez`; };
+    t0 = Date.now(); rec.start(); $('#fbr').classList.add('on'); $('#fba').style.display = 'none';
+    const tick = () => { const s = Math.floor((Date.now() - t0) / 1000); $('#fbt').innerHTML = `<b style="color:#e8352b">●</b> ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} · toca para parar`; if (s >= 300) rec.stop(); };
+    tick(); timer = setInterval(tick, 250);
+  };
+  $('#fbsend').onclick = async () => {
+    if (rec?.state === 'recording') { rec.stop(); await new Promise(r => setTimeout(r, 300)); }
+    const note = $('#fbn').value.trim(); if (!blob && !note) return toast('Graba un audio o escribe algo.');
+    const btn = $('#fbsend'); btn.disabled = true; btn.textContent = 'Enviando…';
+    try {
+      let audio = null;
+      if (blob) { const type = blob.type || 'audio/webm'; audio = `${S.user.id}/${Date.now()}.${type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm'}`;
+        const { error } = await sb.storage.from('feedback').upload(audio, blob, { contentType: type }); if (error) throw error; }
+      const { error } = await sb.from('feedback').insert({ user_id: S.user.id, email: S.user.email, screen: fbScreen(), version: `${WEB_BUILD.id}${NATIVE ? ' · app' : ''}`, device: navigator.userAgent.slice(0, 200), audio, secs: blob ? secs : null, note: note || null });
+      if (error) throw error;
+      close(); toast('¡Gracias! Hemos recibido tu opinión.');
+    } catch (e) { btn.disabled = false; btn.textContent = 'Enviar'; toast('No se ha podido enviar. Inténtalo otra vez.'); }
+  };
+}
+// administradores: lista de opiniones recibidas
+async function fbList() {
+  $('#overlay').innerHTML = zoneSheetBox(`<div style="font-weight:700;font-size:18px;margin-bottom:8px">🎙️ Opiniones de la beta</div><div id="fbl" style="max-height:65vh;overflow:auto">Cargando…</div><button class="btn light" id="zx" style="margin-top:10px">Cerrar</button>`);
+  $('#zs').onclick = $('#zx').onclick = () => { $('#overlay').innerHTML = ''; };
+  const { data } = await sb.from('feedback').select('*').order('id', { ascending: false }).limit(100);
+  const rows = data || [];
+  const urls = {}; await Promise.all(rows.filter(r => r.audio).map(async r => { const { data: u } = await sb.storage.from('feedback').createSignedUrl(r.audio, 3600); urls[r.id] = u?.signedUrl; }));
+  const box = $('#fbl'); if (!box) return;
+  box.innerHTML = rows.length ? rows.map(r => `<div style="border-bottom:1px solid #eee;padding:10px 0;${r.done ? 'opacity:.5' : ''}">
+      <div style="font-size:13px;color:#555"><b>${esc(r.email || '—')}</b> · ${new Date(r.created_at).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${esc(r.screen || '')}</div>
+      ${urls[r.id] ? `<audio controls preload="none" src="${esc(urls[r.id])}" style="width:100%;margin-top:6px"></audio>` : ''}
+      ${r.note ? `<div style="margin-top:6px;white-space:pre-wrap">${esc(r.note)}</div>` : ''}
+      <div style="font-size:11px;color:#999;margin-top:4px">${esc(r.version || '')} · ${esc((r.device || '').replace(/.*\((.*?)\).*/, '$1').slice(0, 60))}</div>
+      <button class="btn light" data-fbd="${r.id}" style="margin-top:6px;padding:6px 10px;width:auto;font-size:13px">${r.done ? '↩️ Marcar pendiente' : '✓ Marcar hecho'}</button></div>`).join('') : '<div style="color:#777">Aún no hay opiniones.</div>';
+  box.querySelectorAll('[data-fbd]').forEach(b => b.onclick = async () => { const r = rows.find(x => x.id === +b.dataset.fbd); await sb.from('feedback').update({ done: !r.done }).eq('id', r.id); fbList(); });
 }
 
 /* ---------------- coche: Bluetooth + lugares seguros (app Android) ---------------- */
@@ -1039,7 +1114,7 @@ const histKey = () => 'hist_' + S.user.id;
 // une la copia del móvil con lo que aún hay en el servidor (el servidor manda en lo que tiene; lo borrado se conserva)
 function mergeById(a = [], b = []) { const m = new Map(); a.forEach(x => m.set(x.id, x)); b.forEach(x => m.set(x.id, { ...m.get(x.id), ...x })); return [...m.values()].sort((x, y) => x.id - y.id); }
 let histT = 0;
-function saveHist() { if (!S.user) return; clearTimeout(histT); histT = setTimeout(() => { IDB.set(histKey(), { o: S.msgs, v: S.vmsgs || {}, vr: S.vread || {}, r: S.reads || {}, p: S.played || {} }); ackSoon(); }, 600); }
+function saveHist() { if (!S.user) return; clearTimeout(histT); histT = setTimeout(() => { IDB.set(histKey(), { o: S.msgs, v: S.vmsgs || {}, vr: S.vread || {}, r: S.reads || {}, pp: S.ppct || {} }); ackSoon(); }, 600); }
 // fotos, audios y archivos: copia en la caché del móvil
 const MEDIA_RX = /^(img|aud|fil|vid):(https:\/\/kbkyosyenotqjcgujbmn\.supabase\.co\/storage\/v1\/object\/public\/[^#]+)/;
 const mediaUrl = b => (typeof b === 'string' && b.match(MEDIA_RX) || [])[2] || '';
@@ -1071,13 +1146,23 @@ async function hydrateMedia() {
     el.closest('.m')?.classList.remove('gone');
   }
 }
-// al reproducir un audio o vídeo de la otra persona se avisa (su tic se pone verde)
-document.addEventListener('play', e => {
-  const m = e.target.closest?.('[data-pm]'); if (!m || !S.view) return; const id = +m.dataset.pm; if (S.played?.[id]) return;
-  (S.played ||= {})[id] = 1; saveHist();
-  if (S.view.t === 'chat') sb.rpc('mark_played', { p_msg: id }).then(() => {}, () => {});
-  else if (S.view.t === 'vchat') { const v = (S.vchats || []).find(x => x.id === S.view.id); if (v) sb.rpc('visitor_played', { p_chat: v.id, p_token: v.token, p_msg: id }).then(() => {}, () => {}); }
-}, true);
+// al reproducir un audio o vídeo de la otra persona se le avisa de hasta dónde ha llegado (0-100 %):
+// su boomerang vuelve en esa proporción y al 100 % sale el tic verde
+const pctOf = id => (S.ppct || {})[id] || 0;
+const playSent = {}; let playT = 0;
+function playReport(id, pct) {
+  if (pct <= (playSent[id] || 0)) return; (S.ppct ||= {})[id] = Math.max(pctOf(id), pct);
+  clearTimeout(playT); const go = () => { const v = S.ppct[id]; if (v <= (playSent[id] || 0)) return; playSent[id] = v; saveHist();
+    if (S.view?.t === 'chat') sb.rpc('mark_played', { p_msg: id, p_pct: v }).then(() => {}, () => {});
+    else if (S.view?.t === 'vchat') { const ch = (S.vchats || []).find(x => x.id === S.view.id); if (ch) sb.rpc('visitor_played', { p_chat: ch.id, p_token: ch.token, p_msg: id, p_pct: v }).then(() => {}, () => {}); } };
+  if (pct >= 100 || pct - (playSent[id] || 0) >= 25) go(); else playT = setTimeout(go, 2500);
+}
+['timeupdate', 'ended', 'pause'].forEach(ev => document.addEventListener(ev, e => {
+  const el = e.target, m = el.closest?.('[data-pm]'); if (!m) return; const id = +m.dataset.pm;
+  const dur = isFinite(el.duration) && el.duration > 0 ? el.duration : +m.dataset.secs || 0;
+  const pct = ev === 'ended' ? 100 : dur ? Math.min(100, Math.round(el.currentTime / dur * 100)) : 0;
+  if (pct >= 98) return playReport(id, 100); if (pct > 0) playReport(id, pct);
+}, true));
 // archivo: se descarga desde la copia del móvil (o del servidor si aún está)
 document.addEventListener('click', async e => {
   const a = e.target.closest('a.filw'); if (!a) return; e.preventDefault();
@@ -1162,11 +1247,11 @@ async function loadAll() {
   const local = (await IDB.get(histKey())) || {};
   const srv = {}, ids = S.chats.map(x => x.id);
   if (ids.length) {
-    const [{ data }, rd, pl] = await Promise.all([sb.from('messages').select('*').in('chat_id', ids).order('id'), sb.from('chat_reads').select('*').in('chat_id', ids), sb.from('msg_played').select('msg_id').in('chat_id', ids)]);
-    S.played = { ...(local.p || {}), ...Object.fromEntries((pl.data || []).map(r => [r.msg_id, 1])) };
+    const [{ data }, rd, pl] = await Promise.all([sb.from('messages').select('*').in('chat_id', ids).order('id'), sb.from('chat_reads').select('*').in('chat_id', ids), sb.from('msg_played').select('msg_id,pct').in('chat_id', ids)]);
+    S.ppct = { ...(local.pp || {}) }; (pl.data || []).forEach(r => { S.ppct[r.msg_id] = Math.max(S.ppct[r.msg_id] || 0, r.pct || 100); });
     (data || []).forEach(m => (srv[m.chat_id] ||= []).push(m));
     S.reads = Object.fromEntries((rd.data || []).map(r => [r.chat_id, r]));
-  } else { S.reads = {}; S.played = { ...(local.p || {}) }; }
+  } else { S.reads = {}; S.ppct = { ...(local.pp || {}) }; }
   S.msgs = {}; ids.forEach(id => { const l = mergeById(local.o?.[id], srv[id]); if (l.length) S.msgs[id] = l; });
   Object.entries(local.r || {}).forEach(([k, r]) => { S.reads[k] = { ...r, ...S.reads[k], visitor_upto: Math.max(r.visitor_upto || 0, S.reads[k]?.visitor_upto || 0) }; });
   // chats de códigos escaneados: copia local + lo nuevo del servidor (en segundo plano, sin marcar como leído)
@@ -1179,19 +1264,26 @@ async function loadAll() {
 }
 // acuse de lectura con el boomerang del icono: azul y a la izquierda = enviado sin leer; vuelve a su sitio en verde (forma de tic) = leído
 const BM_SVG = '';
-const bm = (id, read, at) => `<span class="bm" data-bm="${id}" data-read="${read ? 1 : 0}" data-at="${esc(at || '')}" title="${read ? 'Leído' : 'Enviado, sin leer'}"><i></i><b>${IC.check(16)}</b></span>`;
+// pct (audios y vídeos): cuánto lo ha reproducido la otra persona; el boomerang vuelve en esa proporción
+const bm = (id, read, at, pct = 0) => { const p = read ? 0 : Math.max(0, Math.min(99, pct | 0)); return `<span class="bm" data-bm="${id}" data-read="${read ? 1 : 0}" data-pct="${p}" data-at="${esc(at || '')}" title="${read ? 'Leído' : p ? 'Escuchado el ' + p + ' %' : 'Enviado, sin leer'}"><i></i><b>${IC.check(16)}</b><em class="bmp">${p}%</em></span>`; };
 S.bmPos = {}; S.vread = {}; S.bmBusy = {};
 // tocar "enviar" no debe quitar el foco del cuadro de texto (si no, el teclado se cierra)
 function keepKb() { const b = $('#os'); if (b) { b.onpointerdown = e => e.preventDefault(); b.onmousedown = e => e.preventDefault(); } }
-function bmPlace(el, p) { el.classList.remove('home', 'left', 'fly'); el.classList.add('now', p); void el.offsetWidth; el.classList.remove('now'); }
+function bmPlace(el, p) { el.classList.remove('home', 'left', 'fly', 'part'); el.classList.add('now', p); void el.offsetWidth; el.classList.remove('now'); }
 function bmFly(el, from, to) { bmPlace(el, from); el.classList.add('fly'); el.classList.remove(from); el.classList.add(to); setTimeout(() => el.classList.remove('fly'), 1150); }
 function bmSync() {
   hydrateMedia();
   const all = [...document.querySelectorAll('.bm')], lastEl = all.at(-1);
   all.forEach(el => {
     const box = el.closest('.msgs'); if (!box) return;
-    const id = el.dataset.bm, want = el.dataset.read === '1' ? 'home' : 'left', cur = S.bmPos[id];
+    const id = el.dataset.bm, pct = +el.dataset.pct || 0, want = el.dataset.read === '1' ? 'home' : pct ? 'part' : 'left', cur = S.bmPos[id];
     el.style.setProperty('--fly', -Math.max(0, el.parentElement.getBoundingClientRect().right - 18 - box.getBoundingClientRect().left - 6) + 'px');   // se mide desde el sitio fijo (la hora), no desde el boomerang ya movido
+    if (want === 'part') {   // reproducido en parte: se queda a ese porcentaje del camino de vuelta, con el % al lado
+      const was = (S.bmPct ||= {})[id]; el.style.setProperty('--p', (was ?? (cur === 'home' ? 100 : 0)) / 100);
+      bmPlace(el, cur === 'part' ? 'part' : cur || 'left'); S.bmPos[id] = 'part'; S.bmPct[id] = pct;
+      requestAnimationFrame(() => { el.classList.remove('left', 'home'); el.classList.add('part'); el.style.setProperty('--p', pct / 100); });
+      return;
+    }
     if (el !== lastEl) { S.bmPos[id] = want; return bmPlace(el, want); }   // solo se mueve el del último mensaje
     if (!cur && !(Date.now() - (S.bmJustSent || 0) < 15000)) { S.bmPos[id] = want; return bmPlace(el, want); }
     const wait = (S.bmBusy[id] || 0) - Date.now();
@@ -1228,8 +1320,8 @@ function subscribe() {
       render(true);
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, ({ new: m }) => {
-      const x = (S.msgs[m.chat_id] || []).find(y => y.id === m.id); if (!x || (x.read_at === m.read_at && x.played_at === m.played_at)) return;
-      x.read_at = m.read_at; x.played_at = m.played_at; if (m.played_at) (S.played ||= {})[m.id] = 1; saveHist(); if (S.view?.t === 'chat' && S.view.id === m.chat_id) render(true);
+      const x = (S.msgs[m.chat_id] || []).find(y => y.id === m.id); if (!x || (x.read_at === m.read_at && x.played_pct === m.played_pct)) return;
+      x.read_at = m.read_at; x.played_at = m.played_at; x.played_pct = m.played_pct; if (m.played_pct) (S.ppct ||= {})[m.id] = Math.max(pctOf(m.id), m.played_pct); saveHist(); if (S.view?.t === 'chat' && S.view.id === m.chat_id) render(true);
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_reads' }, ({ new: r }) => {
       if (!r?.chat_id) return; const o = S.reads[r.chat_id] || {}; S.reads[r.chat_id] = { ...r, visitor_upto: Math.max(o.visitor_upto || 0, r.visitor_upto || 0) }; saveHist();
@@ -1266,6 +1358,7 @@ function render(soft) {
   if (S.alarm) $('#overlay').innerHTML = alarmHTML(); else if (!$('#overlay .keep')) $('#overlay').innerHTML = '';
   if (S.touring && S.tourKeyNow) highlight(S.tourKeyNow);
   if (keep) { const el = document.getElementById(keep.id); if (el) { el.value = keep.v; el.focus(); } }
+  fbkPlace();
 }
 
 function renderAuth() {
@@ -1434,7 +1527,7 @@ function accountMenu() {
     <div style="font-weight:700">${esc(S.user.email)}</div><div style="font-size:13px;color:#777;margin-bottom:14px">Tu email no se muestra nunca a quien escanea tus códigos.</div>
     <button class="btn light" id="nt" style="margin-bottom:8px">${IC.bell(20)}${NATIVE && S.av ? (avMissing() ? 'Configurar avisos' : 'Avisos configurados ✓') : notifOn() ? 'Notificaciones activadas ✓' : 'Activar notificaciones'}</button>
     <button class="btn light" id="sp" style="margin-bottom:8px">${IC.lock(20)}Lugares seguros (${(S.places || []).length})</button>
-    ${S.admin ? `<a class="btn" href="/admin/zona.html" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px;background:#f28c00;color:#fff">📢 Enviar aviso por zona</a>` : ''}
+    ${S.admin ? `<a class="btn" href="/admin/zona.html" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px;background:#f28c00;color:#fff">📢 Enviar aviso por zona</a><button class="btn light" id="fbl0" style="margin-bottom:8px">🎙️ Opiniones de la beta</button>` : ''}
     <button class="btn light" id="zn" style="margin-bottom:8px">${IC.alert(20)}Avisos de emergencia en tu zona: <b style="margin-left:4px;color:${S.zone ? '#1a9c16' : '#999'}">${S.zone ? (S.av && (S.av.loc === false || S.av.locOn === false) ? 'falta la ubicación' : 'activados') : 'desactivados'}</b></button>
     <button class="btn light" id="how" style="margin-bottom:8px">${IC.play(20)}Cómo funciona</button>
     <button class="btn light" id="rh" style="margin-bottom:8px">${IC.play(20)}Ayudas de cada pantalla</button>
@@ -1449,6 +1542,7 @@ function accountMenu() {
   $('#thm').onclick = () => { const d = !document.documentElement.classList.contains('dark'); document.documentElement.classList.toggle('dark', d); try { localStorage.setItem('sa_theme', d ? 'dark' : 'light'); } catch (e) {} accountMenu(); };
   if ($('#ver')) $('#ver').onclick = async () => { $('#overlay').innerHTML = ''; await checkVersion(true); };
   $('#rh').onclick = helpsMenu;
+  if ($('#fbl0')) $('#fbl0').onclick = fbList;
   $('#how').onclick = () => { $('#overlay').innerHTML = ''; S.tourForce = true; S.tab = 'codes'; S.view = null; render(); setTimeout(playTour, 100); };
   $('#lo').onclick = async () => { await pushOff(); await sb.auth.signOut(); location.reload(); };
   $('#nt').onclick = async () => { $('#overlay').innerHTML = ''; if (NATIVE && S.av) return avOpen(true); if (notifOn()) return toast('Las notificaciones ya están activadas en este móvil.'); await enablePush(true); };
@@ -1880,8 +1974,8 @@ async function carSheetPdf(c, url, mirror) {
 }
 
 /* ---------- chat ---------- */
-const ownerMsgs = (ch, list) => (withDays(list, m => m.created_at, m => `<div class="m ${m.from_visitor ? 'them' : 'me'}"${m.from_visitor && isPlayable(m.body) ? ` data-pm="${m.id}"` : ''}>${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${msgBody(m.body, m.created_at)}<div class="tm">${hm(m.created_at)}${m.from_visitor ? '' : bm(m.id, isPlayable(m.body) ? !!(m.played_at || S.played?.[m.id]) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at)}</div></div>`) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
-const visitorMsgs = (v, list) => (withDays(list, m => m.at, m => `<div class="m ${m.mine ? 'me' : 'them'}"${!m.mine && isPlayable(m.body) ? ` data-pm="${m.id}"` : ''}>${msgBody(m.body, m.at)}<div class="tm">${hm(m.at)}${m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, isPlayable(m.body) ? !!S.played?.[m.id] : m.id <= S.vread[v.id], m.at) : ''}</div></div>`) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
+const ownerMsgs = (ch, list) => (withDays(list, m => m.created_at, m => `<div class="m ${m.from_visitor ? 'them' : 'me'}"${m.from_visitor && isPlayable(m.body) ? ` data-pm="${m.id}" data-secs="${+(m.body.match(/#(\d+)$/) || [])[1] || 0}"` : ''}>${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${msgBody(m.body, m.created_at)}<div class="tm">${hm(m.created_at)}${m.from_visitor ? '' : bm(m.id, isPlayable(m.body) ? !!(m.played_at || pctOf(m.id) >= 100) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at, isPlayable(m.body) ? Math.max(m.played_pct || 0, pctOf(m.id)) : 0)}</div></div>`) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
+const visitorMsgs = (v, list) => (withDays(list, m => m.at, m => `<div class="m ${m.mine ? 'me' : 'them'}"${!m.mine && isPlayable(m.body) ? ` data-pm="${m.id}" data-secs="${+(m.body.match(/#(\d+)$/) || [])[1] || 0}"` : ''}>${msgBody(m.body, m.at)}<div class="tm">${hm(m.at)}${m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, isPlayable(m.body) ? pctOf(m.id) >= 100 : m.id <= S.vread[v.id], m.at, isPlayable(m.body) ? pctOf(m.id) : 0) : ''}</div></div>`) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
 // el chat ya está en pantalla: solo se actualizan los mensajes (no se cierra el teclado ni se corta la animación)
 function patchMsgs(key, html) {
   const ms = $('#ms'), cb = $('#cb');
@@ -2040,8 +2134,8 @@ async function vFetch(v, bg) {
   S.vmsgs ||= {}; const l = S.vmsgs[v.id] ||= [];
   const { data } = await sb.rpc('visitor_messages', { p_chat: v.id, p_token: v.token, p_after: l.at(-1)?.id || 0, p_seen: !bg && !document.hidden });
   if (!data?.ok) return;
-  const ru = Math.max(data.read_upto || 0, S.vread[v.id] || 0); S.played ||= {};
-  const np = (data.played || []).filter(id => !S.played[id]); np.forEach(id => { S.played[id] = 1; }); if (np.length) saveHist();
+  const ru = Math.max(data.read_upto || 0, S.vread[v.id] || 0); S.ppct ||= {};
+  const np = Object.entries(data.played_pct || {}).filter(([id, p]) => p > pctOf(+id)); np.forEach(([id, p]) => { S.ppct[+id] = p; }); if (np.length) saveHist();
   const changed = np.length || data.messages.length || v.alive !== data.alive || ru !== S.vread[v.id]; v.alive = data.alive; S.vread[v.id] = ru;
   data.messages.forEach(m => { if (!l.find(x => x.id === m.id)) l.push(m); });
   if (data.messages.length) { saveHist(); if (data.messages.some(m => mediaUrl(m.body))) setTimeout(cacheAllMedia, 50); }

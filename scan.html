@@ -406,7 +406,7 @@ async function linkChat() {
 function renderChat() {
   app.innerHTML = `
     <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div>${sbA ? `<a href="/app/?vchat=${chat.id}" style="font-size:13px;color:#0a8f8f;font-weight:600;text-decoration:none">Mis chats ›</a>` : '<span style="font-size:12px;color:#777">chat anónimo</span>'}</div>
-    <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}"${!m.mine && /^(aud|vid):/.test(m.body) ? ` data-pm="${m.id}"` : ''}>${msgBody(m.body, m.at)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
+    <div class="msgs scrollme" id="ms">${msgs.length ? msgs.map(m => `<div class="m ${m.mine ? 'me' : 'them'}"${!m.mine && /^(aud|vid):/.test(m.body) ? ` data-pm="${m.id}" data-secs="${+(m.body.match(/#(\d+)$/) || [])[1] || 0}"` : ''}>${msgBody(m.body, m.at)}</div>`).join('') : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
     ${alive ? `<div class="ws"><button class="camb" id="cph" title="Enviar foto, ubicación o archivo"><i></i></button><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs"><span class="st">Enviar</span><span class="sm"><svg width="26" height="26" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="stopi"></span></span></button></div>` : ''}`;
   $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };
   app.classList.add('full'); const ms = $('#ms'); ms.scrollTop = ms.scrollHeight;
@@ -448,9 +448,19 @@ function renderChat() {
   }
 }
 
-// al reproducir un audio o vídeo del dueño se le avisa (su tic se pone verde)
-const playedSent = new Set();
-document.addEventListener('play', e => { const m = e.target.closest?.('[data-pm]'); if (!m || !chat) return; const id = +m.dataset.pm; if (playedSent.has(id)) return; playedSent.add(id); rpc('visitor_played', { p_chat: chat.id, p_token: chat.token, p_msg: id }); }, true);
+// al reproducir un audio o vídeo del dueño se le avisa de hasta dónde se ha llegado (0-100 %; al 100 % sale su tic verde)
+const playSent = {}, playMax = {}; let playT = 0;
+function playReport(id, pct) {
+  if (pct <= (playSent[id] || 0)) return; playMax[id] = Math.max(playMax[id] || 0, pct); clearTimeout(playT);
+  const go = () => { const v = playMax[id]; if (!chat || v <= (playSent[id] || 0)) return; playSent[id] = v; rpc('visitor_played', { p_chat: chat.id, p_token: chat.token, p_msg: id, p_pct: v }); };
+  if (pct >= 100 || pct - (playSent[id] || 0) >= 25) go(); else playT = setTimeout(go, 2500);
+}
+['timeupdate', 'ended', 'pause'].forEach(ev => document.addEventListener(ev, e => {
+  const el = e.target, m = el.closest?.('[data-pm]'); if (!m) return; const id = +m.dataset.pm;
+  const dur = isFinite(el.duration) && el.duration > 0 ? el.duration : +m.dataset.secs || 0;
+  const pct = ev === 'ended' ? 100 : dur ? Math.min(100, Math.round(el.currentTime / dur * 100)) : 0;
+  if (pct >= 98) return playReport(id, 100); if (pct > 0) playReport(id, pct);
+}, true));
 async function fetchMsgs() {
   const r = await rpc('visitor_messages', { p_chat: chat.id, p_token: chat.token, p_after: lastMsg, p_seen: !document.hidden });
   if (!r.ok) { if (r.error === 'forbidden') { localStorage.removeItem(chatKey()); chat = null; view = 'home'; clearInterval(poll); render(); } return; }

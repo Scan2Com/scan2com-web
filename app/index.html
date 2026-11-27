@@ -1780,7 +1780,7 @@ function accountMenu() {
       <button class="thsw ${document.documentElement.classList.contains('dark') ? 'dk' : ''}" id="thm" title="Modo claro / oscuro"><span>☀️</span><span>🌙</span><i></i></button></div>
     <div class="msec">AJUSTES</div>
     ${mrow('nt', IC.bell(20), 'Notificaciones', NATIVE && S.av ? (avMissing() ? 'Falta configurar: toca para completarlo' : 'Configuradas ✓') : notifOn() ? 'Activadas ✓' : 'Desactivadas: toca para activarlas')}
-    ${mrow('zn', IC.alert(20), 'Avisos de emergencia en tu zona', S.zone ? (S.av && (S.av.loc === false || S.av.locOn === false) ? 'Falta la ubicación' : 'Activados') : 'Desactivados')}
+    ${mrow('zn', IC.alert(20), 'Avisos de emergencia en tu zona', 'Te avisa de incendios, inundaciones, calles cortadas o retirada de coches cerca de ti o de donde dejaste el coche. Los envían la policía y los servicios de emergencia · <b style="color:' + (S.zone ? '#1a9c16' : '#999') + '">' + (S.zone ? (S.av && (S.av.loc === false || S.av.locOn === false) ? 'Falta la ubicación' : 'Activados') : 'Desactivados') + '</b>')}
     ${mrow('sp', BTCAR, 'Coche: Bluetooth y lugares seguros', `La pegatina del coche se activa sola al apagarse el Bluetooth del coche (al bajarte), salvo en tus lugares seguros (${(S.places || []).length})`)}
     <div class="msec">AYUDA</div>
     ${mrow('rh', IC.play(20), 'Ayudas de cada pantalla', 'Te llevo a cada pantalla y te la explico en voz alta')}

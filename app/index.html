@@ -39,6 +39,7 @@ details.blk{border-radius:14px;background:var(--v2card,#1b2023);margin:10px 0;pa
 details.blk>summary{list-style:none;cursor:pointer;padding:14px 0;font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--v2sub,#9aa0a6);display:flex;align-items:center;gap:8px}details.blk>summary::-webkit-details-marker{display:none}
 details.blk>summary::after{content:'';margin-left:auto;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s}details.blk[open]>summary::after{transform:rotate(-135deg)}
 details.blk>summary em{font-style:normal;font-weight:500;letter-spacing:0;color:var(--v2txt,#e8eaed);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}details.blk[open]>summary em{display:none}
+.rbar{height:6px;border-radius:3px;background:rgba(127,127,127,.25);margin-top:6px;overflow:hidden}.rbar i{display:block;height:100%;border-radius:3px;background:#2fc23a;transition:width .6s}.rbt{font-size:12px;color:var(--v2sub,#9aa0a6);margin-top:3px}
 .namebar{flex:none;background:#3a3a3a;color:#fff;text-align:center;font-size:14px;font-weight:500;letter-spacing:.06em;padding:13px 12px 17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tabs .ind{position:absolute;left:0;bottom:0;width:33.3333%;height:4px;background:#33b5e5;transition:transform .28s cubic-bezier(.2,.8,.2,1);pointer-events:none}
 #app.homepg{height:var(--vvh,100dvh);min-height:0;overflow:hidden;flex:none}
@@ -1656,7 +1657,8 @@ function renderHome() {
     const gn = (S.zrole?.groups || []).map(g => g.name).join(', ');
     return `<div class="zhead"><div class="zt"><b>Avisos por zona</b>${gn ? 'Envías como ' + esc(gn) : ''}${S.zrole?.admin ? (gn ? ' · ' : '') + 'Administrador: ves todos los grupos' : ''}</div><a class="zbtn" href="/admin/zona.html">${AVI.megaphone}Enviar aviso</a></div>`
       + (hs.length ? hs.map((h, i) => `<div class="ev" data-zhist="${h.id}">${ring('#e8352b', AVI[(ZKIND[h.kind] || ZKIND.other)[0]])}<div class="grow"><div class="t1">${esc(h.title)}</div>
-        <div class="s1">${h.group && (S.zrole?.admin || (S.zrole?.groups || []).length > 1) ? esc(h.group) + ' · ' : ''}${new Date(h.at).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${h.users} avisad${h.users === 1 ? 'a' : 'as'} · ${h.read} ${h.read === 1 ? 'lo ha' : 'lo han'} leído · ${fm(h.radius)}</div></div></div>`).join('')
+        <div class="s1">${h.group && (S.zrole?.admin || (S.zrole?.groups || []).length > 1) ? esc(h.group) + ' · ' : ''}${new Date(h.at).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${fm(h.radius)}</div>
+        <div class="rbar"><i style="width:${h.users ? Math.round(h.read / h.users * 100) : 0}%"></i></div><div class="rbt">${h.read} de ${h.users} lo ${h.read === 1 ? 'ha' : 'han'} leído${h.users ? ' · ' + Math.round(h.read / h.users * 100) + ' %' : ''}</div></div></div>`).join('')
       : `<div class="empty">Aquí verás los avisos por zona que envíe ${(S.zrole?.groups || []).length === 1 && !S.zrole.admin ? esc(S.zrole.groups[0].name) : 'tu grupo'}: a cuánta gente llegaron, cuántos los han leído y la zona en el mapa.</div>`);
   }
   if (tab === 'codes') {
@@ -1728,7 +1730,10 @@ function renderHome() {
   app.querySelectorAll('[data-mt]').forEach(b => { let t; b.oncontextmenu = e => e.preventDefault(); b.onpointerdown = e => { e.stopPropagation(); t = setTimeout(() => toast(b.dataset.mt), 400); }; b.onpointerup = b.onpointerleave = () => clearTimeout(t); b.onclick = e => e.stopPropagation(); });
   app.querySelectorAll('[data-edit]').forEach(b => b.onclick = e => { e.stopPropagation(); S.view = { t: 'edit', id: b.dataset.edit }; render(); });
   app.querySelectorAll('[data-qr]').forEach(b => b.onclick = e => { e.stopPropagation(); S.view = { t: 'qr', id: b.dataset.qr }; render(); });
-  app.querySelectorAll('[data-code]').forEach(b => b.onclick = () => { S.view = { t: 'qr', id: b.dataset.code }; render(); });
+  app.querySelectorAll('[data-code]').forEach(b => { let t, lp = false;
+    b.onpointerdown = e => { if (e.target.closest('[data-pw],[data-edit],[data-mt]')) return; lp = false; t = setTimeout(() => { lp = true; try { navigator.vibrate?.(30); } catch (x) {} codeMenu(b.dataset.code); }, 500); };
+    b.onpointerup = b.onpointerleave = b.onpointercancel = () => clearTimeout(t); b.oncontextmenu = e => e.preventDefault();
+    b.onclick = () => { if (lp) { lp = false; return; } S.view = { t: 'qr', id: b.dataset.code }; render(); }; });
   app.querySelectorAll('[data-chat]').forEach(b => b.onclick = () => { S.view = { t: 'chat', id: b.dataset.chat }; render(); });
   app.querySelectorAll('[data-vchat]').forEach(b => b.onclick = () => { S.view = { t: 'vchat', id: b.dataset.vchat }; render(); });
   app.querySelectorAll('[data-qrc]').forEach(b => b.onclick = () => codeOf(b.dataset.qrc) ? (S.view = { t: 'qr', id: b.dataset.qrc }, render()) : showScannedQR(b.dataset.qrc, b.dataset.qrn));
@@ -1770,6 +1775,16 @@ function accountMenu() {
   $('#ins').onclick = () => { $('#overlay').innerHTML = ''; toast('En Chrome (Android): menú ⋮ → “Añadir a pantalla de inicio”. En iPhone (Safari): Compartir → “Añadir a pantalla de inicio”.'); };
 }
 
+// mantener pulsada la tarjeta de un código: menú rápido
+function codeMenu(id) {
+  const c = codeOf(id); if (!c) return; const own = c.owner_id === S.user.id, url = `${SITE}/s/${c.id}`;
+  const it = [['qr', IC.eye(20), 'Ver código'], own && ['ed', IC.sliders(20), 'Ajustes'], ['sh', IC.shareL(20), 'Compartir'], isCar(c) && ['pdf', IC.pdf(20), 'PDF para imprimir'], own && ['pw', IC.power(20), c.is_on ? 'Apagar' : 'Encender']].filter(Boolean);
+  $('#overlay').innerHTML = `<div class="sheet" id="cmq"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
+    <div style="font-weight:700;font-size:17px;margin-bottom:10px">${esc(c.name || c.public_name || 'Código')}</div>${it.map(([k, ic, l]) => `<button class="btn light" data-cq="${k}" style="margin-bottom:8px;justify-content:flex-start;gap:12px">${ic}${l}</button>`).join('')}</div></div>`;
+  $('#cmq').onclick = () => { $('#overlay').innerHTML = ''; };
+  $('#cmq').querySelectorAll('[data-cq]').forEach(b => b.onclick = () => { const k = b.dataset.cq; $('#overlay').innerHTML = '';
+    if (k === 'qr') { S.view = { t: 'qr', id }; render(); } else if (k === 'ed') { S.view = { t: 'edit', id }; render(); } else if (k === 'sh') shareCode(c, url); else if (k === 'pdf') carSheetAsk(c, url); else if (k === 'pw') togglePower(id); });
+}
 async function togglePower(id) {
   const c = codeOf(id); if (!c || c.owner_id !== S.user.id) return toast('Solo el dueño puede encender o apagar este código.');
   c.is_on = !c.is_on; render();

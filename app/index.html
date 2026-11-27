@@ -250,6 +250,114 @@ html.dark [style*="color:#555"],html.dark [style*="color:#666"],html.dark [style
 @keyframes slR{from{transform:translateX(-40px);opacity:.3}to{transform:none;opacity:1}}
 .body{touch-action:pan-y}
 .callmsg{font-weight:600}.callmsg.miss{color:#e53935}
+/* ===== V2 (27-11-2026): diseño propio, neutro, con los boomerangs del icono ===== */
+:root{--v2bg:#eef0ee;--v2card:#fff;--v2line:#e3e6e3;--v2sub:#7a8487;--v2muted:#e8ebe8;--v2me:#dfeee6;--v2them:#fff;--v2ink:#22282a;--v2frame:#22282a88;--v2bar:#fff}
+html.dark{--v2bg:#121517;--v2card:#1b2023;--v2line:#262b2e;--v2sub:#8d979b;--v2muted:#2a3033;--v2me:#25332e;--v2them:#1e2326;--v2ink:#e7eaec;--v2frame:#ffffffa0;--v2bar:#171b1d}
+/* barra y pestañas */
+.bar{background:var(--v2bar);color:var(--v2ink);border-bottom:1px solid var(--v2line)}
+.bar .name{color:var(--v2ink);font-weight:700;letter-spacing:-.3px}.bar .ib,.bar .star{color:var(--v2ink)}.bar .back{color:var(--v2ink)}
+.tabs{background:var(--v2bar);border-bottom:1px solid var(--v2line)}
+.tabs button{color:var(--v2sub);font-weight:600;font-size:13px;border-bottom:0}.tabs button.on{color:var(--v2ink)}
+.tabs .ind{height:3px;background:transparent}.tabs .ind::after{content:'';position:absolute;left:50%;bottom:0;width:30px;height:3px;border-radius:3px;background:#2fc23a;transform:translateX(-50%)}
+.pager{background:var(--v2bg)}
+/* listas en tarjetas */
+.page .item,.page .ev{height:auto;min-height:72px;margin:8px 12px 0;border-radius:18px;border:0;background:var(--v2card);padding:11px 14px;box-shadow:0 1px 2px #0000000d}
+html.dark .page .item,html.dark .page .ev{background:var(--v2card);box-shadow:none}
+.page .ev.new{background:var(--v2card);position:relative}.page .ev.new::before{content:'';position:absolute;left:5px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:#e8352b}
+html.dark .page .ev.new{background:var(--v2card)}
+.item .t{font-size:17px;font-weight:600;color:var(--v2ink)}html.dark .item .t{color:var(--v2ink)}.item .s{font-size:14px;color:var(--v2sub)}
+.grp{border-top:0;color:var(--v2sub);font-size:13px;padding:14px 16px 2px}
+.pad.section{color:var(--v2sub)}
+/* tarjeta de código: QR en miniatura con los 4 boomerangs del color de cada medio */
+.qrt{position:relative;width:58px;height:58px;flex:none;padding:8px;cursor:pointer}
+.qrt .q{width:100%;height:100%;border-radius:4px;overflow:hidden;background:#fff}
+.item.off .qrt .q{opacity:.45}
+.qrt .bfr{inset:0}.qrt .bfr i{width:16px;height:16px}
+.chips{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}.chips span{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:8px;background:var(--v2muted);color:var(--v2sub)}
+.sw2{width:46px;height:28px;border-radius:14px;background:#2fc23a;position:relative;flex:none;border:0;cursor:pointer;transition:background .2s}.sw2::after{content:'';position:absolute;top:3px;left:21px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 2px #0003}
+.sw2.off{background:var(--v2muted)}.sw2.off::after{left:3px}
+.item .ib.set2{color:var(--v2sub);padding:6px}
+/* marco de 4 boomerangs (forma exacta del icono; las esquinas son espejos) */
+.bfr{position:absolute;inset:-8px;pointer-events:none;z-index:1}
+.bfr i{position:absolute;width:20px;height:20px;color:#2fc23a;display:block}
+.bfr i svg{width:100%;height:100%;display:block}
+.bfr .tl{left:0;top:0}.bfr .tr{right:0;top:0;transform:scaleX(-1)}.bfr .bl{left:0;bottom:0;transform:scaleY(-1)}.bfr .br{right:0;bottom:0;transform:scale(-1,-1)}
+/* chat */
+#app.full{background:var(--v2bg)}
+#cb{background:var(--v2bg)}
+.msgs{gap:10px;padding:14px 14px 10px}
+.m{border-radius:18px;border:0;box-shadow:none;font-size:16.5px;padding:9px 13px 6px;max-width:78%;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;transition:transform .15s}
+.m.them::before,.m.me::after{display:none}
+.m.me{background:var(--v2me);color:var(--v2ink);margin-right:0;border-bottom-right-radius:6px}
+.m.them{background:var(--v2them);color:var(--v2ink);margin-left:0;border-bottom-left-radius:6px}
+html:not(.dark) .m.them{box-shadow:0 1px 2px #0000000f}
+html.dark .m.me{background:var(--v2me);color:var(--v2ink)}html.dark .m.them{background:var(--v2them);color:var(--v2ink)}
+.m .tm{color:var(--v2sub);font-size:11.5px}html.dark .m .tm{color:var(--v2sub)}
+.daysep span{background:var(--v2card);color:var(--v2sub);font-weight:600;text-transform:none}html.dark .daysep span{background:var(--v2card);color:var(--v2sub)}
+.compose{background:var(--v2bar);border-top:1px solid var(--v2line)}html.dark .compose{background:var(--v2bar);border-top-color:var(--v2line)}
+.compose input{background:var(--v2bg);border:0;border-radius:22px;padding:11px 16px;color:var(--v2ink)}
+.m.pinned{margin-top:4px;margin-bottom:4px}
+.m.selm{z-index:2}.m.selm .bfr.sf i{color:#2fc23a}
+.m.flash{animation:flash 1.2s ease}@keyframes flash{0%,40%{box-shadow:0 0 0 3px #2fc23a88}100%{box-shadow:0 0 0 0 #2fc23a00}}
+.m.swr{box-shadow:-6px 0 0 -2px #2fc23a}
+/* enviar = escanear */
+.m.scan{animation:scpop .5s ease both}@keyframes scpop{0%{opacity:0;transform:translateY(12px)}40%{opacity:1;transform:none}}
+.bfr.scanf i{animation:scclose .34s cubic-bezier(.2,.9,.3,1.15) both}
+.bfr.scanf .tl{--x:-14px;--y:-12px}.bfr.scanf .tr{--x:14px;--y:-12px;--s:-1,1}.bfr.scanf .bl{--x:-14px;--y:12px;--s:1,-1}.bfr.scanf .br{--x:14px;--y:12px;--s:-1,-1}
+@keyframes scclose{from{opacity:0;transform:translate(var(--x),var(--y)) scale(var(--s,1,1))}to{opacity:1;transform:translate(0,0) scale(var(--s,1,1))}}
+.bfr.scanf{color:var(--v2frame);animation:scout .3s ease .62s both}.bfr.scanf i{color:var(--v2frame)}@keyframes scout{to{opacity:0;transform:scale(.97)}}
+.scanl{position:absolute;left:6px;right:6px;height:2px;border-radius:2px;background:#ff4b3e;box-shadow:0 0 8px 1px #ff4b3e88;top:0;opacity:0;pointer-events:none;animation:scln .3s ease-in-out .3s both}
+@keyframes scln{0%{top:3px;opacity:0}20%{opacity:1}100%{top:calc(100% - 5px);opacity:0}}
+/* respuesta, reacciones */
+.quote{border-left:3px solid #2fc23a;background:#00000010;border-radius:8px;padding:4px 9px;margin:1px 0 5px;font-size:13.5px;line-height:1.3;cursor:pointer;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+html.dark .quote{background:#ffffff12}.quote b{display:block;font-size:12px;color:#1a9c2a}html.dark .quote b{color:#5fd36b}
+.rxs{position:absolute;bottom:-13px;right:10px;background:var(--v2card);border-radius:12px;padding:1px 7px;font-size:14px;box-shadow:0 1px 4px #0003;white-space:nowrap;z-index:2}
+.m.them .rxs{right:auto;left:10px}.rxs b{font-size:11px;font-weight:600;color:var(--v2sub);margin-left:3px}
+.m:has(.rxs){margin-bottom:12px}
+.rpbar{display:flex;align-items:center;gap:8px;padding:8px 10px 0;background:var(--v2bar);flex:none}.rpbar .quote{flex:1;margin:0;cursor:default}
+.rpbar button{border:0;background:none;color:var(--v2sub);font-size:18px;padding:6px;cursor:pointer}
+/* mensaje fijado arriba */
+.pinbar{position:relative;margin:10px 16px 6px;padding:8px 12px 8px 40px;border-radius:14px;background:var(--v2card);color:var(--v2ink);font-size:14px;line-height:1.3;flex:none;cursor:pointer;z-index:2}
+html:not(.dark) .pinbar{box-shadow:0 1px 3px #0000001a}
+.pinbar .bfr{inset:-6px}.pinbar .bfr i{width:17px;height:17px}
+.pinbar b{display:block;font-size:10.5px;letter-spacing:.4px;color:var(--v2sub)}.pinbar .pt{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pinbar .pi{position:absolute;left:12px;top:50%;transform:translateY(-50%) rotate(30deg);color:var(--v2sub);line-height:0}.pinbar .pi svg{width:17px;height:17px}
+/* fecha fija arriba */
+.fdw{position:sticky;top:6px;height:0;z-index:4;display:flex;justify-content:center;opacity:0;transition:opacity .25s;pointer-events:none}.fdw.on{opacity:1}
+.fdw span{background:var(--v2card);color:var(--v2sub);font-size:12px;font-weight:600;padding:4px 12px;border-radius:12px;box-shadow:0 1px 4px #0002;height:max-content}
+/* escribiendo */
+.typ{align-self:flex-start;margin:0 14px 10px;padding:8px 13px;border-radius:18px;border-bottom-left-radius:6px;background:var(--v2them);color:var(--v2sub);font-size:13px;display:inline-flex;align-items:center;gap:8px}
+.spin2{width:16px;height:16px;color:#8fa29b;display:inline-block;animation:throw 1.1s cubic-bezier(.45,.05,.55,.95) infinite}.spin2 svg{width:100%;height:100%;display:block}
+@keyframes throw{0%{transform:rotate(0)}50%{transform:rotate(180deg) translateX(2px)}100%{transform:rotate(360deg)}}
+/* menú al mantener pulsado */
+.mmenu{position:fixed;inset:0;z-index:60}
+.mdim{position:absolute;inset:0;background:#0b0f10a8;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);animation:fadein .15s}
+@keyframes fadein{from{opacity:0}}
+.mclone{z-index:61;pointer-events:auto;animation:fadein .12s}
+.mrx{position:fixed;z-index:62;display:flex;gap:2px;background:var(--v2card);border-radius:28px;padding:5px 8px;box-shadow:0 6px 24px #0005;animation:mpop .18s cubic-bezier(.2,.9,.3,1.2)}
+.mrx button{border:0;background:none;font-size:27px;width:44px;height:44px;border-radius:50%;cursor:pointer;line-height:1;transition:transform .12s}.mrx button:active{transform:scale(1.3)}.mrx button.on{background:var(--v2muted)}
+.macts{position:fixed;z-index:62;min-width:210px;background:var(--v2card);border-radius:16px;overflow:hidden;box-shadow:0 6px 24px #0005;animation:mpop .18s cubic-bezier(.2,.9,.3,1.2)}
+.macts button{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;padding:12px 16px;font:inherit;font-size:15px;color:var(--v2ink);cursor:pointer;border-bottom:1px solid var(--v2line)}.macts button:last-child{border-bottom:0}
+.macts button.red{color:#e8352b}
+@keyframes mpop{from{opacity:0;transform:scale(.92)}}
+/* barra de selección */
+.selbar{position:absolute;inset:0;display:flex;align-items:center;gap:14px;padding:calc(6px + env(safe-area-inset-top)) 12px 6px;background:var(--v2bar);color:var(--v2ink);z-index:5}
+.selbar span{flex:1;font-size:17px;font-weight:600}.selbar button{border:0;background:none;color:inherit;padding:6px;cursor:pointer;line-height:0}
+/* imagen del contacto (la eliges tú) */
+.cav{display:grid;place-items:center;border-radius:50%;overflow:hidden;flex:none;line-height:1}.cav img{width:100%;height:100%;object-fit:cover}
+.cav.emo{background:var(--v2muted)}
+.bar .cavb{border:0;background:none;padding:0;cursor:pointer;flex:none;line-height:0}
+.v2sheet{background:var(--v2card);color:var(--v2ink);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));max-height:86vh;overflow:auto}
+.v2st{font-size:18px;font-weight:700}.v2ss{font-size:12.5px;color:var(--v2sub);margin-top:2px}.v2sec{font-size:11.5px;font-weight:700;letter-spacing:.8px;color:var(--v2sub);margin:14px 0 6px}
+.avr{display:flex;flex-wrap:wrap;gap:6px}.avo{position:relative;border:0;background:none;padding:5px;cursor:pointer;line-height:0}.avo .bfr{inset:-1px}.avo .bfr i{width:14px;height:14px}
+.fwl{max-height:46vh;overflow:auto;margin-top:10px}.fwr{display:flex;align-items:center;gap:12px;padding:8px 2px;font-size:16px;cursor:pointer;color:var(--v2ink)}.fwr span{flex:1}.fwr input{width:22px;height:22px;accent-color:#2fc23a}
+/* ver código: el QR dentro de los 4 boomerangs con el láser (como el icono) */
+.qrfr{position:relative;padding:20px;display:inline-block;line-height:0}.qrfr>.bfr{inset:0}.qrfr>.bfr i{width:48px;height:48px}
+.qrfr .qlas{position:absolute;left:8px;right:8px;top:47%;height:2px;border-radius:2px;background:#ff4b3e;box-shadow:0 0 10px 2px #ff4b3e99;pointer-events:none;animation:qlas 3.2s ease-in-out infinite}
+@keyframes qlas{0%,100%{top:18%}50%{top:80%}}
+/* escáner: visor de 4 boomerangs blancos */
+.fab{background:#2fc23a;border-radius:18px;box-shadow:0 6px 18px #2fc23a55}
+.camwrap .bfr{inset:8%}.camwrap .bfr i{width:22%;height:22%;color:#ffffffee;filter:drop-shadow(0 1px 3px #0008)}
 </style>
 </head>
 <body>
@@ -278,7 +386,7 @@ const vidBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/
 // audios y vídeos: el tic verde sale cuando la otra persona los reproduce (no basta con abrir el chat)
 const isPlayable = b => isAudio(b) || isVideo(b);
 const isLoc = b => typeof b === 'string' && /^loc:-?\d{1,2}(\.\d+)?,-?\d{1,3}(\.\d+)?$/.test(b);
-const prevBody = b => /^cal:(missed|\d+)$/.test(b || '') ? (b === 'cal:missed' ? '📞 Llamada perdida' : '📞 Llamada') : isVideo(b) ? '🎥 Vídeo' : isFile(b) ? '📎 ' + fileMeta(b).name : isPhoto(b) ? '📷 Foto' : isAudio(b) ? '🎤 Audio' : isLoc(b) ? '📍 Ubicación' : (b || '');
+const prevBody = b => /^rx:\d+:/.test(b || '') ? (b.replace(/^rx:\d+:/, '') ? 'Ha reaccionado ' + b.replace(/^rx:\d+:/, '') : 'Ha quitado su reacción') : (b || '').startsWith('rp:{') ? '↩️ ' + prevBody((() => { try { return JSON.parse(b.slice(3)).b; } catch (e) { return ''; } })()) : /^cal:(missed|\d+)$/.test(b || '') ? (b === 'cal:missed' ? '📞 Llamada perdida' : '📞 Llamada') : isVideo(b) ? '🎥 Vídeo' : isFile(b) ? '📎 ' + fileMeta(b).name : isPhoto(b) ? '📷 Foto' : isAudio(b) ? '🎤 Audio' : isLoc(b) ? '📍 Ubicación' : (b || '');
 // vista previa de una ubicación: 4 teselas de OpenStreetMap centradas en el punto, con un marcador encima
 function locBody(b) {
   const [lat, lng] = b.slice(4).split(',').map(Number), z = 15, n = 2 ** z, W = 230, H = 130;
@@ -1281,7 +1389,7 @@ const pcHint = () => IS_PHONE ? '' : `<div class="pchint">📱 ${Date.now() - ph
 async function loadAll() {
   const [c, ch, f, ev, pl] = await Promise.all([
     sb.from('codes').select('*').order('created_at'),
-    sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note').order('created_at', { ascending: false }),
+    sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note,avatar').order('created_at', { ascending: false }),
     sb.from('chat_favorites').select('chat_id'),
     sb.from('events').select('*').order('created_at', { ascending: false }).limit(100),
     sb.from('safe_places').select('*').order('id')
@@ -1322,7 +1430,7 @@ function keepKb() { const b = $('#os'); if (b) { b.onpointerdown = e => e.preven
 function bmPlace(el, p) { el.classList.remove('home', 'left', 'fly', 'part'); el.classList.add('now', p); void el.offsetWidth; el.classList.remove('now'); }
 function bmFly(el, from, to) { bmPlace(el, from); el.classList.add('fly'); el.classList.remove(from); el.classList.add(to); setTimeout(() => el.classList.remove('fly'), 1150); }
 function bmSync() {
-  hydrateMedia();
+  hydrateMedia(); setTimeout(v2After, 0);
   const all = [...document.querySelectorAll('.bm')], lastEl = all.at(-1);
   all.forEach(el => {
     const box = el.closest('.msgs'); if (!box) return;
@@ -1365,7 +1473,7 @@ const ZKIND = { cars: ['tow', 'Retirada de coches'], fire: ['fire', 'Incendio'],
 const ring = (col, inner, badge) => `<div class="ring" style="--c:${col}">${inner}${badge ? `<span class="rbadge">${badge}</span>` : ''}</div>`;
 const face = (blocked, s) => `<span class="facew" style="--s:${s}px"><img src="/app/img2014/${blocked ? 'chat_blocked' : 'chat_ok'}.png" width="${s}" height="${s}" alt="" style="display:block"></span>`;
 const codeOf = id => S.codes.find(c => c.id === id);
-const lastMsg = cid => (S.msgs[cid] || []).at(-1);
+const lastMsg = cid => (S.msgs[cid] || []).findLast(m => !/^rx:\d+:/.test(m.body || ''));
 const chatOff = ch => false;  // un chat creado sigue abierto siempre, aunque el código se apague o se borre (solo lo cierra el bloqueo)
 const newEvents = () => S.events.filter(e => e.id > S.seenEv).length + (S.zalerts || []).filter(z => !z.read).length;
 const unreadTotal = () => Object.values(S.unread).reduce((a, b) => a + b, 0);
@@ -1375,11 +1483,12 @@ function subscribe() {
   channel?.unsubscribe();
   channel = sb.channel('owner')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async ({ new: m }) => {
-      if (!S.chats.find(c => c.id === m.chat_id)) { const { data } = await sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note').eq('id', m.chat_id).single(); if (data) S.chats.unshift(data); }
+      if (!S.chats.find(c => c.id === m.chat_id)) { const { data } = await sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note,avatar').eq('id', m.chat_id).single(); if (data) S.chats.unshift(data); }
       const list = (S.msgs[m.chat_id] ||= []); if (!list.find(x => x.id === m.id)) list.push(m); saveHist(); if (mediaUrl(m.body)) cacheAllMedia();
       if (m.from_visitor) {
         const viewing = S.view?.t === 'chat' && S.view.id === m.chat_id && !document.hidden;
-        if (!viewing) { S.unread[m.chat_id] = (S.unread[m.chat_id] || 0) + 1; ls.set('sa_unread', S.unread); }
+        if (viewing && V2.typing[m.chat_id]) V2.typing[m.chat_id] = 0;
+        if (!viewing && !/^rx:\d+:/.test(m.body || '')) { S.unread[m.chat_id] = (S.unread[m.chat_id] || 0) + 1; ls.set('sa_unread', S.unread); }
         const ch = S.chats.find(c => c.id === m.chat_id), code = codeOf(ch?.code_id);
         if (!viewing) { toast(`💬 ${ch?.name || 'Chat'} · ${code?.name || ''}: ${prevBody(m.body)}`, () => { S.view = { t: 'chat', id: m.chat_id }; render(); }); notify('Nuevo mensaje · ' + (code?.name || 'Scan2Com'), prevBody(m.body)); beep(); }
       }
@@ -1411,7 +1520,7 @@ function render(soft) {
   if (soft && document.activeElement?.id === 'rn') return;  // no cortar la edición del nombre
   const keep = soft && document.activeElement?.id ? { id: document.activeElement.id, v: document.activeElement.value } : null;
   app.classList.remove('homepg');
-  if (S.view?.t !== 'chat' && S.view?.t !== 'vchat') app.dataset.cv = '';
+  if (S.view?.t !== 'chat' && S.view?.t !== 'vchat') { app.dataset.cv = ''; if (V2.sel || V2.reply || V2.typCh) { V2.sel = null; V2.reply = null; v2TypSub(); } }
   if (S.recovery) renderNewPass();
   else if (!S.user) renderAuth();
   else if (S.view?.t === 'edit') renderEdit();
@@ -1509,10 +1618,11 @@ function renderHome() {
   }
   if (tab === 'codes') {
     const codes = S.codes.filter(c => match(c.name, c.public_name, c.private_info));
+    const medios = c => [(c.ch_alert || c.auto_alert) && 'Alert', c.ch_chat && 'Chat', c.ch_mail && 'Mail', c.ch_call && 'Llamada', c.ch_info && 'Info', c.ch_redirect && 'Web'].filter(Boolean);
     body = codes.length ? codes.map(c => `<div class="item ${c.is_on ? '' : 'off'}" data-code="${c.id}">
-        <div class="pw ${c.is_on ? 'on' : ''}" data-pw="${c.id}" title="Encender / apagar">${IC.power(20)}</div>
-        <div class="grow"><div class="t">${esc(c.name || c.public_name || 'Sin nombre')}</div>${c.private_info || c.owner_id !== S.user.id ? `<div class="s">${esc(c.private_info || '')}${c.owner_id !== S.user.id ? ' · compartido contigo' : ''}</div>` : ''}</div>
-        ${c.owner_id === S.user.id ? `<button class="ib" data-edit="${c.id}" title="Ajustes">${IC.sliders(24)}</button>` : ''}<button class="ib" data-qr="${c.id}" title="Ver código">${IC.expand(24)}</button></div>`).join('')
+        <div class="qrt" data-qr="${c.id}" title="Ver código">${FRAME(codeCols(c))}<div class="q">${qrMini(c)}</div></div>
+        <div class="grow" style="min-width:0"><div class="t">${esc(c.name || c.public_name || 'Sin nombre')}</div>${c.private_info || c.owner_id !== S.user.id ? `<div class="s">${esc(c.private_info || '')}${c.owner_id !== S.user.id ? ' · compartido contigo' : ''}</div>` : ''}<div class="chips">${medios(c).map(x => `<span>${x}</span>`).join('') || '<span>Sin medios</span>'}</div></div>
+        ${c.owner_id === S.user.id ? `<button class="ib set2" data-edit="${c.id}" title="Ajustes">${IC.sliders(22)}</button>` : ''}<button class="sw2 ${c.is_on ? '' : 'off'}" data-pw="${c.id}" title="Encender / apagar"></button></div>`).join('')
       : `<div class="empty">Aún no tienes códigos.<br>Pulsa <b>+</b> para crear uno o para vincular un pack de pegatinas.</div>`;
     const nb = NATIVE && S.av ? (avMissing() && avRelevant() ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Completa la configuración de avisos</b><br>Sin ella, no te enterarás de alertas ni mensajes con la app cerrada.</div><span class="nbtn">Configurar</span></div>` : '') : !notifOn() && (S.codes.some(c => c.is_on && (c.ch_alert || c.auto_alert || c.ch_chat || c.ch_mail || c.ch_call)) || (S.vchats || []).length) ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Activa las notificaciones</b><br>Sin ellas, no te enterarás de alertas ni mensajes con la app cerrada.</div><span class="nbtn">Activar</span></div>` : '';
     body = nb + tourHTML() + body;
@@ -1522,10 +1632,10 @@ function renderHome() {
     const favs = list.filter(c => S.favs.has(c.id)), rest = list.filter(c => !S.favs.has(c.id));
     const tr = ls.get('sa_trace', false);
     const tline = t => tr ? `<div style="font-size:12px;color:#1f86e0;margin-top:2px">${t}</div>` : '';
-    const vrow = v => { const u = S.unread['v' + v.id]; return `<div class="item ${v.alive ? '' : 'off'}" data-vchat="${v.id}"><div style="flex:none">${face(false, 46)}</div>
+    const vrow = v => { const u = S.unread['v' + v.id]; return `<div class="item ${v.alive ? '' : 'off'}" data-vchat="${v.id}"><div style="flex:none">${v2AvHtml(v.avatar, v.name || v.public_name, 46, v.id)}</div>
       <div class="grow"><div class="t">${esc(v.name || v.public_name || 'Chat')}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(v.last ? (v.last.mine ? 'Tú: ' : '') + prevBody(v.last.body) : (v.public_name || ''))}</div>${tline(v.name && v.name !== v.public_name && v.name !== 'Chat' ? 'Nombre del chat: puesto por ti' : 'Nombre del chat: el nombre público del código')}</div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;white-space:nowrap">${ago(v.last?.at || v.created_at)}</div></div>`; };
-    const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div style="flex:none">${face(c.blocked, 46)}</div>
+    const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div style="flex:none">${v2AvHtml(c.avatar, c.name, 46, c.id, c.blocked)}</div>
       <div class="grow"><div class="t">${esc(c.name)}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + prevBody(lm.body) : (code?.name || c.code_name || ''))}</div>${tline(/^Chat \d+$/.test(c.name || '') ? 'Nombre del chat: automático' : 'Nombre del chat: puesto por ti')}</div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><button class="star" data-fav="${c.id}" title="Favorito" style="padding:0">${IC.star(26, S.favs.has(c.id))}</button><div style="white-space:nowrap">${ago(lm?.created_at || c.created_at)}</div></div></div>`; };
     // agrupados por código: los míos con su nombre privado; los escaneados con el nombre público que tenía el código
@@ -1899,7 +2009,7 @@ function renderQR() {
   const nChats = S.chats.filter(x => x.code_id === c.id).length;
   app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(24)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes del código">${IC.sliders(24)}</button>` : ''}${isCar(c) ? `<button class="ib pdfb" id="pdf" title="PDF para imprimir (4 pegatinas, tamaño real)">${IC.pdf(22)}PDF</button>` : ''}</div>
     <div class="namebar">${esc(c.name).toUpperCase()}</div>
-    <div class="body"><div class="qrbox"><canvas id="cv"></canvas><div class="link">${url}</div>
+    <div class="body"><div class="qrbox"><div class="qrfr" id="qrfr">${FRAME(codeCols(c))}<canvas id="cv"></canvas>${c.is_on ? '<span class="qlas"></span>' : ''}</div><div class="link">${url}</div>
       <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><div class="pw ${c.is_on ? 'on' : ''}" id="pw">${IC.power(20)}</div><span style="font-size:14px;color:${c.is_on ? '#1a7a1a' : '#999'}">${c.is_on ? 'Activo' : 'Desactivado'}</span></div></div>
       <div class="pad" style="padding-top:4px">
         ${own && isCar(c) && c.bt_auto && !c.bt_addr ? `<button class="btn" id="btset" style="margin-bottom:10px;background:#e8352b">${IC.lock(20)}${NATIVE ? 'Elige el Bluetooth de tu coche' : 'Instala la app Android para activarlo al bajar del coche'}</button>` : ''}
@@ -1912,6 +2022,7 @@ function renderQR() {
         ${nChats ? `<button class="btn light" style="margin-top:14px" id="gc">${IC.chat(20)}${nChats} chat${nChats > 1 ? 's' : ''} de este código</button>` : ''}
       </div></div>`;
   drawDesign($('#cv'), c, url);
+  setTimeout(() => { const cv = $('#cv'), f = $('#qrfr'); if (cv && f && (cv.classList.contains('stk') || cv.classList.contains('prt') || /car|print/.test(designOf(c)))) { f.querySelector('.bfr')?.remove(); f.querySelector('.qlas')?.remove(); f.style.padding = '0'; } }, 0);
   $('#bk').onclick = () => { S.view = null; render(); };
   if ($('#ed')) $('#ed').onclick = () => { S.view = { t: 'edit', id: c.id }; render(); };
   $('#pw').onclick = () => togglePower(c.id);
@@ -2043,9 +2154,236 @@ async function carSheetPdf(c, url, mirror) {
   } catch (e) { busy(false); if (!/abort|cancel/i.test(String(e?.message || e))) toast('No se ha podido crear el PDF.'); }
 }
 
+/* ================= V2 (27-11-2026): chat con reacciones, respuestas, selección, reenviar, fijar, escribiendo,
+   enviar = escanear (4 boomerangs del icono + láser), fecha fija arriba e imagen del contacto elegida por ti ================= */
+// boomerang calcado del icono de la app (scan2com_icon_1024.png); las 4 esquinas son espejos del mismo dibujo
+const BMP2 = 'M53.7 0.0C51.9 0.2 47.7 0.5 44.7 0.9C41.7 1.3 38.7 1.7 35.7 2.3C32.7 3.0 29.7 3.7 26.7 4.8C23.7 6.0 20.6 6.9 17.7 9.0C14.9 11.1 11.6 14.4 9.4 17.3C7.3 20.2 6.2 23.3 5.1 26.3C4.0 29.3 3.4 32.3 2.8 35.3C2.1 38.2 1.6 41.2 1.2 44.2C0.7 47.2 0.4 50.2 0.2 53.2C0.0 56.2 0.0 59.2 0.0 62.2C-0.0 65.2 0.0 68.2 0.0 71.2C0.0 74.2 -0.0 77.2 0.0 80.2C0.0 83.2 0.0 86.2 0.2 89.2C0.4 92.2 -0.3 97.1 1.2 98.2C2.6 99.2 7.4 97.4 9.2 95.4C11.1 93.4 11.6 89.4 12.2 86.4C12.8 83.4 12.6 80.4 12.9 77.4C13.2 74.4 13.5 71.4 13.8 68.4C14.2 65.4 14.5 62.4 15.0 59.4C15.4 56.5 15.9 53.5 16.6 50.5C17.2 47.5 17.9 44.5 18.9 41.5C19.9 38.5 20.5 35.4 22.4 32.5C24.2 29.6 27.4 26.2 30.2 24.0C33.0 21.8 36.2 20.5 39.2 19.4C42.2 18.2 45.2 17.7 48.2 17.1C51.2 16.4 54.1 15.9 57.1 15.4C60.1 14.9 63.1 14.4 66.1 14.1C69.1 13.7 72.1 13.4 75.1 13.1C78.1 12.8 81.1 12.7 84.1 12.2C87.1 11.8 90.5 12.0 93.1 10.4C95.7 8.8 100.1 4.2 99.8 2.5C99.5 0.9 94.2 0.8 91.2 0.5C88.3 0.1 85.3 0.3 82.3 0.2C79.3 0.2 76.3 0.0 73.3 0.0C70.3 -0.0 67.3 0.0 64.3 0.0C61.3 0.0 57.1 0.0 55.3 0.0C53.5 0.0 55.5 -0.2 53.7 0.0Z';
+const BMSVG = '<svg viewBox="-2 -2 104 104"><path d="' + BMP2 + '" fill="currentColor"/></svg>';
+const FRAME = (cols) => '<span class="bfr">' + ['tl', 'tr', 'bl', 'br'].map((k, i) => '<i class="' + k + '"' + (cols ? ' style="color:' + cols[i] + '"' : '') + '>' + BMSVG + '</i>').join('') + '</span>';
+// reacciones y respuestas viajan como mensajes normales (de paso por el servidor, guardados en el móvil)
+//   reacción: "rx:<id>:<emoji>" (emoji vacío = quitarla) · respuesta: "rp:" + {"i":id,"w":quién,"t":trocito,"b":mensaje}
+const isRx = b => typeof b === 'string' && /^rx:\d+:/.test(b);
+const rxParse = b => { const m = typeof b === 'string' && b.match(/^rx:(\d+):([\s\S]*)$/); return m ? { to: +m[1], e: m[2] } : null; };
+const rpParse = b => { if (typeof b !== 'string' || !b.startsWith('rp:{')) return null; try { const j = JSON.parse(b.slice(3)); return j && typeof j.b === 'string' ? j : null; } catch (e) { return null; } };
+const unwrap = b => rpParse(b)?.b ?? b;
+const V2 = { reply: null, sel: null, pinIdx: {}, scanned: new Set(), typing: {}, typCh: null, typKey: '', lastTyp: 0 };
+const pinsOf = k => ls.get('sa_pin_' + k, []), hidOf = k => ls.get('sa_hid_' + k, []);
+// pinta la conversación: oculta lo borrado para mí, junta las reacciones en su mensaje, citas de respuesta y fijados
+function v2Msgs(k, list, o) {
+  const hid = new Set(hidOf(k)), pins = pinsOf(k), rx = {}, shown = [];
+  for (const m of list) { const r = rxParse(m.body); if (r) { (rx[r.to] ||= {})[o.who(m)] = r.e; continue; } if (!hid.has(o.id(m))) shown.push(m); }
+  V2.rx = rx;
+  return withDays(shown, o.at, m => {
+    const id = o.id(m), rp = rpParse(m.body), body = rp ? rp.b : m.body, mine = o.mine(m), pin = pins.includes(id);
+    const rs = Object.values(rx[id] || {}).filter(Boolean), uniq = [...new Set(rs)];
+    const q = rp ? '<div class="quote" data-goto="' + (+rp.i || 0) + '"><b>' + esc(rp.s ? (rp.s === o.side ? 'Tú' : o.other) : (rp.w || '')) + '</b>' + esc(rp.t || '') + '</div>' : '';
+    return '<div class="m ' + (mine ? 'me' : 'them') + (pin ? ' pinned' : '') + '" data-id="' + id + '"' + o.pm(m) + '>' + o.top(m) + q + msgBody(body, o.at(m))
+      + '<div class="tm">' + hm(o.at(m)) + o.tick(m) + '</div>' + (rs.length ? '<span class="rxs">' + uniq.join('') + (rs.length > 1 ? '<b>' + rs.length + '</b>' : '') + '</span>' : '') + (pin ? FRAME() : '') + '</div>';
+  });
+}
+// chat en el que estoy: dueño (o vinculado) de un código, o quien escaneó el código de otro
+const v2Ctx = () => { const k = S.view?.id; if (S.view?.t === 'chat') { const ch = S.chats.find(x => x.id === k); return ch && { k, ch, me: 'o:' + S.user.id, list: S.msgs[k] || [], id: m => m.id, mine: m => !m.from_visitor, who: m => m.from_visitor ? 'v' : 'o:' + (m.sender_id || ''), body: m => m.body, name: ch.name || 'Chat' }; }
+  if (S.view?.t === 'vchat') { const v = (S.vchats || []).find(x => x.id === k); return v && { k, v, me: 'v', list: S.vmsgs?.[k] || [], id: m => m.id, mine: m => m.mine, who: m => m.mine ? 'v' : 'o', body: m => m.body, name: v.name || v.public_name || 'Chat' }; } return null; };
+async function v2Send(k, body) {
+  const ch = S.chats.find(x => x.id === k);
+  if (ch) { const { data, error } = await sb.from('messages').insert({ chat_id: ch.id, from_visitor: false, sender_id: S.user.id, body }).select().single(); if (error) throw error; const l = (S.msgs[ch.id] ||= []); if (!l.find(x => x.id === data.id)) l.push(data); saveHist(); return; }
+  const v = (S.vchats || []).find(x => x.id === k); if (!v) throw new Error('chat');
+  const { data } = await sb.rpc('visitor_send', { p_chat: v.id, p_token: v.token, p_body: body }); if (!data?.ok) throw new Error(data?.error || 'send'); await vFetch(v, true);
+}
+// texto que se va a enviar: si estoy respondiendo, va con la cita
+function v2Wrap(k, t) { const r = V2.reply; if (!r || r.k !== k) return t; V2.reply = null; $('#rpbar')?.remove(); return 'rp:' + JSON.stringify({ i: r.i, s: r.s, t: r.t, b: t }); }
+const msgText = b => { b = unwrap(b); return isCall(b) ? callTxt(b) : isLoc(b) ? '📍 Ubicación' : isPhoto(b) || isVideo(b) || isAudio(b) || isFile(b) ? prevBody(b) : b; };
+function v2Find(id) { const c = v2Ctx(); return c && c.list.find(m => c.id(m) === id); }
+function v2Reply(id) {
+  const c = v2Ctx(), m = v2Find(id); if (!c || !m) return;
+  const side = c.me === 'v' ? 'v' : 'o'; V2.reply = { k: c.k, i: id, s: c.mine(m) ? side : (side === 'v' ? 'o' : 'v'), w: c.mine(m) ? 'Tú' : c.name, t: msgText(c.body(m)).slice(0, 140) };
+  $('#rpbar')?.remove(); const cmp = $('.compose'); if (!cmp) return;
+  cmp.insertAdjacentHTML('beforebegin', '<div class="rpbar" id="rpbar"><div class="quote"><b>' + esc(V2.reply.w) + '</b>' + esc(V2.reply.t) + '</div><button id="rpx" aria-label="Cancelar">✕</button></div>');
+  $('#rpx').onclick = () => { V2.reply = null; $('#rpbar').remove(); }; $('#oi')?.focus();
+}
+async function v2React(id, e) {
+  const c = v2Ctx(); if (!c) return; const cur = (V2.rx?.[id] || {})[c.me];
+  try { await v2Send(c.k, 'rx:' + id + ':' + (cur === e ? '' : e)); render(true); } catch (x) { toast('No se ha podido reaccionar.'); }
+}
+function v2Copy(ids) { const c = v2Ctx(); if (!c) return; const t = ids.map(v2Find).filter(Boolean).map(m => { const b = unwrap(c.body(m)); return isPhoto(b) || isVideo(b) || isAudio(b) || isFile(b) ? b.slice(4).replace(/#.*$/, '') : msgText(b); }).join('\n');
+  (navigator.clipboard?.writeText(t) || Promise.reject()).then(() => toast(ids.length > 1 ? 'Mensajes copiados' : 'Copiado'), () => toast('No se ha podido copiar.')); }
+function v2Pin(id) { const c = v2Ctx(); if (!c) return; const p = pinsOf(c.k), i = p.indexOf(id); if (i >= 0) p.splice(i, 1); else p.push(id); ls.set('sa_pin_' + c.k, p); delete V2.pinIdx[c.k]; toast(i >= 0 ? 'Mensaje desfijado' : 'Mensaje fijado arriba'); render(true); v2After(); }
+function v2Hide(ids) { const c = v2Ctx(); if (!c) return; ls.set('sa_hid_' + c.k, [...new Set([...hidOf(c.k), ...ids])]); toast(ids.length > 1 ? 'Mensajes borrados para ti' : 'Borrado para ti'); v2SelEnd(); render(true); v2After(); }
+// reenviar: a uno o varios de tus chats; fotos, audios y archivos se reenvían sin volver a subirlos
+function v2Forward(ids) {
+  const c = v2Ctx(); if (!c) return; const bodies = ids.map(v2Find).filter(Boolean).map(m => unwrap(c.body(m))).filter(b => !isCall(b));
+  if (!bodies.length) return toast('Esto no se puede reenviar.');
+  const all = [...S.chats.filter(x => !chatOff(x) && !x.blocked).map(x => ({ k: x.id, n: x.name || 'Chat', av: v2AvHtml(x.avatar, x.name, 40, x.id) })), ...(S.vchats || []).filter(v => v.alive).map(v => ({ k: v.id, n: v.name || v.public_name || 'Chat', av: v2AvHtml(v.avatar, v.name || v.public_name, 40, v.id) }))].filter(x => x.k !== c.k);
+  $('#overlay').innerHTML = '<div class="sheet keep" id="fws"><div class="v2sheet" onclick="event.stopPropagation()"><div class="v2st">Reenviar ' + (bodies.length > 1 ? bodies.length + ' mensajes' : 'mensaje') + '</div><div class="v2ss">Nadie ve tu número ni el de los demás.</div>'
+    + '<div class="fwl">' + (all.map(x => '<label class="fwr">' + x.av + '<span>' + esc(x.n) + '</span><input type="checkbox" value="' + x.k + '"></label>').join('') || '<div class="empty">No tienes otros chats abiertos.</div>') + '</div>'
+    + '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn light" id="fwx">Cancelar</button><button class="btn teal" id="fwy">Reenviar</button></div></div></div>';
+  const close = () => { $('#overlay').innerHTML = ''; }; $('#fws').onclick = close; $('#fwx').onclick = close;
+  $('#fwy').onclick = async () => { const ks = [...document.querySelectorAll('#fws input:checked')].map(i => i.value); if (!ks.length) return toast('Elige al menos un chat.'); close(); v2SelEnd(); busy(true);
+    let ok = 0; for (const k of ks) for (const b of bodies) { try { await v2Send(k, b); ok++; } catch (e) {} } busy(false);
+    toast(ok ? 'Reenviado a ' + ks.length + ' chat' + (ks.length > 1 ? 's' : '') : 'No se ha podido reenviar.'); render(true); };
+}
+const V2I = {
+  x: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  reply: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v6"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  fwd: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0-5 5v6"/></svg>',
+  sel: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5M9 3h6l-1 6 4 4H6l4-4z"/></svg>',
+  del: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
+};
+// selección (mantener pulsado → Elegir): los mensajes elegidos quedan enmarcados con los 4 boomerangs
+function v2SelStart(id) { const c = v2Ctx(); if (!c) return; V2.sel = { k: c.k, ids: new Set([id]) }; v2SelDraw(); }
+function v2SelEnd() { V2.sel = null; $('#selbar')?.remove(); document.querySelectorAll('#ms .m.selm').forEach(e => { e.classList.remove('selm'); e.querySelector(':scope > .bfr.sf')?.remove(); }); }
+function v2SelToggle(id) { const s = V2.sel; if (!s) return; s.ids.has(id) ? s.ids.delete(id) : s.ids.add(id); if (!s.ids.size) return v2SelEnd(); v2SelDraw(); }
+function v2SelDraw() {
+  const s = V2.sel; if (!s || s.k !== S.view?.id) return v2SelEnd();
+  document.querySelectorAll('#ms .m[data-id]').forEach(e => { const on = s.ids.has(+e.dataset.id); e.classList.toggle('selm', on); const f = e.querySelector(':scope > .bfr.sf'); if (on && !f) e.insertAdjacentHTML('beforeend', FRAME().replace('class="bfr"', 'class="bfr sf"')); if (!on && f) f.remove(); });
+  let b = $('#selbar'); const bar = $('#app > .bar'); if (!bar) return;
+  if (!b) { bar.insertAdjacentHTML('beforeend', '<div class="selbar" id="selbar"><button data-s="x">' + V2I.x + '</button><span id="seln"></span><button data-s="rp" title="Responder">' + V2I.reply + '</button><button data-s="cp" title="Copiar">' + V2I.copy + '</button><button data-s="fw" title="Reenviar">' + V2I.fwd + '</button><button data-s="del" title="Borrar para mí">' + V2I.del + '</button></div>'); b = $('#selbar');
+    b.onclick = e => { const a = e.target.closest('[data-s]')?.dataset.s, ids = [...(V2.sel?.ids || [])]; if (!a) return; if (a === 'x') v2SelEnd(); if (a === 'cp') { v2Copy(ids); v2SelEnd(); } if (a === 'fw') v2Forward(ids); if (a === 'del') v2Hide(ids); if (a === 'rp') { v2SelEnd(); v2Reply(ids[0]); } }; }
+  $('#seln').textContent = s.ids.size + (s.ids.size === 1 ? ' seleccionado' : ' seleccionados'); b.querySelector('[data-s="rp"]').style.display = s.ids.size === 1 ? '' : 'none';
+}
+const RXE = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+// mantener pulsado un mensaje: reacciones rápidas y acciones
+function v2Menu(el) {
+  const id = +el.dataset.id, c = v2Ctx(); if (!c) return; const m = v2Find(id); if (!m) return;
+  if (navigator.vibrate) navigator.vibrate(12);
+  const r = el.getBoundingClientRect(), H = innerHeight, cur = (V2.rx?.[id] || {})[c.me], pinned = pinsOf(c.k).includes(id), canRx = !isCall(unwrap(c.body(m)));
+  const d = document.createElement('div'); d.id = 'mmenu'; d.className = 'mmenu';
+  const clone = el.cloneNode(true); clone.classList.add('mclone'); clone.querySelectorAll('.bfr').forEach(x => x.remove());
+  const acts = [['rp', V2I.reply, 'Responder'], ['cp', V2I.copy, 'Copiar'], ['fw', V2I.fwd, 'Reenviar'], ['sel', V2I.sel, 'Elegir'], ['pin', V2I.pin, pinned ? 'Desfijar' : 'Fijar arriba'], ['del', V2I.del, 'Borrar para mí']];
+  d.innerHTML = '<div class="mdim"></div>' + (canRx ? '<div class="mrx">' + RXE.map(e => '<button data-e="' + e + '"' + (cur === e ? ' class="on"' : '') + '>' + e + '</button>').join('') + '</div>' : '')
+    + '<div class="macts">' + acts.map(([k, ic, t]) => '<button data-a="' + k + '"' + (k === 'del' ? ' class="red"' : '') + '>' + ic + '<span>' + t + '</span></button>').join('') + '</div>';
+  d.appendChild(clone); document.body.appendChild(d);
+  const rx = d.querySelector('.mrx'), ac = d.querySelector('.macts'), mine = el.classList.contains('me');
+  const rxH = rx ? 58 : 0, acH = ac.offsetHeight, h = Math.min(r.height, H * .4);
+  let top = r.top - rxH; top = Math.max(12, Math.min(top, H - acH - rxH - h - 30));
+  clone.style.cssText = 'position:fixed;left:' + r.left + 'px;top:' + (top + rxH) + 'px;width:' + r.width + 'px;max-height:' + h + 'px;overflow:hidden;margin:0;max-width:none';
+  if (rx) { rx.style.top = top + 'px'; rx.style[mine ? 'right' : 'left'] = '12px'; }
+  ac.style.top = (top + rxH + h + 10) + 'px'; ac.style[mine ? 'right' : 'left'] = '12px';
+  const close = () => d.remove();
+  d.querySelector('.mdim').onclick = close; clone.onclick = close;
+  if (rx) rx.onclick = e => { const b = e.target.closest('[data-e]'); if (!b) return; close(); v2React(id, b.dataset.e); };
+  ac.onclick = e => { const a = e.target.closest('[data-a]')?.dataset.a; if (!a) return; close();
+    if (a === 'rp') v2Reply(id); if (a === 'cp') v2Copy([id]); if (a === 'fw') v2Forward([id]); if (a === 'sel') v2SelStart(id); if (a === 'pin') v2Pin(id); if (a === 'del') v2Hide([id]); };
+}
+// gestos en los mensajes: mantener pulsado (menú), deslizar a la derecha (responder), tocar en modo selección
+(() => {
+  let t = null, el = null, x0 = 0, y0 = 0, moved = false, long = false;
+  document.addEventListener('pointerdown', e => {
+    el = e.target.closest?.('#ms .m[data-id]'); if (!el || e.target.closest('audio,video,button')) { el = null; return; }
+    x0 = e.clientX; y0 = e.clientY; moved = false; long = false;
+    t = setTimeout(() => { if (!el || moved) return; long = true; if (V2.sel) v2SelToggle(+el.dataset.id); else v2Menu(el); }, 430);
+  }, true);
+  document.addEventListener('pointermove', e => {
+    if (!el) return; const dx = e.clientX - x0, dy = e.clientY - y0;
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) { moved = true; clearTimeout(t); }
+    if (!V2.sel && dx > 10 && Math.abs(dy) < 30) { el.style.transform = 'translateX(' + Math.min(dx, 80) + 'px)'; el.classList.toggle('swr', dx > 64); }
+  }, true);
+  document.addEventListener('pointerup', e => { clearTimeout(t); if (!el) return; const dx = e.clientX - x0, sw = el.classList.contains('swr'); el.style.transform = ''; el.classList.remove('swr');
+    if (sw && dx > 64 && !V2.sel) v2Reply(+el.dataset.id); el = null; }, true);
+  document.addEventListener('pointercancel', () => { clearTimeout(t); if (el) { el.style.transform = ''; el.classList.remove('swr'); } el = null; }, true);
+  document.addEventListener('click', e => {
+    if (long) { long = false; e.preventDefault(); e.stopPropagation(); return; }
+    const q = e.target.closest?.('#ms .quote[data-goto], #pinbar[data-goto]'); if (q) { e.preventDefault(); e.stopPropagation(); v2Goto(+q.dataset.goto); if (q.id === 'pinbar') v2PinNext(); return; }
+    if (V2.sel) { const m = e.target.closest?.('#ms .m[data-id]'); if (m) { e.preventDefault(); e.stopPropagation(); v2SelToggle(+m.dataset.id); } }
+  }, true);
+  document.addEventListener('contextmenu', e => { if (e.target.closest?.('#ms .m[data-id]')) e.preventDefault(); }, true);
+})();
+function v2Goto(id) { const e = document.querySelector('#ms .m[data-id="' + id + '"]'); if (!e) return toast('Ese mensaje ya no está en este móvil.'); chatPin?.stop(); e.scrollIntoView({ block: 'center', behavior: 'smooth' }); e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); }
+function v2PinNext() { const k = S.view?.id; const p = pinsOf(k).filter(id => document.querySelector('#ms .m[data-id="' + id + '"]')); if (p.length > 1) { V2.pinIdx[k] = ((V2.pinIdx[k] ?? p.length - 1) - 1 + p.length) % p.length; v2After(); } }
+// después de pintar el chat: franja de fijados, fecha fija arriba, efecto de envío, selección y «escribiendo»
+function v2After() {
+  const c = v2Ctx(), cb = $('#cb'), ms = $('#ms'); if (!c || !cb || !ms) return;
+  // mensaje fijado arriba, enganchado con los 4 boomerangs
+  const p = pinsOf(c.k).filter(id => ms.querySelector('.m[data-id="' + id + '"]')); let pb = $('#pinbar');
+  if (!p.length) pb?.remove(); else {
+    let i = V2.pinIdx[c.k]; if (i == null || i >= p.length) i = V2.pinIdx[c.k] = p.length - 1;
+    const m = v2Find(p[i]); const html = FRAME() + '<span class="pi">' + V2I.pin + '</span><b>MENSAJE FIJADO' + (p.length > 1 ? ' · ' + (i + 1) + '/' + p.length : '') + '</b><span class="pt">' + esc(m ? msgText(c.body(m)) : '') + '</span>';
+    if (!pb) { cb.insertAdjacentHTML('beforebegin', '<div class="pinbar" id="pinbar"></div>'); pb = $('#pinbar'); }
+    pb.dataset.goto = p[i]; if (pb.innerHTML !== html) pb.innerHTML = html;
+  }
+  // fecha fija arriba: al subir por la conversación enseña el día de lo que estás viendo
+  if (!$('#fdw')) { cb.insertAdjacentHTML('afterbegin', '<div class="fdw" id="fdw"><span id="fdate"></span></div>'); let ft = null;
+    cb.addEventListener('scroll', () => { const box = $('#ms'); if (!box) return; const seps = [...box.querySelectorAll('.daysep')], y = cb.scrollTop + 50; let cur = seps[0]; for (const s of seps) if (s.offsetTop <= y) cur = s; const f = $('#fdate'); if (!f || !cur) return;
+      f.textContent = cur.textContent; f.parentElement.classList.toggle('on', cb.scrollTop > 30 && cb.scrollHeight - cb.scrollTop - cb.clientHeight > 60); clearTimeout(ft); ft = setTimeout(() => $('#fdw')?.classList.remove('on'), 1600); }, { passive: true }); }
+  // enviar = escanear: los 4 boomerangs se cierran sobre tu mensaje nuevo y lo recorre el láser
+  if (Date.now() - (S.bmJustSent || 0) < 5000) { const mine = [...ms.querySelectorAll('.m.me[data-id]')].at(-1); const id = mine && +mine.dataset.id;
+    if (mine && !V2.scanned.has(c.k + ':' + id)) { V2.scanned.add(c.k + ':' + id); mine.insertAdjacentHTML('beforeend', FRAME().replace('class="bfr"', 'class="bfr scanf"') + '<span class="scanl"></span>'); mine.classList.add('scan'); setTimeout(() => { mine.querySelector('.scanf')?.remove(); mine.querySelector('.scanl')?.remove(); mine.classList.remove('scan'); }, 1100); } }
+  if (V2.sel) v2SelDraw();
+  v2TypSub(); v2TypDraw();
+}
+// «escribiendo…»: aviso al momento por tiempo real, sin guardar nada en el servidor
+function v2TypSub() {
+  const c = v2Ctx(); if (!c) { if (V2.typCh) { sb.removeChannel(V2.typCh); V2.typCh = null; V2.typKey = ''; } return; }
+  if (V2.typKey === c.k) return; if (V2.typCh) sb.removeChannel(V2.typCh);
+  V2.typKey = c.k; V2.typing[c.k] = 0;
+  V2.typCh = sb.channel('typing:' + c.k, { config: { broadcast: { self: false } } }).on('broadcast', { event: 't' }, ({ payload }) => {
+    if (!payload || payload.s === c.me) return; V2.typing[c.k] = Date.now(); v2TypDraw(); setTimeout(v2TypDraw, 4200);
+  }).subscribe();
+}
+function v2TypPing() { const c = v2Ctx(); if (!c || !V2.typCh || Date.now() - V2.lastTyp < 2500) return; V2.lastTyp = Date.now(); V2.typCh.send({ type: 'broadcast', event: 't', payload: { s: c.me } }); }
+function v2TypDraw() {
+  const c = v2Ctx(), ms = $('#ms'); if (!c || !ms) return; const on = Date.now() - (V2.typing[c.k] || 0) < 4000;
+  const t = $('#typ'), sub = $('#nm')?.nextElementSibling;
+  if (on && !t) { ms.insertAdjacentHTML('afterend', '<div class="typ" id="typ"><span class="spin2">' + BMSVG + '</span>escribiendo</div>'); const cb = $('#cb'); if (cb && cb.scrollHeight - cb.scrollTop - cb.clientHeight < 160) cb.scrollTop = cb.scrollHeight; }
+  if (!on && t) t.remove();
+  if (sub) { if (on && sub.dataset.o == null) { sub.dataset.o = sub.innerHTML; sub.innerHTML = '<span style="color:#2fc23a">escribiendo…</span>'; } else if (!on && sub.dataset.o != null) { sub.innerHTML = sub.dataset.o; delete sub.dataset.o; } }
+}
+document.addEventListener('input', e => { if (e.target?.id === 'oi') v2TypPing(); }, true);
+// imagen del contacto: la eliges tú (antifaz, inicial, dibujo o foto de tu galería); solo la ves tú
+const AVC = ['#7d878a', '#2fc23a', '#5fa5de', '#e8352b', '#d9b632', '#9b7be0'];
+const AVE = ['🏠', '🔧', '📦', '🚗', '🐶', '⭐', '🍕', '💼', '🏥', '🎓', '👮', '❤️'];
+const MASKSVG = '<svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9c3-3.5 8-3.5 10 0 2-3.5 7-3.5 10 0-1 6-5 8-8 5-.8-.8-1.2-.8-2 0s-1.2.8-2 0c-3 3-7 1-8-5z"/><circle cx="7.3" cy="10" r="1.3"/><circle cx="16.7" cy="10" r="1.3"/></svg>';
+function v2AvHtml(spec, name, s, k, blocked) {
+  if (blocked) return face(true, s);
+  const st = 'width:' + s + 'px;height:' + s + 'px;font-size:' + Math.round(s * .46) + 'px';
+  if (spec === 'p') { const ph = ls.get('sa_avp_' + k, ''); if (ph) return '<span class="cav" style="' + st + '"><img src="' + ph + '" alt=""></span>'; spec = null; }
+  const i = (spec || '').indexOf(':'), t = i > 0 ? spec.slice(0, i) : 'm', v = i > 0 ? spec.slice(i + 1) : AVC[0];
+  if (t === 'i') return '<span class="cav" style="' + st + ';background:' + esc(v) + ';color:#fff;font-weight:700">' + esc(((name || '?').trim()[0] || '?').toUpperCase()) + '</span>';
+  if (t === 'e') return '<span class="cav emo" style="' + st + '">' + esc(v) + '</span>';
+  return '<span class="cav msk" style="' + st + ';color:' + esc(v) + ';background:color-mix(in srgb,' + esc(v) + ' 16%,transparent)">' + MASKSVG + '</span>';
+}
+function v2AvPick(k) {
+  const ch = S.chats.find(x => x.id === k), v = !ch && (S.vchats || []).find(x => x.id === k); if (!ch && !v) return;
+  const name = ch ? ch.name : (v.name || v.public_name || 'Chat'); let sel = (ch ? ch.avatar : v.avatar) || 'm:' + AVC[0];
+  const opt = (spec, inner) => '<button class="avo' + (spec === sel ? ' on' : '') + '" data-av="' + esc(spec) + '">' + inner + (spec === sel ? FRAME() : '') + '</button>';
+  const draw = () => {
+    $('#overlay').innerHTML = '<div class="sheet keep" id="avs"><div class="v2sheet" onclick="event.stopPropagation()"><div style="display:flex;gap:12px;align-items:center">' + v2AvHtml(sel, name, 54, k) + '<div><div class="v2st">Imagen de ' + esc(name) + '</div><div class="v2ss">Solo la ves tú. ' + esc(name) + ' no sabe qué imagen le has puesto.</div></div></div>'
+      + '<div class="v2sec">ANTIFAZ</div><div class="avr">' + AVC.map(c => opt('m:' + c, v2AvHtml('m:' + c, name, 40, k))).join('') + '</div>'
+      + '<div class="v2sec">INICIAL</div><div class="avr">' + AVC.map(c => opt('i:' + c, v2AvHtml('i:' + c, name, 40, k))).join('') + '</div>'
+      + '<div class="v2sec">DIBUJO</div><div class="avr">' + AVE.map(e => opt('e:' + e, v2AvHtml('e:' + e, name, 40, k))).join('') + '</div>'
+      + '<div style="display:flex;gap:8px;margin-top:14px"><button class="btn light" id="avf">📷 Foto de tu galería</button><button class="btn teal" id="avy">Guardar</button></div>'
+      + '<div class="v2ss" style="margin-top:8px">La foto se queda solo en este móvil: no se sube a ningún sitio.</div></div></div>';
+    $('#avs').onclick = () => { $('#overlay').innerHTML = ''; };
+    document.querySelectorAll('#avs [data-av]').forEach(b => b.onclick = () => { sel = b.dataset.av; draw(); });
+    $('#avf').onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = async () => { const f = i.files?.[0]; if (!f) return;
+      try { const img = await createImageBitmap(f), s = 160, cv = document.createElement('canvas'); cv.width = cv.height = s; const x = cv.getContext('2d'), m = Math.min(img.width, img.height);
+        x.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, s, s); ls.set('sa_avp_' + k, cv.toDataURL('image/jpeg', .82)); sel = 'p'; draw(); } catch (e) { toast('No se ha podido usar esa foto.'); } }; i.click(); };
+    $('#avy').onclick = async () => { $('#overlay').innerHTML = ''; const o = ch ? ch.avatar : v.avatar; if (ch) ch.avatar = sel; else v.avatar = sel; app.dataset.cv = ''; render();
+      const r = ch ? await sb.from('chats').update({ avatar: sel }).eq('id', k) : await sb.rpc('visitor_avatar', { p_chat: k, p_av: sel });
+      if (r.error || (!ch && !r.data?.ok)) { if (ch) ch.avatar = o; else v.avatar = o; app.dataset.cv = ''; render(); toast('No se ha podido guardar.'); } else toast('Imagen guardada'); };
+  };
+  draw();
+}
+// miniatura del QR de un código (para las tarjetas de la lista)
+const QRMINI = {};
+function qrMini(c) { const url = SITE + '/s/' + c.id; if (QRMINI[url]) return QRMINI[url];
+  try { const q = qrcode(0, 'M'); q.addData(url); q.make(); const n = q.getModuleCount(); let r = ''; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (q.isDark(y, x)) r += 'M' + x + ' ' + y + 'h1v1h-1z';
+    return QRMINI[url] = '<svg viewBox="-1 -1 ' + (n + 2) + ' ' + (n + 2) + '" width="100%" height="100%" shape-rendering="crispEdges"><rect x="-1" y="-1" width="' + (n + 2) + '" height="' + (n + 2) + '" fill="#fff"/><path d="' + r + '" fill="#111"/></svg>'; } catch (e) { return ''; } }
+// colores de los boomerangs de un código según sus medios (los de las pegatinas): rojo Alert, amarillo Chat, azul Contacto (Mail y Llamada), verde Info o web
+function codeCols(c) { const g = '#8d979b'; if (!c.is_on) return [g, g, g, g];
+  return [c.ch_alert || c.auto_alert ? '#e8352b' : g, c.ch_chat ? '#e8b923' : g, c.ch_mail || c.ch_call ? '#1f86e0' : g, c.ch_info || c.ch_redirect ? '#2fc23a' : g]; }
+
 /* ---------- chat ---------- */
-const ownerMsgs = (ch, list) => (withDays(list, m => m.created_at, m => `<div class="m ${m.from_visitor ? 'them' : 'me'}"${m.from_visitor && isPlayable(m.body) ? ` data-pm="${m.id}" data-secs="${+(m.body.match(/#(\d+)$/) || [])[1] || 0}"` : ''}>${!m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : ''}${msgBody(m.body, m.created_at)}<div class="tm">${hm(m.created_at)}${m.from_visitor ? '' : bm(m.id, isPlayable(m.body) ? !!(m.played_at || pctOf(m.id) >= 100) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at, isPlayable(m.body) ? Math.max(m.played_pct || 0, pctOf(m.id)) : 0)}</div></div>`) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
-const visitorMsgs = (v, list) => (withDays(list, m => m.at, m => `<div class="m ${m.mine ? 'me' : 'them'}"${!m.mine && isPlayable(m.body) ? ` data-pm="${m.id}" data-secs="${+(m.body.match(/#(\d+)$/) || [])[1] || 0}"` : ''}>${msgBody(m.body, m.at)}<div class="tm">${hm(m.at)}${m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, isPlayable(m.body) ? pctOf(m.id) >= 100 : m.id <= S.vread[v.id], m.at, isPlayable(m.body) ? pctOf(m.id) : 0) : ''}</div></div>`) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
+const ownerMsgs = (ch, list) => (v2Msgs(ch.id, list, { side: 'o', other: ch.name || 'Chat', id: m => m.id, at: m => m.created_at, mine: m => !m.from_visitor, who: m => m.from_visitor ? 'v' : 'o:' + (m.sender_id || ''),
+  pm: m => m.from_visitor && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
+  top: m => !m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : '',
+  tick: m => m.from_visitor ? '' : bm(m.id, isPlayable(unwrap(m.body)) ? !!(m.played_at || pctOf(m.id) >= 100) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at, isPlayable(unwrap(m.body)) ? Math.max(m.played_pct || 0, pctOf(m.id)) : 0) }) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
+const visitorMsgs = (v, list) => (v2Msgs(v.id, list, { side: 'v', other: v.name || v.public_name || 'Chat', id: m => m.id, at: m => m.at, mine: m => m.mine, who: m => m.mine ? 'v' : 'o',
+  pm: m => !m.mine && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
+  top: () => '',
+  tick: m => m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, isPlayable(unwrap(m.body)) ? pctOf(m.id) >= 100 : m.id <= S.vread[v.id], m.at, isPlayable(unwrap(m.body)) ? pctOf(m.id) : 0) : '' }) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
 // al abrir un chat: ir al primer mensaje sin leer (con separador) o al final, y mantener esa posición
 // mientras cargan fotos, vídeos y mapas, hasta que el usuario toque o desplace la conversación
 let chatPin = null;
@@ -2094,9 +2432,9 @@ function renderChat() {
   const unreadN = app.dataset.cv?.startsWith('c|' + ch.id + '|') ? 0 : (S.unread[ch.id] || list.filter(m => m.from_visitor && !m.read_at).length);
   if (S.unread[ch.id]) { delete S.unread[ch.id]; ls.set('sa_unread', S.unread); }
   const markRead = () => { if (!document.hidden && list.some(m => m.from_visitor && !m.read_at)) { const now = new Date().toISOString(); list.forEach(m => { if (m.from_visitor && !m.read_at) m.read_at = now; }); sb.rpc('mark_chat_read', { p_chat: ch.id }).then(() => {}, () => {}); } };
-  const key = ['c', ch.id, ch.name, ch.note, ch.blocked, off, fav, code?.name, ch.code_name, ls.get('sa_tour_chat', 0)].join('|');
+  const key = ['c', ch.id, ch.name, ch.note, ch.avatar, ch.blocked, off, fav, code?.name, ch.code_name, ls.get('sa_tour_chat', 0)].join('|');
   if (patchMsgs(key, ownerMsgs(ch, list))) return markRead();
-  app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button><div class="grow"><div style="font-size:20px" id="nm">${esc(ch.name)}</div><div style="font-size:12px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ch.note || code?.name || (ch.code_name ? ch.code_name + ' (código borrado)' : ''))}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
+  app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button><button class="cavb" id="cav" title="Imagen del contacto">${v2AvHtml(ch.avatar, ch.name, 38, ch.id, ch.blocked)}</button><div class="grow" style="min-width:0"><div style="font-size:19px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="nm">${esc(ch.name)}</div><div style="font-size:12px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ch.note || code?.name || (ch.code_name ? ch.code_name + ' (código borrado)' : ''))}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
     ${off || ch.blocked ? '' : `<button class="ib dark" id="call" title="Llamar">${IC.phone(24)}</button>`}<button class="star" id="fv" title="Favorito">${IC.star(28, fav)}</button><button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
     ${ch.blocked ? '<div class="notice" style="background:#eee">Has bloqueado a este contacto: no puede escribirte. Desbloquéalo desde ⋮.</div>' : ''}${off ? `<div class="notice">${code ? 'Este código está apagado' : 'El código de este chat se ha borrado'}: el chat está cerrado. Márcalo como favorito ★ para mantenerlo activo.</div>` : ''}
     ${screenTour('chat')}${pcHint()}<div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${ownerMsgs(ch, list)}</div></div>
@@ -2108,6 +2446,7 @@ function renderChat() {
   $('#oi').onfocus = () => setTimeout(fitVV, 300);
   $('#bk').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
   if ($('#call')) $('#call').onclick = () => callStart(ch.id, true);
+  $('#cav').onclick = () => v2AvPick(ch.id);
   $('#ren').onclick = () => $('#nm').onclick();
   $('#nm').onclick = () => chatNameSheet({ name: ch.name, note: ch.note || '', notePh: code?.name ? 'Si la dejas vacía, se ve «' + code.name + '»' : 'Ej. cliente de la tienda, vecino…',
     hint: 'Nadie ve el teléfono de nadie: este chat llegó por tu código QR. Ponle un nombre para reconocerlo y, si quieres, una descripción.',
@@ -2126,7 +2465,7 @@ function renderChat() {
     $('#bl').onclick = async () => { const v = !ch.blocked; $('#overlay').innerHTML = ''; ch.blocked = v; render(); const { error } = await sb.from('chats').update({ blocked: v }).eq('id', ch.id); if (error) { ch.blocked = !v; render(); toast('No se ha podido cambiar.'); } else toast(v ? 'Contacto bloqueado: ya no puede escribirte' : 'Contacto desbloqueado'); };
     $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { $('#overlay').innerHTML = ''; await sb.from('chats').delete().eq('id', ch.id); S.chats = S.chats.filter(x => x.id !== ch.id); S.view = null; S.tab = 'chats'; toast('Chat borrado'); render(); } else { $('#dc').dataset.sure = 1; $('#dc').textContent = 'Pulsa otra vez para borrar el chat'; } };
   };
-  const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; i.value = ''; S.bmJustSent = Date.now(); const { data, error } = await sb.from('messages').insert({ chat_id: ch.id, from_visitor: false, sender_id: S.user.id, body: t }).select().single(); if (error) return toast('No se ha podido enviar.'); const l = (S.msgs[ch.id] ||= []); if (!l.find(x => x.id === data.id)) l.push(data); render(); $('#oi')?.focus(); };
+  const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; i.value = ''; S.bmJustSent = Date.now(); const { data, error } = await sb.from('messages').insert({ chat_id: ch.id, from_visitor: false, sender_id: S.user.id, body: v2Wrap(ch.id, t) }).select().single(); if (error) return toast('No se ha podido enviar.'); const l = (S.msgs[ch.id] ||= []); if (!l.find(x => x.id === data.id)) l.push(data); render(); $('#oi')?.focus(); };
   $('#os').onclick = send; $('#oi').onkeydown = e => { if (e.key === 'Enter') send(); };
   bindCompose(ch.id, async b => { S.bmJustSent = Date.now(); const { data, error } = await sb.from('messages').insert({ chat_id: ch.id, from_visitor: false, sender_id: S.user.id, body: b }).select().single(); if (error) throw error; const l = (S.msgs[ch.id] ||= []); if (!l.find(x => x.id === data.id)) l.push(data); render(); });
 }
@@ -2184,9 +2523,9 @@ async function renderVChat() {
   const unreadN = app.dataset.cv?.startsWith('v|' + v.id + '|') ? 0 : (S.unread['v' + v.id] || 0);
   if (S.unread['v' + v.id]) { delete S.unread['v' + v.id]; ls.set('sa_unread', S.unread); }
   const list = S.vmsgs?.[v.id] || [];
-  const key = ['v', v.id, v.name, v.note, v.public_name, v.alive, ls.get('sa_tour_chat', 0)].join('|');
+  const key = ['v', v.id, v.name, v.note, v.avatar, v.public_name, v.alive, ls.get('sa_tour_chat', 0)].join('|');
   if (patchMsgs(key, visitorMsgs(v, list))) return;
-  app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button><div class="grow"><div style="font-size:20px" id="nm">${esc(v.name || v.public_name || 'Chat')}</div><div style="font-size:12px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.note ?? v.public_desc ?? ((v.public_name || '') + ' · código escaneado'))}</div></div>
+  app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button><button class="cavb" id="cav" title="Imagen del contacto">${v2AvHtml(v.avatar, v.name || v.public_name, 38, v.id)}</button><div class="grow" style="min-width:0"><div style="font-size:19px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="nm">${esc(v.name || v.public_name || 'Chat')}</div><div style="font-size:12px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.note ?? v.public_desc ?? ((v.public_name || '') + ' · código escaneado'))}</div></div>
     ${v.alive && v.call_app ? `<button class="ib dark" id="call" title="Llamar">${IC.phone(24)}</button>` : ''}<button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
     ${v.alive ? '' : '<div class="notice">El dueño ha cerrado este chat: no puedes escribir ahora.</div>'}
     ${screenTour('chat')}${pcHint()}<div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${visitorMsgs(v, list)}</div></div>
@@ -2195,6 +2534,7 @@ async function renderVChat() {
   if ($('#oi')) $('#oi').onfocus = () => setTimeout(fitVV, 300);
   $('#bk').onclick = () => { clearInterval(vPoll); S.view = null; S.tab = 'chats'; render(); };
   if ($('#call')) $('#call').onclick = () => callStart(v.id, false);
+  $('#cav').onclick = () => v2AvPick(v.id);
   $('#ren').onclick = () => $('#nm').onclick();
   $('#nm').onclick = () => chatNameSheet({ name: v.name || v.public_name || '', note: v.note ?? v.public_desc ?? '', notePh: 'Ej. mi vecino, el taller…',
     hint: 'Este chat no nace de un número de teléfono, sino del código QR que escaneaste: ninguno ve el teléfono del otro. Si es un amigo o un conocido, ponle su nombre. Si es un comercio o un servicio, normalmente ya trae su descripción: puedes dejarla así.',
@@ -2211,7 +2551,7 @@ async function renderVChat() {
     if ($('#og')) $('#og').onclick = () => { location.href = `${SITE}/s/${v.code_id}`; };
     $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { $('#overlay').innerHTML = ''; await sb.rpc('visitor_forget', { p_chat: v.id }); S.vchats = S.vchats.filter(x => x.id !== v.id); S.view = null; S.tab = 'chats'; toast('Chat quitado de tu lista'); render(); } else { $('#dc').dataset.sure = 1; $('#dc').textContent = 'Pulsa otra vez para quitarlo'; } };
   };
-  const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; i.value = ''; S.bmJustSent = Date.now(); const { data } = await sb.rpc('visitor_send', { p_chat: v.id, p_token: v.token, p_body: t }); if (!data?.ok) return toast(data?.error === 'closed' ? 'El chat está cerrado.' : 'No se ha podido enviar.'); await vFetch(v); $('#oi')?.focus(); };
+  const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; i.value = ''; S.bmJustSent = Date.now(); const { data } = await sb.rpc('visitor_send', { p_chat: v.id, p_token: v.token, p_body: v2Wrap(v.id, t) }); if (!data?.ok) return toast(data?.error === 'closed' ? 'El chat está cerrado.' : 'No se ha podido enviar.'); await vFetch(v); $('#oi')?.focus(); };
   if ($('#os')) { $('#os').onclick = send; $('#oi').onkeydown = e => { if (e.key === 'Enter') send(); }; }
   if ($('#os')) bindCompose(v.id, async b => { S.bmJustSent = Date.now(); const { data } = await sb.rpc('visitor_send', { p_chat: v.id, p_token: v.token, p_body: b }); if (!data?.ok) throw new Error('send'); await vFetch(v); });
   if (!S.vmsgs?.[v.id] || S.vread[v.id] === undefined) vFetch(v);
@@ -2255,7 +2595,7 @@ function stopCam() { stream?.getTracks().forEach(t => t.stop()); stream = null; 
 function renderPack() {
   if (S.view.only) {   // cámara: solo el escáner a pantalla completa
     app.innerHTML = `<div class="bar"><button class="back" id="bk">${IC.back(24)}</button><span class="name" style="font-size:16px;font-family:Inter">Escanear código</span></div>
-      <div class="camwrap" id="cw" style="flex:1;border-radius:0;display:block"><video poster="data:image/gif;base64,R0lGODlhAQABAAAAACw=" id="vd" playsinline muted style="width:100%;height:100%;object-fit:cover"></video><div class="laser"></div><canvas class="pts" id="pts"></canvas></div>`;
+      <div class="camwrap" id="cw" style="flex:1;border-radius:0;display:block"><video poster="data:image/gif;base64,R0lGODlhAQABAAAAACw=" id="vd" playsinline muted style="width:100%;height:100%;object-fit:cover"></video><div class="laser"></div>${FRAME()}<canvas class="pts" id="pts"></canvas></div>`;
     app.classList.add('full');
     $('#bk').onclick = () => { stopCam(); app.classList.remove('full'); S.view = null; render(); };
     if (S.view.scan) { S.view.scan = false; startScan(); }
@@ -2266,7 +2606,7 @@ function renderPack() {
     <div style="font-size:13px;color:#777;margin:6px 2px 18px">Lo imprimes tú o lo compartes como enlace.</div>
     <div class="section">VINCULAR UN PACK DE PEGATINAS</div>
     <div style="font-size:14px;color:#555;margin-bottom:10px">Escanea el <b>QR maestro</b> de tu pack: todas sus pegatinas quedarán vinculadas a tu cuenta.</div>
-    <div class="camwrap" id="cw" style="display:none"><video poster="data:image/gif;base64,R0lGODlhAQABAAAAACw=" id="vd" playsinline muted></video><div class="laser"></div><canvas class="pts" id="pts"></canvas></div>
+    <div class="camwrap" id="cw" style="display:none"><video poster="data:image/gif;base64,R0lGODlhAQABAAAAACw=" id="vd" playsinline muted></video><div class="laser"></div>${FRAME()}<canvas class="pts" id="pts"></canvas></div>
     <button class="btn teal" id="sc">${IC.camera(20)}Escanear QR maestro</button>
     <div style="display:flex;gap:6px;margin-top:10px"><input id="pk" placeholder="o escribe el código del pack" style="margin:0;text-transform:uppercase"><button class="btn sm light" id="pkb">Vincular</button></div>
     ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}</div>`;
@@ -2392,9 +2732,9 @@ const TOUR = [
   ['', 'Bienvenido a Scan2Com. Te explico en medio minuto cómo funciona.'],
   ['item', 'Este es tu primer código. Ya está listo para chatear.'],
   ['item', 'Cuando alguien lo escanee con la cámara de su móvil, podrá escribirte sin ver tu teléfono ni tu email.'],
-  ['pw', 'Con el botón verde lo enciendes o lo apagas cuando no quieras que te molesten.'],
+  ['pw', 'Con el interruptor de la derecha lo enciendes o lo apagas cuando no quieras que te molesten.'],
   ['edit', 'En los ajustes eliges qué puede hacer quien lo escanee: avisarte con una alerta, mandarte un mensaje, chatear contigo o ir a una web.'],
-  ['qr', 'Con las flechas ves el código, para imprimirlo, pegarlo donde quieras o compartirlo.'],
+  ['qr', 'Tocando el código lo ves en grande, para imprimirlo, pegarlo donde quieras o compartirlo. Los boomerangs de sus esquinas te dicen qué medios tiene: rojo, alerta; amarillo, chat; azul, mail o llamada; y verde, información o web. Si están grises, ese medio está apagado.'],
   ['fab', 'Y con el botón más creas nuevos códigos o vinculas tus pegatinas. Eso es todo.']
 ];
 // recorridos hablados del resto de pantallas: [selector a resaltar, texto]; los pasos cuyo botón no está se saltan
@@ -2404,6 +2744,7 @@ const TOURS = {
     ['.page[data-page="chats"] [data-chat], .page[data-page="chats"] [data-vchat]', 'Cada fila es una conversación. Tócala para escribir. Nadie ve tu teléfono ni tu email.'],
     ['.page[data-page="chats"] [data-fav]', 'Con la estrella la marcas como favorita y sube arriba de la lista.'],
     ['', 'Estos chats no nacen de números de teléfono, sino de códigos QR: nadie ve el teléfono ni el email de nadie. Por eso llegan con un nombre genérico. Entra en cada chat y, con el lápiz, ponle un nombre y una descripción: vecino del segundo, repartidor… Los de comercios o servicios ya suelen traer su descripción.'],
+    ['', 'Y cada chat lleva la imagen que tú le pongas: un antifaz, una inicial, un dibujo o una foto de tu galería. Así reconoces de un vistazo al taller, al vecino o a tu madre, sin que nadie comparta su foto ni su número.'],
     ['#bScan', 'Con la cámara de arriba escaneas el código de otra persona y empiezas un chat con ella.'],
     ['#trc', 'Y abajo, mostrar trazabilidad agrupa los chats por código y te dice de dónde sale cada nombre.']
   ],
@@ -2411,6 +2752,8 @@ const TOURS = {
     ['', 'Este chat no nace de un número de teléfono, sino de un código QR. Ninguno de los dos ve el teléfono ni el email del otro: la privacidad es total.'],
     ['#ren', 'Por eso el chat llega con un nombre genérico. Con el lápiz le pones un nombre y una descripción. Si es un amigo o un conocido, ponle su nombre. Si es un comercio o un servicio, normalmente ya trae su descripción: puedes dejarla así.'],
     ['#call', 'Con el teléfono le llamas por la app, también sin ver ni dar ningún número.'],
+    ['#cav', 'Y aquí está lo más especial: la imagen de este contacto la eliges tú, no él. Ponle un antifaz, su inicial, un dibujo o una foto de tu galería para reconocerlo. Solo la ves tú: él no sabe qué imagen le has puesto, y tampoco puede ponerse una foto que tú veas.'],
+    ['#ms', 'Mantén pulsado un mensaje para reaccionar, responder, copiar, reenviarlo a otro chat, elegir varios, fijarlo arriba o borrarlo solo para ti. Para responder rápido, desliza el mensaje hacia la derecha.'],
     ['#ms', 'Al enviar un mensaje sale un boomerang gris: enviado, sin leer. Cuando lo lee, vuelve y queda un tic verde. En audios y vídeos, el boomerang vuelve según la parte que ha escuchado o visto.'],
     ['', 'Los mensajes se guardan en tu móvil, no en el servidor: el servidor solo los guarda de paso hasta que os llegan a los dos. Si usas el ordenador, abre la app en el móvil para recuperarlos.'],
     ['#fv', 'La estrella lo marca como favorito y lo sube arriba de la lista.'],
@@ -2575,6 +2918,8 @@ document.addEventListener('click', e => { const a = e.target.closest && e.target
 function appBack() {
   if ($('#camv')) { camClose(); return true; }
   if ($('#tview')) { $('#tview').remove(); return true; }
+  if ($('#mmenu')) { $('#mmenu').remove(); return true; }
+  if (V2.sel) { v2SelEnd(); return true; }
   if ($('#cpanel') && !$('#overlay')?.innerHTML.trim()) { $('#cpanel').remove(); $('.compose')?.classList.remove('panel'); return true; }   // panel de emojis o adjuntos abierto
   if (S.alarm) return true;
   const ov = $('#overlay');

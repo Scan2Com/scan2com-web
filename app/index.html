@@ -252,7 +252,8 @@ html.dark [style*="color:#555"],html.dark [style*="color:#666"],html.dark [style
 .pdfb{background:#e8352b!important;color:#fff!important;border-radius:12px;padding:6px 10px!important;display:flex;align-items:center;gap:4px;font-weight:700;font-size:14px}
 .tour .x{background:none;border:0;color:#999;font-size:13px;cursor:pointer;padding:4px 0 0}
 /* ayuda hablando: se oscurece todo menos lo que se explica */
-.hl{z-index:50;box-shadow:0 0 0 3px #33b5e5,0 0 18px 4px rgba(51,181,229,.55),0 0 0 100vmax rgba(0,0,0,.62)!important;transition:box-shadow .3s}
+.hl{z-index:50}
+#spot{position:fixed;z-index:60;pointer-events:none;border-radius:12px;box-shadow:0 0 0 3px #33b5e5,0 0 18px 4px rgba(51,181,229,.55),0 0 0 200vmax rgba(0,0,0,.62);transition:left .2s,top .2s,width .2s,height .2s}
 .item.hl,.ib.hl{position:relative;border-radius:12px}.btn.hl,.chk.hl,.star.hl,.tabs button.hl,.chips.hl{position:relative}
 .pw.hl,.fab.hl{border-radius:50%}
 .howto{margin:10px 16px 4px;background:#eef6ff;border:1px solid #cfe3fb;border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.5;color:#33475b}
@@ -3031,12 +3032,21 @@ const bestVoice = vs => vs.map((v, i) => ({ v, i, q: VQ(v) })).filter(o => /^es/
 function pickVoice() { const b = bestVoice(speechSynthesis.getVoices()); return b ? b.v : null; }
 let NTV; async function ntVoice(NT) { if (NTV !== undefined) return NTV; try { const r = await NT.getSupportedVoices(); const b = bestVoice(r.voices || []); NTV = b ? b.i : null; } catch (e) { NTV = null; } return NTV; }
 let SAID_COM = false; const sayable = t => t.replace(/Scan ?2 ?Com\b/gi, () => SAID_COM ? 'Scan tu Com' : (SAID_COM = true, 'Scan tu Communicate')).replace(/Scan ?2 ?/gi, 'Scan tu ');
+// foco de la ayuda: un recuadro fijo encima de todo, para que se oscurezca la pantalla entera menos lo que se explica (antes la sombra quedaba recortada dentro de la ficha)
+let SPOT = null;
+function spot(el) {
+  if (!el) { SPOT?.remove(); SPOT = null; return; }
+  if (!SPOT) { SPOT = document.createElement('div'); SPOT.id = 'spot'; document.body.appendChild(SPOT); }
+  SPOT._el = el; const br = getComputedStyle(el).borderRadius; SPOT.style.borderRadius = parseFloat(br) ? `calc(${br} + 4px)` : '12px';
+  const loop = () => { if (!SPOT || SPOT._el !== el) return; if (!el.isConnected) { const k = S.tourKeyNow; spot(null); if (S.touring) highlight(k); return; } const r = el.getBoundingClientRect(); Object.assign(SPOT.style, { left: r.left - 4 + 'px', top: r.top - 4 + 'px', width: r.width + 8 + 'px', height: r.height + 8 + 'px' }); requestAnimationFrame(loop); };
+  loop();
+}
 function highlight(k) {
-  app.querySelectorAll('.hl').forEach(e => e.classList.remove('hl'));
-  if (k && /[#.\[]/.test(k[0])) { const el = app.querySelector(k); if (el) { el.classList.add('hl'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
+  app.querySelectorAll('.hl').forEach(e => e.classList.remove('hl')); spot(null);
+  if (k && /[#.\[]/.test(k[0])) { const el = app.querySelector(k); if (el) { el.classList.add('hl'); spot(el); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
   const first = app.querySelector('[data-code]'); if (!k || !first) return;
   const el = k === 'item' ? first : k === 'pw' ? first.querySelector('[data-pw]') : k === 'edit' ? first.querySelector('[data-edit]') : k === 'qr' ? first.querySelector('[data-qr]') : k === 'fab' ? $('#fab') : null;
-  if (el) { el.classList.add('hl'); el.scrollIntoView({ block: 'nearest' }); }
+  if (el) { el.classList.add('hl'); spot(el); el.scrollIntoView({ block: 'nearest' }); }
 }
 function playTour(name) {
   const steps = name ? TOURS[name].filter(([k]) => !k || app.querySelector(k)) : TOUR; S.tourName = name || '';

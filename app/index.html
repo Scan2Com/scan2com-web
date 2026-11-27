@@ -2025,25 +2025,23 @@ function renderQR() {
   const url = `${SITE}/s/${c.id}`, own = c.owner_id === S.user.id;
   const chans = [c.ch_info && MCOL.info + IC.info(14) + ' Info', c.ch_mail && MCOL.mail + IC.mail(14) + ' Mail', c.ch_alert && MCOL.alert + (IC.alert(14) + ' Alert' + (isCar(c) ? ' (siempre activo)' : '') + (c.auto_alert ? ' (al abrir)' : '')), (c.ch_chat || c.ch_call) && MCOL.chat + IC.chat(14) + (c.ch_call ? ' Chat y ' + IC.phone(14) + ' llamadas' : ' Chat'), c.ch_redirect && c.redirect_url && MCOL.web + IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean).map(x => x.split('|'));
   const nChats = S.chats.filter(x => x.code_id === c.id).length;
-  app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(24)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes del código">${IC.sliders(24)}</button>` : ''}${isCar(c) ? `<button class="ib pdfb" id="pdf" title="PDF para imprimir (4 pegatinas, tamaño real)">${IC.pdf(22)}PDF</button>` : ''}</div>
-    <div class="namebar">${esc(c.name).toUpperCase()}</div>
+  app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa" title="Volver">${IC.back(18)}</button><div class="grow" style="min-width:0"><div style="font-size:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name || c.public_name || 'Código')}</div>${c.private_info ? `<div style="font-size:12.5px;color:#9aa0a6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${IC.lock(11)} ${esc(c.private_info)}</div>` : ''}</div><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes del código">${IC.sliders(24)}</button>` : ''}${isCar(c) ? `<button class="ib pdfb" id="pdf" title="PDF para imprimir (4 pegatinas, tamaño real)">${IC.pdf(22)}PDF</button>` : ''}</div>
     <div class="body"><div class="qrbox"><div class="qrfr" id="qrfr">${FRAME(codeCols(c))}<canvas id="cv"></canvas>${c.is_on ? '<span class="qlas"></span>' : ''}</div><div class="link">${url}</div>
-      <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><div class="pw ${c.is_on ? 'on' : ''}" id="pw">${IC.power(20)}</div><span style="font-size:14px;color:${c.is_on ? '#1a7a1a' : '#999'}">${c.is_on ? 'Activo' : 'Desactivado'}</span></div></div>
+      ${c.is_on ? '' : '<div style="margin-top:6px;font-size:14px;font-weight:600;color:#e8352b">Código apagado: nadie nuevo puede entrar</div>'}</div>
       <div class="pad" style="padding-top:4px">
         ${own && isCar(c) && c.bt_auto && !c.bt_addr ? `<button class="btn" id="btset" style="margin-bottom:10px;background:#e8352b">${IC.lock(20)}${NATIVE ? 'Elige el Bluetooth de tu coche' : 'Instala la app Android para activarlo al bajar del coche'}</button>` : ''}
         <button class="btn teal" id="op">${IC.eye(20)}Ver lo que ve quien escanea</button>
         <div style="margin:10px -16px 0">${screenTour('qr')}</div>
-        <div class="section">CONFIGURACIÓN</div>
-        <div style="font-size:14px;line-height:1.7"><b>${esc(c.public_name)}</b><br><span style="white-space:pre-line;color:#555">${esc(c.public_desc || '—')}</span></div>
+        <div class="section">LO QUE VE QUIEN ESCANEA</div>
+        ${c.ch_info && (c.public_name || c.public_desc) ? `<div style="font-size:14px;line-height:1.6">${c.public_name ? `<b>${esc(c.public_name)}</b><br>` : ''}<span style="white-space:pre-line;color:var(--v2sub,#888)">${esc(c.public_desc || '')}</span></div>` : '<div style="font-size:13px;color:#888">Sin texto público.</div>'}
         <div style="margin-top:8px">${chans.map(([col, x]) => `<span class="pill mpill" style="--mc:${col}">${x}</span>`).join('') || '<span class="pill">Sin medios activos</span>'}</div>
-        ${c.private_info ? `<div style="font-size:13px;color:#555;margin-top:8px;display:flex;gap:6px;align-items:center">${IC.lock(14)} ${esc(c.private_info)}</div>` : ''}
         ${nChats ? `<button class="btn light" style="margin-top:14px" id="gc">${IC.chat(20)}${nChats} chat${nChats > 1 ? 's' : ''} de este código</button>` : ''}
       </div></div>`;
   drawDesign($('#cv'), c, url);
   setTimeout(() => { const cv = $('#cv'), f = $('#qrfr'); if (cv && f && (cv.classList.contains('stk') || cv.classList.contains('prt') || /car|print/.test(designOf(c)))) { f.querySelector('.bfr')?.remove(); f.querySelector('.qlas')?.remove(); f.style.padding = '0'; } }, 0);
   $('#bk').onclick = () => { S.view = null; render(); };
   if ($('#ed')) $('#ed').onclick = () => { S.view = { t: 'edit', id: c.id }; render(); };
-  $('#pw').onclick = () => togglePower(c.id);
+  if ($('#pw')) $('#pw').onclick = () => togglePower(c.id);
   if ($('#btset')) $('#btset').onclick = () => { if (NATIVE) { S.view = { t: 'edit', id: c.id }; render(); } else location.href = '/app/scan2com.apk'; };
   $('#op').onclick = () => { if (NATIVE) location.href = url + '?web=1'; else window.open(url, '_blank'); };   // en la app Android window.open no abre nada
   $('#sh').onclick = () => shareCode(c, url);

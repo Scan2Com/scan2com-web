@@ -59,6 +59,30 @@ public class ScanAutoPlugin extends Plugin {
         r.put("step", "ok"); call.resolve(r);
     }
 
+    // QR de wifi: Android 11+ muestra el diálogo del sistema «¿Guardar esta red?» y se conecta; antes, abre los ajustes de wifi
+    @PluginMethod
+    public void joinWifi(PluginCall call) {
+        String ssid = call.getString("ssid", ""), pass = call.getString("pass", ""), type = call.getString("type", "");
+        boolean hidden = Boolean.TRUE.equals(call.getBoolean("hidden", false));
+        try {
+            if (Build.VERSION.SDK_INT >= 30) {
+                android.net.wifi.WifiNetworkSuggestion.Builder b = new android.net.wifi.WifiNetworkSuggestion.Builder().setSsid(ssid).setIsHiddenSsid(hidden);
+                String t = type == null ? "" : type.toUpperCase();
+                if (pass != null && !pass.isEmpty() && !"NOPASS".equals(t)) {
+                    if (t.contains("SAE")) b.setWpa3Passphrase(pass); else b.setWpa2Passphrase(pass);
+                }
+                ArrayList<android.os.Parcelable> list = new ArrayList<>(); list.add(b.build());
+                Intent i = new Intent(Settings.ACTION_WIFI_ADD_NETWORKS);
+                i.putParcelableArrayListExtra(Settings.EXTRA_WIFI_NETWORK_LIST, list);
+                getActivity().startActivity(i);
+                JSObject r = new JSObject(); r.put("ok", true); r.put("mode", "dialog"); call.resolve(r);
+            } else {
+                getActivity().startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
+                JSObject r = new JSObject(); r.put("ok", true); r.put("mode", "settings"); call.resolve(r);
+            }
+        } catch (Exception e) { call.reject(e.getMessage()); }
+    }
+
     @PluginMethod
     public void openAppSettings(PluginCall call) {
         go(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName())));

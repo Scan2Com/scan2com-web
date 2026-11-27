@@ -14,7 +14,7 @@
   const css = `
 .s2cc{position:fixed;inset:0;z-index:2000;background:linear-gradient(180deg,#10302a,#0b1b18 60%,#050b0a);color:#fff;display:flex;flex-direction:column;align-items:center;font-family:system-ui,-apple-system,Roboto,sans-serif;padding:calc(env(safe-area-inset-top) + 56px) 20px calc(env(safe-area-inset-bottom) + 40px)}
 .s2cc .av{width:116px;height:116px;border-radius:50%;background:#1f5c4f;display:flex;align-items:center;justify-content:center;font-size:52px;font-weight:600;box-shadow:0 0 0 0 rgba(47,194,58,.5)}
-.s2cc.ring .av{animation:s2ccp 1.6s infinite}
+.s2cc.s2ring .av{animation:s2ccp 1.6s infinite}
 @keyframes s2ccp{0%{box-shadow:0 0 0 0 rgba(47,194,58,.55)}100%{box-shadow:0 0 0 34px rgba(47,194,58,0)}}
 .s2cc .nm{font-size:28px;font-weight:600;margin-top:26px;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .s2cc .st{font-size:16px;opacity:.75;margin-top:8px;min-height:22px;font-variant-numeric:tabular-nums}
@@ -52,7 +52,7 @@
     if (cur && cur.id === o.id) return cur;
     if (cur) cur.end('ended', true);
     if (!document.getElementById('s2ccss')) { const st = document.createElement('style'); st.id = 's2ccss'; st.textContent = css; document.head.appendChild(st); }
-    const el = document.createElement('div'); el.className = 's2cc ring';
+    const el = document.createElement('div'); el.className = 's2cc s2ring';
     const ini = (o.name || '?').trim().charAt(0).toUpperCase() || '?';
     el.innerHTML = `<div class="av">${ini}</div><div class="nm"></div><div class="st"></div><div class="br">Llamada de Scan2Com · sin números de teléfono</div><div class="bt"></div><audio autoplay playsinline></audio>`;
     el.querySelector('.nm').textContent = o.name || 'Scan2Com';
@@ -77,7 +77,7 @@
       pc.ontrack = e => { au.srcObject = e.streams[0]; au.play?.().catch(() => {}); };
       pc.onicecandidate = e => { if (e.candidate) send('ice', { c: e.candidate.toJSON() }); };
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'connected' && !t0) { stopTone(); el.classList.remove('ring'); t0 = Date.now(); tick = setInterval(() => status(mmss(Math.round((Date.now() - t0) / 1000))), 1000); status('0:00'); }
+        if (pc.connectionState === 'connected' && !t0) { stopTone(); el.classList.remove('s2ring'); t0 = Date.now(); tick = setInterval(() => status(mmss(Math.round((Date.now() - t0) / 1000))), 1000); status('0:00'); }
         if (pc.connectionState === 'failed') { status('No se ha podido conectar'); setTimeout(() => end('ended'), 1500); }
       };
     }

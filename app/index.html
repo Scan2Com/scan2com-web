@@ -359,6 +359,8 @@ html:not(.dark) .pinbar{box-shadow:0 1px 3px #0000001a}
 .fab{background:#2fc23a;border-radius:18px;box-shadow:0 6px 18px #2fc23a55}
 .dsg button{position:relative}.dsg button .bfr{display:none;inset:-7px}.dsg button .bfr i{width:22px;height:22px}.dsg button.on .bfr{display:block}
 html.dark .dsg button.on{border-color:#2fc23a;background:#1b2a20;color:#8fe39a}.dsg button.on{border-color:#2fc23a}
+.pill.mpill{color:var(--mc);border:1.5px solid color-mix(in srgb,var(--mc) 55%,transparent);background:color-mix(in srgb,var(--mc) 12%,transparent)}.pill.mpill svg{color:var(--mc)}
+.chips span.mc{color:var(--mc);background:color-mix(in srgb,var(--mc) 15%,transparent)}
 .camwrap .bfr{inset:8%}.camwrap .bfr i{width:22%;height:22%;color:#ffffffee;filter:drop-shadow(0 1px 3px #0008)}
 </style>
 </head>
@@ -1620,10 +1622,10 @@ function renderHome() {
   }
   if (tab === 'codes') {
     const codes = S.codes.filter(c => match(c.name, c.public_name, c.private_info));
-    const medios = c => [(c.ch_alert || c.auto_alert) && 'Alert', c.ch_chat && 'Chat', c.ch_mail && 'Mail', c.ch_call && 'Llamada', c.ch_info && 'Info', c.ch_redirect && 'Web'].filter(Boolean);
+    const medios = c => [(c.ch_alert || c.auto_alert) && ['Alert', '#e8352b'], c.ch_chat && ['Chat', '#2fc23a'], c.ch_call && ['Llamada', '#e8b923'], c.ch_mail && ['Mail', '#1f86e0'], c.ch_info && ['Info', ''], c.ch_redirect && ['Web', '']].filter(Boolean);
     body = codes.length ? codes.map(c => `<div class="item ${c.is_on ? '' : 'off'}" data-code="${c.id}">
         <div class="qrt" data-qr="${c.id}" title="Ver código">${FRAME(codeCols(c))}<div class="q">${qrMini(c)}</div></div>
-        <div class="grow" style="min-width:0"><div class="t">${esc(c.name || c.public_name || 'Sin nombre')}</div>${c.private_info || c.owner_id !== S.user.id ? `<div class="s">${esc(c.private_info || '')}${c.owner_id !== S.user.id ? ' · compartido contigo' : ''}</div>` : ''}<div class="chips">${medios(c).map(x => `<span>${x}</span>`).join('') || '<span>Sin medios</span>'}</div></div>
+        <div class="grow" style="min-width:0"><div class="t">${esc(c.name || c.public_name || 'Sin nombre')}</div>${c.private_info || c.owner_id !== S.user.id ? `<div class="s">${esc(c.private_info || '')}${c.owner_id !== S.user.id ? ' · compartido contigo' : ''}</div>` : ''}<div class="chips">${medios(c).map(([x, col]) => `<span${col && c.is_on ? ` class="mc" style="--mc:${col}"` : ''}>${x}</span>`).join('') || '<span>Sin medios</span>'}</div></div>
         ${c.owner_id === S.user.id ? `<button class="ib set2" data-edit="${c.id}" title="Ajustes">${IC.sliders(22)}</button>` : ''}<button class="sw2 ${c.is_on ? '' : 'off'}" data-pw="${c.id}" title="Encender / apagar"></button></div>`).join('')
       : `<div class="empty">Aún no tienes códigos.<br>Pulsa <b>+</b> para crear uno o para vincular un pack de pegatinas.</div>`;
     const nb = NATIVE && S.av ? (avMissing() && avRelevant() ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Completa la configuración de avisos</b><br>Sin ella, no te enterarás de alertas ni mensajes con la app cerrada.</div><span class="nbtn">Configurar</span></div>` : '') : !notifOn() && (S.codes.some(c => c.is_on && (c.ch_alert || c.auto_alert || c.ch_chat || c.ch_mail || c.ch_call)) || (S.vchats || []).length) ? `<div class="nbar" id="bNotif">${IC.bell(22)}<div style="flex:1"><b>Activa las notificaciones</b><br>Sin ellas, no te enterarás de alertas ni mensajes con la app cerrada.</div><span class="nbtn">Activar</span></div>` : '';
@@ -2007,7 +2009,7 @@ async function showScannedQR(id, name) {
 function renderQR() {
   const c = codeOf(S.view.id); if (!c) { S.view = null; return render(); }
   const url = `${SITE}/s/${c.id}`, own = c.owner_id === S.user.id;
-  const chans = [c.ch_info && IC.info(14) + ' Info', c.ch_mail && IC.mail(14) + ' Mail', c.ch_alert && (IC.alert(14) + ' Alert' + (isCar(c) ? ' (siempre activo)' : '') + (c.auto_alert ? ' (al abrir)' : '')), c.ch_chat && IC.chat(14) + ' Chat', c.ch_call && IC.phone(14) + ' Llamada', c.ch_redirect && c.redirect_url && IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean);
+  const chans = [c.ch_info && MCOL.info + IC.info(14) + ' Info', c.ch_mail && MCOL.mail + IC.mail(14) + ' Mail', c.ch_alert && MCOL.alert + (IC.alert(14) + ' Alert' + (isCar(c) ? ' (siempre activo)' : '') + (c.auto_alert ? ' (al abrir)' : '')), c.ch_chat && MCOL.chat + IC.chat(14) + ' Chat', c.ch_call && MCOL.call + IC.phone(14) + ' Llamada', c.ch_redirect && c.redirect_url && MCOL.web + IC.globe(14) + ' Redirige a ' + esc(c.redirect_url.replace(/^https?:\/\//, ''))].filter(Boolean).map(x => x.split('|'));
   const nChats = S.chats.filter(x => x.code_id === c.id).length;
   app.innerHTML = `<div class="bar" style="justify-content:space-around"><button class="ib qrbar-ib" id="bk" title="Volver">${IC.contract(24)}</button><button class="ib qrbar-ib" id="sh" title="Compartir">${IC.shareL(24)}</button><button class="ib qrbar-ib" id="dl" title="Guardar imagen">${IC.saveL(24)}</button>${own ? `<button class="ib qrbar-ib" id="ed" title="Ajustes del código">${IC.sliders(24)}</button>` : ''}${isCar(c) ? `<button class="ib pdfb" id="pdf" title="PDF para imprimir (4 pegatinas, tamaño real)">${IC.pdf(22)}PDF</button>` : ''}</div>
     <div class="namebar">${esc(c.name).toUpperCase()}</div>
@@ -2019,7 +2021,7 @@ function renderQR() {
         <div style="margin:10px -16px 0">${screenTour('qr')}</div>
         <div class="section">CONFIGURACIÓN</div>
         <div style="font-size:14px;line-height:1.7"><b>${esc(c.public_name)}</b><br><span style="white-space:pre-line;color:#555">${esc(c.public_desc || '—')}</span></div>
-        <div style="margin-top:8px">${chans.map(x => `<span class="pill">${x}</span>`).join('') || '<span class="pill">Sin medios activos</span>'}</div>
+        <div style="margin-top:8px">${chans.map(([col, x]) => `<span class="pill mpill" style="--mc:${col}">${x}</span>`).join('') || '<span class="pill">Sin medios activos</span>'}</div>
         ${c.private_info ? `<div style="font-size:13px;color:#555;margin-top:8px;display:flex;gap:6px;align-items:center">${IC.lock(14)} ${esc(c.private_info)}</div>` : ''}
         ${nChats ? `<button class="btn light" style="margin-top:14px" id="gc">${IC.chat(20)}${nChats} chat${nChats > 1 ? 's' : ''} de este código</button>` : ''}
       </div></div>`;
@@ -2374,6 +2376,8 @@ function qrMini(c) { const url = SITE + '/s/' + c.id; if (QRMINI[url]) return QR
   try { const q = qrcode(0, 'M'); q.addData(url); q.make(); const n = q.getModuleCount(); let r = ''; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (q.isDark(y, x)) r += 'M' + x + ' ' + y + 'h1v1h-1z';
     return QRMINI[url] = '<svg viewBox="-1 -1 ' + (n + 2) + ' ' + (n + 2) + '" width="100%" height="100%" shape-rendering="crispEdges"><rect x="-1" y="-1" width="' + (n + 2) + '" height="' + (n + 2) + '" fill="#fff"/><path d="' + r + '" fill="#111"/></svg>'; } catch (e) { return ''; } }
 // colores de los boomerangs de un código según sus medios (decisión de Luis): rojo Alert, verde Chat, amarillo Llamada, azul Mail; gris si está apagado
+// color de cada medio (etiquetas y boomerangs): rojo Alert, verde Chat, amarillo Llamada, azul Mail; Info y web en gris
+const MCOL = { alert: '#e8352b|', chat: '#2fc23a|', call: '#e8b923|', mail: '#1f86e0|', info: '#8d979b|', web: '#8d979b|' };
 function codeCols(c) { const g = '#8d979b'; if (!c.is_on) return [g, g, g, g];
   return [c.ch_alert || c.auto_alert ? '#e8352b' : g, c.ch_chat ? '#2fc23a' : g, c.ch_call ? '#e8b923' : g, c.ch_mail ? '#1f86e0' : g]; }
 

@@ -245,7 +245,8 @@ html.dark [style*="color:#555"],html.dark [style*="color:#666"],html.dark [style
 .tourmini{display:flex;gap:6px;align-items:center;margin:10px 16px 2px;background:none;border:1px solid #cfe3fb;color:#1f6fc5;border-radius:18px;padding:6px 12px;font-size:13px;cursor:pointer}
 .pdfb{background:#e8352b!important;color:#fff!important;border-radius:12px;padding:6px 10px!important;display:flex;align-items:center;gap:4px;font-weight:700;font-size:14px}
 .tour .x{background:none;border:0;color:#999;font-size:13px;cursor:pointer;padding:4px 0 0}
-.hl{z-index:1;box-shadow:0 0 0 3px #33b5e5,0 0 18px 4px rgba(51,181,229,.55)!important;transition:box-shadow .3s}
+/* ayuda hablando: se oscurece todo menos lo que se explica */
+.hl{position:relative;z-index:50;box-shadow:0 0 0 3px #33b5e5,0 0 18px 4px rgba(51,181,229,.55),0 0 0 100vmax rgba(0,0,0,.62)!important;transition:box-shadow .3s}
 .item.hl,.ib.hl{position:relative;border-radius:12px}
 .pw.hl,.fab.hl{border-radius:50%}
 .howto{margin:10px 16px 4px;background:#eef6ff;border:1px solid #cfe3fb;border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.5;color:#33475b}
@@ -2878,7 +2879,7 @@ function playTour(name) {
   const tts = !NT && 'speechSynthesis' in window; if (tts) speechSynthesis.cancel(); S.touring = true; let i = 0; const voice = tts ? pickVoice() : null;
   const next = () => {
     if (!S.touring) return;
-    if (i >= steps.length) { S.touring = false; highlight(null); if (!name) { ls.set(tourKey(), 1); S.tourDone = true; render(); } else { ls.set('sa_tour_' + name, 1); render(); } return; }   // al terminar, la tarjeta desaparece
+    if (i >= steps.length) { S.touring = false; S.tourForce = false; highlight(null); if (!name) { ls.set(tourKey(), 1); S.tourDone = true; render(); } else { ls.set('sa_tour_' + name, 1); render(); } return; }   // al terminar, la tarjeta desaparece
     const [k, t] = steps[i++]; S.tourKeyNow = k; S.tourCap = t; const cap = $('#tcap'); if (cap) cap.textContent = t; highlight(k);
     if (NT) { NT.speak({ text: t, lang: 'es-ES', rate: 1.0, volume: 1.0 }).then(() => setTimeout(next, 250)).catch(() => setTimeout(next, 3500)); return; }
     if (!tts) return setTimeout(next, 3500);
@@ -2888,7 +2889,7 @@ function playTour(name) {
   const pb = $('#tplay'); if (pb) pb.innerHTML = IC.stop(30);
   next();
 }
-function stopTour() { S.touring = false; try { speechSynthesis.cancel(); } catch (e) {} try { NATIVE && window.Capacitor.Plugins.TextToSpeech?.stop(); } catch (e) {} highlight(null); const pb = $('#tplay'); if (pb) pb.innerHTML = IC.play(30); }
+function stopTour() { const was = S.touring; S.touring = false; S.tourForce = false; if (was) { if (S.tourName) ls.set('sa_tour_' + S.tourName, 1); else ls.set(tourKey(), 1); setTimeout(() => render(), 0); } try { speechSynthesis.cancel(); } catch (e) {} try { NATIVE && window.Capacitor.Plugins.TextToSpeech?.stop(); } catch (e) {} highlight(null); const pb = $('#tplay'); if (pb) pb.innerHTML = IC.play(30); }
 function tourHTML() {
   if (S.tab !== 'codes' || S.view || (ls.get(tourKey(), 0) && !S.tourForce)) return '';
   return `<div class="tour"><button class="play" id="tplay" title="Escuchar">${S.touring ? IC.stop(30) : IC.play(30)}</button>

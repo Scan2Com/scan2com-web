@@ -2670,9 +2670,9 @@ function renderChat() {
   $('#fv').onclick = () => toggleFav(ch.id);
   $('#cm').onclick = () => {
     $('#overlay').innerHTML = `<div class="sheet keep" id="cms"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">${face(ch.blocked, 44)}<div><b>${esc(ch.name)}</b><div style="font-size:13px;color:#777">${ch.blocked ? 'Contacto bloqueado: no puede escribirte' : 'Contacto activo'}</div></div></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">${v2AvHtml(ch.avatar, ch.name, 44, ch.id, ch.blocked)}<div><b>${esc(ch.name)}</b><div style="font-size:13px;color:#777">${ch.blocked ? 'Contacto bloqueado: no puede escribirte' : 'Contacto activo'}</div></div></div>
       ${ch.is_group ? `<div style="font-size:13px;font-weight:700;color:#777;margin:0 0 6px">PARTICIPANTES (${Object.values(S.gmem || {}).filter(x => x.chat_id === ch.id).length})</div><div style="max-height:220px;overflow:auto;margin-bottom:10px">${Object.values(S.gmem || {}).filter(x => x.chat_id === ch.id).map(x => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0"><span style="width:10px;height:10px;border-radius:50%;background:${GCOL[x.color] || '#999'}"></span><span style="flex:1">${esc(memName(x))}</span><button class="btn sm light" data-gb="${x.id}" style="width:auto;padding:4px 10px">${x.blocked ? 'Desbloquear' : 'Bloquear'}</button></div>`).join('') || '<div style="font-size:13px;color:#999">Aún no ha entrado nadie.</div>'}</div>` : ''}
-      ${ch.blocked || ch.is_group ? '' : `<label class="chk" style="margin:0 0 10px"><input type="checkbox" id="pc" ${ch.calls ? 'checked' : ''}> ${IC.phone(18)} Permitir que me llame <span style="font-size:13px;color:#888">· por la app, sin ver tu número</span></label>`}
+      ${ch.blocked || ch.is_group ? '' : `<label class="chk" style="margin:0 0 10px"><input type="checkbox" id="pc" ${ch.calls ? 'checked' : ''}> ${IC.phone(18)} <span>Permitir que me llame por la app, sin ver tu número</span></label>`}
       <button class="btn light" id="bl" style="margin-bottom:8px">${ch.blocked ? 'Desbloquear contacto' : 'Bloquear contacto'}</button>
       <button class="btn light" id="dc" style="color:var(--red);margin-bottom:8px">${IC.trash(18)} Borrar chat</button>
       <button class="btn light" id="hw">${IC.play(16)} Cómo funciona el chat</button></div></div>`;
@@ -2991,18 +2991,18 @@ const TOURS = {
     ['', 'Esta es la pantalla de chats. Te explico cómo funciona.'],
     ['.page[data-page="chats"] [data-chat], .page[data-page="chats"] [data-vchat]', 'Cada fila es una conversación. Tócala para escribir. Nadie ve tu teléfono ni tu email.'],
     ['.page[data-page="chats"] [data-fav]', 'Con la estrella la marcas como favorita y sube arriba de la lista.'],
-    ['', 'Estos chats no nacen de números de teléfono, sino de códigos QR: nadie ve el teléfono ni el email de nadie. Por eso llegan con un nombre genérico. Entra en cada chat y, con el lápiz, ponle un nombre y una descripción: vecino del segundo, repartidor… Los de comercios o servicios ya suelen traer su descripción.'],
+    ['', 'Estos chats no nacen de números de teléfono, sino de códigos QR: nadie ve el teléfono ni el email de nadie. Por eso cada chat llega con el nombre del código. Si alguien escaneó tu código, verás el nombre privado que tú le pusiste. Si tú escaneaste el de otro, verás el nombre público que puso su dueño. Con el lápiz puedes cambiarlo cuando quieras.'],
     ['', 'Y cada chat lleva la imagen que tú le pongas: un antifaz, una inicial, un dibujo o una foto de tu galería. Así reconoces de un vistazo al taller, al vecino o a tu madre, sin que nadie comparta su foto ni su número.'],
     ['#bScan', 'Con la cámara de arriba escaneas el código de otra persona y empiezas un chat con ella.'],
     ['#trc', 'Y abajo, mostrar trazabilidad agrupa los chats por código y te dice de dónde sale cada nombre.']
   ],
   chat: [
     ['', 'Este chat no nace de un número de teléfono, sino de un código QR. Ninguno de los dos ve el teléfono ni el email del otro: la privacidad es total.'],
-    ['#ren', 'Por eso el chat llega con un nombre genérico. Con el lápiz le pones un nombre y una descripción. Si es un amigo o un conocido, ponle su nombre. Si es un comercio o un servicio, normalmente ya trae su descripción: puedes dejarla así.'],
+    ['#ren', 'Por eso el chat llega con el nombre del código: el tuyo privado si te escanearon a ti, o el público del dueño si escaneaste tú. Con el lápiz le pones el nombre y la descripción que quieras, por ejemplo el nombre de tu amigo.'],
     ['#call', 'Con el teléfono le llamas por la app, también sin ver ni dar ningún número.'],
     ['#cav', 'Y aquí está lo más especial: la imagen de este contacto la eliges tú, no él. Ponle un antifaz, su inicial, un dibujo o una foto de tu galería para reconocerlo. Solo la ves tú: él no sabe qué imagen le has puesto, y tampoco puede ponerse una foto que tú veas.'],
     ['#ms', 'Mantén pulsado un mensaje para reaccionar, responder, copiar, reenviarlo a otro chat, elegir varios, fijarlo arriba o borrarlo solo para ti. Para responder rápido, desliza el mensaje hacia la derecha.'],
-    ['#ms', 'Al enviar un mensaje sale un boomerang gris: enviado, sin leer. Cuando lo lee, vuelve y queda un tic verde. En audios y vídeos, el boomerang vuelve según la parte que ha escuchado o visto.'],
+    ['#ms', 'Al enviar un mensaje sale un boomerang gris: está en camino. Cuando llega hasta la izquierda, el mensaje ya se ha descargado y está en el otro teléfono. Cuando lo lee, vuelve y queda un tic verde. En audios y vídeos, el boomerang vuelve según la parte que ha escuchado o visto.'],
     ['', 'Los mensajes se guardan en tu móvil, no en el servidor: el servidor solo los guarda de paso hasta que os llegan a los dos. Si usas el ordenador, abre la app en el móvil para recuperarlos.'],
     ['#fv', 'La estrella lo marca como favorito y lo sube arriba de la lista.'],
     ['#cm', 'En los tres puntos puedes bloquear al contacto. Como no tiene tu número, bloquearlo corta cualquier contacto. También puedes borrar el chat o volver a escuchar esta explicación.']
@@ -3038,12 +3038,14 @@ function spot(el) {
   if (!el) { SPOT?.remove(); SPOT = null; return; }
   if (!SPOT) { SPOT = document.createElement('div'); SPOT.id = 'spot'; document.body.appendChild(SPOT); }
   SPOT._el = el; const br = getComputedStyle(el).borderRadius; SPOT.style.borderRadius = parseFloat(br) ? `calc(${br} + 4px)` : '12px';
-  const loop = () => { if (!SPOT || SPOT._el !== el) return; if (!el.isConnected) { const k = S.tourKeyNow; spot(null); if (S.touring) highlight(k); return; } const r = el.getBoundingClientRect(); Object.assign(SPOT.style, { left: r.left - 4 + 'px', top: r.top - 4 + 'px', width: r.width + 8 + 'px', height: r.height + 8 + 'px' }); requestAnimationFrame(loop); };
+  const loop = () => { if (!SPOT || SPOT._el !== el) return; if (!el.isConnected) { const k = S.tourKeyNow; spot(null); if (S.touring) highlight(k); return; } const r = el.getBoundingClientRect(); let L = r.left, T = r.top, R = r.right, B = r.bottom;
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) { const oy = getComputedStyle(p).overflowY; if (oy === 'auto' || oy === 'scroll') { const q = p.getBoundingClientRect(); L = Math.max(L, q.left); T = Math.max(T, q.top); R = Math.min(R, q.right); B = Math.min(B, q.bottom); } }
+    T = Math.max(T, 0); B = Math.min(B, innerHeight); Object.assign(SPOT.style, { left: L - 4 + 'px', top: T - 4 + 'px', width: Math.max(0, R - L) + 8 + 'px', height: Math.max(0, B - T) + 8 + 'px' }); requestAnimationFrame(loop); };
   loop();
 }
 function highlight(k) {
   app.querySelectorAll('.hl').forEach(e => e.classList.remove('hl')); spot(null);
-  if (k && /[#.\[]/.test(k[0])) { const el = app.querySelector(k); if (el) { el.classList.add('hl'); spot(el); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
+  if (k && /[#.\[]/.test(k[0])) { const el = app.querySelector(k); if (el) { for (let d = el.parentElement?.closest('details:not([open])'); d; d = d.parentElement?.closest('details:not([open])')) d.open = true; el.classList.add('hl'); spot(el); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
   const first = app.querySelector('[data-code]'); if (!k || !first) return;
   const el = k === 'item' ? first : k === 'pw' ? first.querySelector('[data-pw]') : k === 'edit' ? first.querySelector('[data-edit]') : k === 'qr' ? first.querySelector('[data-qr]') : k === 'fab' ? $('#fab') : null;
   if (el) { el.classList.add('hl'); spot(el); el.scrollIntoView({ block: 'nearest' }); }

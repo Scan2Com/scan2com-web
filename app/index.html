@@ -2266,7 +2266,7 @@ function v2Msgs(k, list, o) {
     const rs = Object.values(rx[id] || {}).filter(Boolean), uniq = [...new Set(rs)];
     const q = rp ? '<div class="quote" data-goto="' + (+rp.i || 0) + '"><b>' + esc(rp.s ? (rp.s === o.side ? 'Tú' : o.other) : (rp.w || '')) + '</b>' + esc(rp.t || '') + '</div>' : '';
     return '<div class="m ' + (mine ? 'me' : 'them') + (pin ? ' pinned' : '') + '" data-id="' + id + '"' + o.pm(m) + '>' + o.top(m) + q + msgBody(body, o.at(m))
-      + '<div class="tm">' + hm(o.at(m)) + o.tick(m) + '</div>' + (rs.length ? '<span class="rxs">' + uniq.join('') + (rs.length > 1 ? '<b>' + rs.length + '</b>' : '') + '</span>' : '') + (pin ? FRAME() : '') + '</div>';
+      + '<div class="tm">' + hm(o.at(m)) + o.tick(m) + '</div>' + (rs.length ? '<span class="rxs">' + uniq.map(e => { const n = rs.filter(x => x === e).length; return e + (n > 1 ? '<b>' + n + '</b>' : ''); }).join(' ') + '</span>' : '') + (pin ? FRAME() : '') + '</div>';
   });
 }
 // chat en el que estoy: dueño (o vinculado) de un código, o quien escaneó el código de otro
@@ -2279,12 +2279,13 @@ async function v2Send(k, body) {
   const { data } = await sb.rpc('visitor_send', { p_chat: v.id, p_token: v.token, p_body: body }); if (!data?.ok) throw new Error(data?.error || 'send'); await vFetch(v, true);
 }
 // texto que se va a enviar: si estoy respondiendo, va con la cita
-function v2Wrap(k, t) { const r = V2.reply; if (!r || r.k !== k) return t; V2.reply = null; $('#rpbar')?.remove(); return 'rp:' + JSON.stringify({ i: r.i, s: r.s, t: r.t, b: t }); }
+function v2Wrap(k, t) { const r = V2.reply; if (!r || r.k !== k) return t; V2.reply = null; $('#rpbar')?.remove(); return 'rp:' + JSON.stringify(r.s ? { i: r.i, s: r.s, t: r.t, b: t } : { i: r.i, w: r.w, t: r.t, b: t }); }
 const msgText = b => { b = unwrap(b); return isCall(b) ? callTxt(b) : isLoc(b) ? '📍 Ubicación' : isPhoto(b) || isVideo(b) || isAudio(b) || isFile(b) ? prevBody(b) : b; };
 function v2Find(id) { const c = v2Ctx(); return c && c.list.find(m => c.id(m) === id); }
 function v2Reply(id) {
   const c = v2Ctx(), m = v2Find(id); if (!c || !m) return;
-  const side = c.me === 'v' ? 'v' : 'o'; V2.reply = { k: c.k, i: id, s: c.mine(m) ? side : (side === 'v' ? 'o' : 'v'), w: c.mine(m) ? 'Tú' : c.name, t: msgText(c.body(m)).slice(0, 140) };
+  const side = c.me === 'v' ? 'v' : 'o', gm = c.ch?.is_group && m.member_id ? memName(S.gmem?.[m.member_id]) : null;
+  V2.reply = { k: c.k, i: id, s: gm ? null : c.mine(m) ? side : (side === 'v' ? 'o' : 'v'), w: gm || (c.mine(m) ? 'Tú' : c.name), t: msgText(c.body(m)).slice(0, 140) };
   $('#rpbar')?.remove(); const cmp = $('.compose'); if (!cmp) return;
   cmp.insertAdjacentHTML('beforebegin', '<div class="rpbar" id="rpbar"><div class="quote"><b>' + esc(V2.reply.w) + '</b>' + esc(V2.reply.t) + '</div><button id="rpx" aria-label="Cancelar">✕</button></div>');
   $('#rpx').onclick = () => { V2.reply = null; $('#rpbar').remove(); }; $('#oi')?.focus();
@@ -2499,7 +2500,7 @@ const GCOL = { azul: '#1f86e0', verde: '#2fc23a', rojo: '#e8352b', morado: '#8e5
 async function loadGMembers() { const ids = S.chats.filter(x => x.is_group).map(x => x.id); if (!ids.length) return; const { data } = await sb.from('chat_members').select('id,chat_id,alias,color,real_name,revealed,blocked').in('chat_id', ids); S.gmem = {}; (data || []).forEach(x => S.gmem[x.id] = x); if (S.view?.t === 'chat') render(true); }
 const memName = x => x ? (x.revealed && x.real_name ? x.real_name + ' (' + x.alias + ')' : x.alias) : 'Participante';
 const memTop = mid => { const x = S.gmem?.[mid]; if (mid && !x && !S.gmemAsk) { S.gmemAsk = 1; setTimeout(() => { S.gmemAsk = 0; loadGMembers(); }, 800); } return `<div class="who" style="color:${GCOL[x?.color] || '#8d979b'};font-weight:700;opacity:1">${esc(memName(x))}${x?.blocked ? ' · bloqueado' : ''}</div>`; };
-const ownerMsgs = (ch, list) => (v2Msgs(ch.id, list, { side: 'o', other: ch.name || 'Chat', id: m => m.id, at: m => m.created_at, mine: m => !m.from_visitor, who: m => m.from_visitor ? 'v' : 'o:' + (m.sender_id || ''),
+const ownerMsgs = (ch, list) => (v2Msgs(ch.id, list, { side: 'o', other: ch.name || 'Chat', id: m => m.id, at: m => m.created_at, mine: m => !m.from_visitor, who: m => m.from_visitor ? 'v' + (m.member_id || '') : 'o:' + (m.sender_id || ''),
   pm: m => m.from_visitor && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
   top: m => m.from_visitor && m.member_id ? memTop(m.member_id) : !m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : '',
   tick: m => m.from_visitor ? '' : bm(m.id, isPlayable(unwrap(m.body)) ? !!(m.played_at || pctOf(m.id) >= 100) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at, isPlayable(unwrap(m.body)) ? Math.max(m.played_pct || 0, pctOf(m.id)) : 0) }) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';

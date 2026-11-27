@@ -453,7 +453,7 @@ function renderChat() {
   app.innerHTML = `
     <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div>${(chatCalls ?? code.call_app) && alive ? `<button class="tcall" id="tcall" title="Llamar">${I.call}</button>` : ''}${sbA ? `<a href="/app/?vchat=${chat.id}" style="font-size:13px;color:#0a8f8f;font-weight:600;text-decoration:none">Mis chats ›</a>` : '<span style="font-size:12px;color:#777">chat anónimo</span>'}</div>
     ${gMe ? `<div class="gbar">👥 Chat de grupo · eres <b style="color:${GCOLW[gMe.color] || '#888'}">${esc(gMe.alias)}</b>${gMe.revealed ? ' (' + esc(gMe.name || '') + ')' : ''}<button id="grev">${gMe.revealed ? 'Volver a ocultarme' : 'Revelar mi nombre'}</button></div>` : ''}
-    <div class="msgs scrollme" id="ms">${msgs.length ? wMsgs() : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
+    <div class="msgs scrollme" id="ms">${msgs.length ? wMsgs() : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : `<div class="m sys">${gMe ? 'El dueño te ha bloqueado en este grupo.' : 'El dueño ha cerrado este chat.'}</div>`}</div>
     ${alive ? `<div class="ws"><button class="camb" id="cph" title="Enviar foto, ubicación o archivo"><i></i></button><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs"><span class="st">Enviar</span><span class="sm"><svg width="26" height="26" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="stopi"></span></span></button></div>` : ''}`;
   $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };
   if ($('#grev')) $('#grev').onclick = async () => { const n = gMe.revealed ? '' : prompt('¿Qué nombre quieres que vean los demás?'); if (!gMe.revealed && !n?.trim()) return; await rpc('member_reveal', { p_chat: chat.id, p_token: chat.token, p_name: n || '' }); fetchMsgs(); };
@@ -515,14 +515,14 @@ const wRx = b => { const m = typeof b === 'string' && b.match(/^rx:(\d+):([\s\S]
 const wRp = b => { if (typeof b !== 'string' || !b.startsWith('rp:{')) return null; try { const j = JSON.parse(b.slice(3)); return j && typeof j.b === 'string' ? j : null; } catch (e) { return null; } };
 let wRxMap = {}, wReply = null;
 function wMsgs() {
-  const rx = {}, shown = []; for (const m of msgs) { const r = wRx(m.body); if (r) { (rx[r.to] ||= {})[m.mine ? 'v' : 'o'] = r.e; continue; } shown.push(m); } wRxMap = rx;
+  const rx = {}, shown = []; for (const m of msgs) { const r = wRx(m.body); if (r) { (rx[r.to] ||= {})[m.mid ? 'm' + m.mid : m.mine ? 'v' : 'o'] = r.e; continue; } shown.push(m); } wRxMap = rx;
   return shown.map(m => { const rp = wRp(m.body), b = rp ? rp.b : m.body, rs = Object.values(rx[m.id] || {}).filter(Boolean);
     const who = grp && !m.mine ? (m.owner ? `<div class="gwho">${esc(code?.public_name || 'Dueño del código')}</div>` : (x => `<div class="gwho" style="color:${GCOLW[x?.color] || '#888'}">${esc(x ? (x.name ? x.name + ' (' + x.alias + ')' : x.alias) : 'Participante')}</div>`)(grp[m.mid])) : '';
-    return `<div class="m ${m.mine ? 'me' : 'them'}" data-id="${m.id}"${!m.mine && /^(aud|vid):/.test(b) ? ` data-pm="${m.id}" data-secs="${+(b.match(/#(\d+)$/) || [])[1] || 0}"` : ''}>${who}${rp ? `<div class="quote"><b>${esc(rp.s === 'v' ? 'Tú' : (code?.public_name || 'Dueño'))}</b>${esc(rp.t || '')}</div>` : ''}${msgBody(b, m.at)}${rs.length ? `<span class="rxs">${[...new Set(rs)].join('')}</span>` : ''}</div>`; }).join('');
+    return `<div class="m ${m.mine ? 'me' : 'them'}" data-id="${m.id}"${!m.mine && /^(aud|vid):/.test(b) ? ` data-pm="${m.id}" data-secs="${+(b.match(/#(\d+)$/) || [])[1] || 0}"` : ''}>${who}${rp ? `<div class="quote"><b>${esc(rp.w && !rp.s ? (gMe && rp.w === gMe.alias ? 'Tú' : rp.w) : rp.s === 'v' ? 'Tú' : (code?.public_name || 'Dueño'))}</b>${esc(rp.t || '')}</div>` : ''}${msgBody(b, m.at)}${rs.length ? `<span class="rxs">${[...new Set(rs)].map(e => { const n = rs.filter(x => x === e).length; return e + (n > 1 ? '<b>' + n + '</b>' : ''); }).join(' ')}</span>` : ''}</div>`; }).join('');
 }
 const GCOLW = { azul: '#1f86e0', verde: '#2fc23a', rojo: '#e8352b', morado: '#8e5cf0', naranja: '#f28c00', amarillo: '#d4a514', rosa: '#e0249a', gris: '#8d979b' };
 // V2 en la web: mantener pulsado un mensaje → reaccionar o responder; «escribiendo…» por tiempo real
-function wWrap(t) { const r = wReply; if (!r) return t; wReply = null; $('#wrp')?.remove(); return 'rp:' + JSON.stringify({ i: r.i, s: r.s, t: r.t, b: t }); }
+function wWrap(t) { const r = wReply; if (!r) return t; wReply = null; $('#wrp')?.remove(); return 'rp:' + JSON.stringify(r.s ? { i: r.i, s: r.s, t: r.t, b: t } : { i: r.i, w: r.w, t: r.t, b: t }); }
 let wTyp = null, wTypAt = 0, wLastPing = 0;
 function wAfter() {
   if (chat && (!wTyp || wTyp.k !== chat.id)) { if (wTyp) sb.removeChannel(wTyp.ch);
@@ -541,19 +541,19 @@ function wTypDraw() { const ms = $('#ms'); if (!ms) return; const on = Date.now(
 })();
 function wMenu(el) {
   const id = +el.dataset.id, m = msgs.find(x => x.id === id); if (!m || !alive) return; if (navigator.vibrate) navigator.vibrate(12);
-  const r = el.getBoundingClientRect(), cur = (wRxMap[id] || {}).v, d = document.createElement('div'); d.className = 'wmenu';
+  const r = el.getBoundingClientRect(), cur = (wRxMap[id] || {})[gMe ? 'm' + gMe.id : 'v'], d = document.createElement('div'); d.className = 'wmenu';
   d.innerHTML = '<div class="wdim"></div><div class="wbox" style="top:' + Math.max(10, Math.min(r.top - 64, innerHeight - 140)) + 'px">' + ['👍', '❤️', '😂', '😮', '😢', '🙏'].map(e => '<button data-e="' + e + '"' + (cur === e ? ' class="on"' : '') + '>' + e + '</button>').join('') + '<button data-r="1" class="wr">↩️ Responder</button></div>';
   document.body.appendChild(d);
   d.onclick = async e => { const b = e.target.closest('button'); d.remove(); if (!b) return;
     if (b.dataset.r) { const body = (wRp(m.body)?.b ?? m.body), t = /^(img|aud|vid|fil|loc|cal):/.test(body) ? ({ img: '📷 Foto', aud: '🎤 Audio', vid: '🎥 Vídeo', fil: '📎 Archivo', loc: '📍 Ubicación', cal: '📞 Llamada' })[body.slice(0, 3)] : body;
-      wReply = { i: id, s: m.mine ? 'v' : 'o', t: String(t).slice(0, 140) }; $('#wrp')?.remove();
-      $('.ws')?.insertAdjacentHTML('beforebegin', '<div class="wrp" id="wrp"><div class="quote"><b>' + esc(m.mine ? 'Tú' : (code?.public_name || 'Dueño')) + '</b>' + esc(wReply.t) + '</div><button id="wrpx">✕</button></div>');
+      wReply = grp ? { i: id, w: m.mine ? gMe?.alias : m.owner ? (code?.public_name || 'Dueño') : (x => x ? (x.name ? x.name + ' (' + x.alias + ')' : x.alias) : 'Participante')(grp[m.mid]), t: String(t).slice(0, 140) } : { i: id, s: m.mine ? 'v' : 'o', t: String(t).slice(0, 140) }; $('#wrp')?.remove();
+      $('.ws')?.insertAdjacentHTML('beforebegin', '<div class="wrp" id="wrp"><div class="quote"><b>' + esc(m.mine ? 'Tú' : (wReply.w || code?.public_name || 'Dueño')) + '</b>' + esc(wReply.t) + '</div><button id="wrpx">✕</button></div>');
       $('#wrpx').onclick = () => { wReply = null; $('#wrp').remove(); }; $('#ci')?.focus(); return; }
     await rpc('visitor_send', { p_chat: chat.id, p_token: chat.token, p_body: 'rx:' + id + ':' + (cur === b.dataset.e ? '' : b.dataset.e) }); fetchMsgs(); };
 }
 async function fetchMsgs() {
   const r = await rpc('visitor_messages', { p_chat: chat.id, p_token: chat.token, p_after: lastMsg, p_seen: !document.hidden });
-  if (!r.ok) { if (r.error === 'forbidden') { localStorage.removeItem(chatKey()); chat = null; view = 'home'; clearInterval(poll); render(); } return; }
+  if (!r.ok) { if (r.error === 'blocked') { if (alive) { alive = false; if (view === 'chat') renderChat(); } return; } if (r.error === 'forbidden') { localStorage.removeItem(chatKey()); chat = null; view = 'home'; clearInterval(poll); render(); } return; }
   const changed = r.messages.length || r.alive !== alive;
   alive = r.alive; if (r.calls != null) chatCalls = r.calls; if (r.group) { const ch2 = JSON.stringify([r.members, r.me]) !== JSON.stringify([grp, gMe]); grp = r.members || {}; gMe = r.me; if (ch2 && view === 'chat' && !r.messages.length) { const v = $('#ci')?.value; renderChat(); if (v && $('#ci')) $('#ci').value = v; } } r.messages.forEach(m => { if (!msgs.find(x => x.id === m.id)) msgs.push(m); }); if (r.messages.length) lastMsg = r.messages.at(-1).id;
   if (r.messages.length) { try { localStorage.setItem('scan2com_msgs_' + chat.id, JSON.stringify(msgs.slice(-2000))); } catch (e) {} keepCopy(); }

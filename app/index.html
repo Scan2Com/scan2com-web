@@ -1008,7 +1008,7 @@ async function avInit() {
 }
 // al volver de los ajustes del sistema se sigue con el siguiente paso
 const avResume = () => { if (S.zoneWait) return zoneResume(); if (S.avOpen) setTimeout(avNext, 500); else if (S.av) avStatus().then(() => render(true)); };
-try { if (NATIVE && window.Capacitor.Plugins.App) { window.Capacitor.Plugins.App.addListener('resume', () => { S.paused = false; avResume(); }); window.Capacitor.Plugins.App.addListener('pause', () => { S.paused = true; }); } } catch (e) {}
+try { if (NATIVE && window.Capacitor.Plugins.App) { window.Capacitor.Plugins.App.addListener('resume', () => { S.paused = false; avResume(); }); window.Capacitor.Plugins.App.addListener('pause', () => { S.paused = true; if (S.touring) stopTour(); }); } } catch (e) {}
 /* ---------------- llamadas por la app (call.js) ---------------- */
 const callRpc = async (fn, args) => { const { data } = await sb.rpc(fn, args); return data; };
 const CALL_ERR = { nocall: 'Este código no admite llamadas por la app.', busy: 'Ya hay una llamada en curso en este chat.', closed: 'El chat está cerrado.', limit: 'Demasiadas llamadas seguidas. Prueba más tarde.', forbidden: 'No se puede llamar desde aquí.' };
@@ -3019,7 +3019,11 @@ const TOURS = {
   ]
 };
 const tourKey = () => 'sa_tour_' + S.user.id;
-function pickVoice() { const vs = speechSynthesis.getVoices(); return vs.find(v => /^es[-_]ES/i.test(v.lang)) || vs.find(v => /^es/i.test(v.lang)) || null; }
+const VQ = v => (/natural|neural|premium|enhanced|network|online|google/i.test((v.name || '') + ' ' + (v.voiceURI || '')) ? 2 : 0) + (/^es[-_]ES/i.test(v.lang) ? 1 : 0) - (/compact|eloquence|espeak/i.test(v.name || '') ? 3 : 0);
+const bestVoice = vs => vs.map((v, i) => ({ v, i, q: VQ(v) })).filter(o => /^es/i.test(o.v.lang)).sort((a, b) => b.q - a.q)[0] || null;
+function pickVoice() { const b = bestVoice(speechSynthesis.getVoices()); return b ? b.v : null; }
+let NTV; async function ntVoice(NT) { if (NTV !== undefined) return NTV; try { const r = await NT.getSupportedVoices(); const b = bestVoice(r.voices || []); NTV = b ? b.i : null; } catch (e) { NTV = null; } return NTV; }
+let SAID_COM = false; const sayable = t => t.replace(/Scan ?2 ?Com\b/gi, () => SAID_COM ? 'Scan tu Com' : (SAID_COM = true, 'Scan tu Communicate')).replace(/Scan ?2 ?/gi, 'Scan tu ');
 function highlight(k) {
   app.querySelectorAll('.hl').forEach(e => e.classList.remove('hl'));
   if (k && /[#.\[]/.test(k[0])) { const el = app.querySelector(k); if (el) { el.classList.add('hl'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
@@ -3030,14 +3034,14 @@ function highlight(k) {
 function playTour(name) {
   const steps = name ? TOURS[name].filter(([k]) => !k || app.querySelector(k)) : TOUR; S.tourName = name || '';
   const NT = NATIVE && window.Capacitor.Plugins.TextToSpeech;
-  const tts = !NT && 'speechSynthesis' in window; if (tts) speechSynthesis.cancel(); S.touring = true; let i = 0; const voice = tts ? pickVoice() : null;
+  const tts = !NT && 'speechSynthesis' in window; if (tts) speechSynthesis.cancel(); S.touring = true; SAID_COM = false; let i = 0; const voice = tts ? pickVoice() : null;
   const next = () => {
     if (!S.touring) return;
     if (i >= steps.length) { S.touring = false; S.tourForce = false; highlight(null); if (!name) { ls.set(tourKey(), 1); S.tourDone = true; render(); } else { ls.set('sa_tour_' + name, 1); render(); } return; }   // al terminar, la tarjeta desaparece
     const [k, t] = steps[i++]; S.tourKeyNow = k; S.tourCap = t; const cap = $('#tcap'); if (cap) cap.textContent = t; highlight(k);
-    if (NT) { NT.speak({ text: t, lang: 'es-ES', rate: 1.0, volume: 1.0 }).then(() => setTimeout(next, 250)).catch(() => setTimeout(next, 3500)); return; }
+    if (NT) { ntVoice(NT).then(vi => NT.speak(Object.assign({ text: sayable(t), lang: 'es-ES', rate: 0.95, volume: 1.0 }, vi != null ? { voice: vi } : {}))).then(() => setTimeout(next, 250)).catch(() => setTimeout(next, 3500)); return; }
     if (!tts) return setTimeout(next, 3500);
-    const u = new SpeechSynthesisUtterance(t); u.lang = 'es-ES'; if (voice) u.voice = voice; u.rate = 1.02;
+    const u = new SpeechSynthesisUtterance(sayable(t)); u.lang = 'es-ES'; if (voice) u.voice = voice; u.rate = 0.98;
     u.onend = () => setTimeout(next, 250); u.onerror = () => setTimeout(next, 1500); speechSynthesis.speak(u);
   };
   const pb = $('#tplay'); if (pb) pb.innerHTML = IC.stop(30);
@@ -3263,7 +3267,7 @@ async function start(session) {
 })();
 sb.auth.onAuthStateChange((ev, session) => { if (ev === 'SIGNED_IN' && !S.user) start(session); if (ev === 'SIGNED_OUT') { S.user = null; render(); } if (ev === 'PASSWORD_RECOVERY') { S.recovery = true; render(); } });
 const { data: { session } } = await sb.auth.getSession(); if (!S.user || S.user.id !== session?.user?.id) start(session);  // no arrancar dos veces (SIGNED_IN + getSession) con la misma cuenta
-document.addEventListener('visibilitychange', async () => { if (!document.hidden && S.user) { if (S.view?.t === 'edit') { refreshAutoPerm(); return; } await loadAll(); render(true); zoneGeo(); } });
+document.addEventListener('visibilitychange', async () => { if (document.hidden && S.touring) stopTour(); if (!document.hidden && S.user) { if (S.view?.t === 'edit') { refreshAutoPerm(); return; } await loadAll(); render(true); zoneGeo(); } });
 try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => {}; } catch (e) {}
 if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/app/sw.js').catch(() => {}); navigator.serviceWorker.addEventListener('message', ev => { if (ev.data?.type === 'open' && S.user) openUrl(ev.data.url); }); }
 </script>

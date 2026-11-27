@@ -77,6 +77,7 @@ body{font-family:Inter,system-ui,sans-serif;background:#dedfe1;color:#222;displa
 .wmenu{position:fixed;inset:0;z-index:50}.wdim{position:absolute;inset:0;background:#0007}.wbox{position:absolute;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:4px;background:#fff;border-radius:22px;padding:8px;box-shadow:0 6px 24px #0005}
 .wbox button{border:0;background:none;font-size:26px;width:44px;height:44px;border-radius:50%;cursor:pointer}.wbox button.on{background:#eef}.wbox .wr{width:auto;font-size:15px;padding:0 12px;border-radius:14px;background:#f1f3f2}
 .wrp{display:flex;align-items:center;gap:8px;margin-bottom:6px}.wrp .quote{flex:1;margin:0}.wrp button{border:0;background:none;font-size:18px;cursor:pointer}
+.gbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 12px;font-size:13px;background:rgba(127,127,127,.12)}.gbar button{margin-left:auto;border:1px solid currentColor;background:none;color:inherit;border-radius:12px;padding:3px 10px;font-size:12px}.gwho{font-size:11.5px;font-weight:700;margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -299,7 +300,7 @@ const id = (location.pathname.match(/\/s\/([A-Za-z0-9]+)/) || [])[1] || new URLS
 let code = null, status = '', statusErr = false, busy = false, view = 'home';
 const chatKey = () => 'scan2com_chat_' + id;
 let chat = null; try { chat = JSON.parse(localStorage.getItem(chatKey())); } catch (e) {}
-let lastMsg = 0, msgs = [], poll = null, alive = true, chatCalls = null, pending = null, readPoll = null, readKind = '';
+let lastMsg = 0, msgs = [], poll = null, alive = true, chatCalls = null, grp = null, gMe = null, pending = null, readPoll = null, readKind = '';
 
 const vv = window.visualViewport; function fitVV() { document.documentElement.style.setProperty('--vvh', (vv ? vv.height : innerHeight) + 'px'); if (document.querySelector('.full')) { window.scrollTo(0, 0); const b = document.querySelector('.full .scrollme'); if (b) b.scrollTop = b.scrollHeight; } }
 vv ? vv.addEventListener('resize', fitVV) : addEventListener('resize', fitVV); fitVV();
@@ -451,9 +452,11 @@ async function linkChat() {
 function renderChat() {
   app.innerHTML = `
     <div class="top"><button class="back" id="bk">‹ Volver</button><div style="flex:1;font-weight:700">${esc(code.public_name)}</div>${(chatCalls ?? code.call_app) && alive ? `<button class="tcall" id="tcall" title="Llamar">${I.call}</button>` : ''}${sbA ? `<a href="/app/?vchat=${chat.id}" style="font-size:13px;color:#0a8f8f;font-weight:600;text-decoration:none">Mis chats ›</a>` : '<span style="font-size:12px;color:#777">chat anónimo</span>'}</div>
+    ${gMe ? `<div class="gbar">👥 Chat de grupo · eres <b style="color:${GCOLW[gMe.color] || '#888'}">${esc(gMe.alias)}</b>${gMe.revealed ? ' (' + esc(gMe.name || '') + ')' : ''}<button id="grev">${gMe.revealed ? 'Volver a ocultarme' : 'Revelar mi nombre'}</button></div>` : ''}
     <div class="msgs scrollme" id="ms">${msgs.length ? wMsgs() : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : '<div class="m sys">El dueño ha cerrado este chat.</div>'}</div>
     ${alive ? `<div class="ws"><button class="camb" id="cph" title="Enviar foto, ubicación o archivo"><i></i></button><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs"><span class="st">Enviar</span><span class="sm"><svg width="26" height="26" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="stopi"></span></span></button></div>` : ''}`;
   $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };
+  if ($('#grev')) $('#grev').onclick = async () => { const n = gMe.revealed ? '' : prompt('¿Qué nombre quieres que vean los demás?'); if (!gMe.revealed && !n?.trim()) return; await rpc('member_reveal', { p_chat: chat.id, p_token: chat.token, p_name: n || '' }); fetchMsgs(); };
   if ($('#tcall')) $('#tcall').onclick = callOwner;
   app.classList.add('full'); const ms = $('#ms'); ms.scrollTop = ms.scrollHeight; wAfter();
   if ($('#ci')) $('#ci').onfocus = () => setTimeout(fitVV, 300);
@@ -514,8 +517,10 @@ let wRxMap = {}, wReply = null;
 function wMsgs() {
   const rx = {}, shown = []; for (const m of msgs) { const r = wRx(m.body); if (r) { (rx[r.to] ||= {})[m.mine ? 'v' : 'o'] = r.e; continue; } shown.push(m); } wRxMap = rx;
   return shown.map(m => { const rp = wRp(m.body), b = rp ? rp.b : m.body, rs = Object.values(rx[m.id] || {}).filter(Boolean);
-    return `<div class="m ${m.mine ? 'me' : 'them'}" data-id="${m.id}"${!m.mine && /^(aud|vid):/.test(b) ? ` data-pm="${m.id}" data-secs="${+(b.match(/#(\d+)$/) || [])[1] || 0}"` : ''}>${rp ? `<div class="quote"><b>${esc(rp.s === 'v' ? 'Tú' : (code?.public_name || 'Dueño'))}</b>${esc(rp.t || '')}</div>` : ''}${msgBody(b, m.at)}${rs.length ? `<span class="rxs">${[...new Set(rs)].join('')}</span>` : ''}</div>`; }).join('');
+    const who = grp && !m.mine ? (m.owner ? `<div class="gwho">${esc(code?.public_name || 'Dueño del código')}</div>` : (x => `<div class="gwho" style="color:${GCOLW[x?.color] || '#888'}">${esc(x ? (x.name ? x.name + ' (' + x.alias + ')' : x.alias) : 'Participante')}</div>`)(grp[m.mid])) : '';
+    return `<div class="m ${m.mine ? 'me' : 'them'}" data-id="${m.id}"${!m.mine && /^(aud|vid):/.test(b) ? ` data-pm="${m.id}" data-secs="${+(b.match(/#(\d+)$/) || [])[1] || 0}"` : ''}>${who}${rp ? `<div class="quote"><b>${esc(rp.s === 'v' ? 'Tú' : (code?.public_name || 'Dueño'))}</b>${esc(rp.t || '')}</div>` : ''}${msgBody(b, m.at)}${rs.length ? `<span class="rxs">${[...new Set(rs)].join('')}</span>` : ''}</div>`; }).join('');
 }
+const GCOLW = { azul: '#1f86e0', verde: '#2fc23a', rojo: '#e8352b', morado: '#8e5cf0', naranja: '#f28c00', amarillo: '#d4a514', rosa: '#e0249a', gris: '#8d979b' };
 // V2 en la web: mantener pulsado un mensaje → reaccionar o responder; «escribiendo…» por tiempo real
 function wWrap(t) { const r = wReply; if (!r) return t; wReply = null; $('#wrp')?.remove(); return 'rp:' + JSON.stringify({ i: r.i, s: r.s, t: r.t, b: t }); }
 let wTyp = null, wTypAt = 0, wLastPing = 0;
@@ -550,7 +555,7 @@ async function fetchMsgs() {
   const r = await rpc('visitor_messages', { p_chat: chat.id, p_token: chat.token, p_after: lastMsg, p_seen: !document.hidden });
   if (!r.ok) { if (r.error === 'forbidden') { localStorage.removeItem(chatKey()); chat = null; view = 'home'; clearInterval(poll); render(); } return; }
   const changed = r.messages.length || r.alive !== alive;
-  alive = r.alive; if (r.calls != null) chatCalls = r.calls; r.messages.forEach(m => { if (!msgs.find(x => x.id === m.id)) msgs.push(m); }); if (r.messages.length) lastMsg = r.messages.at(-1).id;
+  alive = r.alive; if (r.calls != null) chatCalls = r.calls; if (r.group) { const ch2 = JSON.stringify([r.members, r.me]) !== JSON.stringify([grp, gMe]); grp = r.members || {}; gMe = r.me; if (ch2 && view === 'chat' && !r.messages.length) { const v = $('#ci')?.value; renderChat(); if (v && $('#ci')) $('#ci').value = v; } } r.messages.forEach(m => { if (!msgs.find(x => x.id === m.id)) msgs.push(m); }); if (r.messages.length) lastMsg = r.messages.at(-1).id;
   if (r.messages.length) { try { localStorage.setItem('scan2com_msgs_' + chat.id, JSON.stringify(msgs.slice(-2000))); } catch (e) {} keepCopy(); }
   if (changed && view === 'chat') { const v = $('#ci')?.value; renderChat(); if (v && $('#ci')) $('#ci').value = v; }
   hydrate();

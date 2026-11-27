@@ -1430,7 +1430,7 @@ const pcHint = () => IS_PHONE ? '' : `<div class="pchint">📱 ${Date.now() - ph
 async function loadAll() {
   const [c, ch, f, ev, pl] = await Promise.all([
     sb.from('codes').select('*').order('created_at'),
-    sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note,avatar,calls').order('created_at', { ascending: false }),
+    sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note,avatar,calls,is_group').order('created_at', { ascending: false }),
     sb.from('chat_favorites').select('chat_id'),
     sb.from('events').select('*').order('created_at', { ascending: false }).limit(100),
     sb.from('safe_places').select('*').order('id')
@@ -1442,7 +1442,7 @@ async function loadAll() {
     S.zone = !!g.data?.optin; S.zrole = ad.data || null; S.admin = !!(ad.data && (ad.data.admin || (ad.data.groups || []).length)); sb.rpc('can_see_feedback').then(r => { S.fbView = r.data === true; }, () => {}); S.zalerts = Array.isArray(z.data) ? z.data : []; } catch (e) { S.zalerts = S.zalerts || []; }
   // pestaña ENVÍOS: solo para las cuentas que pueden enviar avisos por zona; ven el historial de todos los avisos enviados
   TABS.splice(3); if (S.admin) { TABS.push('sent'); try { const h = await sb.rpc('zone_history'); S.zhist = h.data?.items || []; } catch (e) { S.zhist = S.zhist || []; } } else if (S.tab === 'sent') S.tab = 'codes';
-  S.codes = c.data || []; S.chats = ch.data || []; S.favs = new Set((f.data || []).map(x => x.chat_id)); S.events = ev.data || []; S.places = pl.data || [];
+  S.codes = c.data || []; S.chats = ch.data || []; loadGMembers(); S.favs = new Set((f.data || []).map(x => x.chat_id)); S.events = ev.data || []; S.places = pl.data || [];
   const local = (await IDB.get(histKey())) || {};
   const srv = {}, ids = S.chats.map(x => x.id);
   if (ids.length) {
@@ -1526,7 +1526,7 @@ function subscribe() {
   channel?.unsubscribe();
   channel = sb.channel('owner')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async ({ new: m }) => {
-      if (!S.chats.find(c => c.id === m.chat_id)) { const { data } = await sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note,avatar,calls').eq('id', m.chat_id).single(); if (data) S.chats.unshift(data); }
+      if (!S.chats.find(c => c.id === m.chat_id)) { const { data } = await sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note,avatar,calls,is_group').eq('id', m.chat_id).single(); if (data) S.chats.unshift(data); }
       const list = (S.msgs[m.chat_id] ||= []); if (!list.find(x => x.id === m.id)) list.push(m); saveHist(); if (mediaUrl(m.body)) cacheAllMedia();
       if (m.from_visitor) {
         const viewing = S.view?.t === 'chat' && S.view.id === m.chat_id && !document.hidden;
@@ -1815,7 +1815,7 @@ async function renderEdit() {
       : '<div class="hint" style="margin-left:30px">Disponible en la app Android.</div>'}
     </div>
     <label class="chk"><input type="checkbox" id="c3" ${c.ch_chat || c.ch_call ? 'checked' : ''}> <span style="color:#2fc23a">${IC.chat(20)}</span> Chat</label>
-    <label class="chk sub" style="opacity:.45;pointer-events:none"><input type="checkbox" id="c6" disabled> <span style="flex:1">Chat de grupo <span style="font-size:13px;color:#888">· todos los que escaneen entran en el mismo chat</span></span> <span style="flex:none;font-size:11px;font-weight:700;color:#e8b923;border:1px solid #e8b923;border-radius:8px;padding:1px 6px;margin-left:4px">PRÓXIMAMENTE</span></label>
+    <label class="chk sub"><input type="checkbox" id="c6" ${c.group_chat ? 'checked' : ''}> <span style="flex:1">Chat de grupo <span style="font-size:13px;color:#888">· todos los que escaneen entran en el mismo chat, cada uno con un alias al azar (Zorro azul…) que puede revelar</span></span></label>
     <div id="chbox" style="display:${c.ch_chat || c.ch_call ? 'block' : 'none'}"><label class="chk sub"><input type="checkbox" id="c4" ${c.ch_call ? 'checked' : ''}> <span style="color:#2fc23a">${IC.phone(18)}</span> Con llamadas <span style="font-size:13px;color:#888">· también te pueden llamar</span></label>
     <div id="cbox" style="display:${c.ch_call ? 'block' : 'none'};margin:0 0 6px 60px">
       <label class="chk sub" style="margin-left:0"><input type="radio" name="cm" id="cmA" ${c.call_app !== false ? 'checked' : ''}> Por la app · <span style="font-size:13px;color:#888">te llaman sin ver tu número</span></label>
@@ -1901,7 +1901,7 @@ async function renderEdit() {
     const style = { ...(c.style || {}), design: selDsg, car: isCarD(selDsg), car_color: selCol, car_text: selTxt === 'Alert' ? undefined : selTxt, hide_trace: !!$('#ht')?.checked }; if (c.style?.car || c.style?.car_code) style.car_code = true;
     if (locked && unlocked) style.print_override = true;  // confirmado: el diseño de la pegatina impresa se puede cambiar
     const row = { type: selType, style, name, private_info: $('#f5').value.trim() || null, public_name: pub || null, public_desc: $('#f3').value.trim() || null,
-      ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: !!c.group_chat, ch_call: $('#c3').checked && $('#c4').checked, call_app: !$('#cmT').checked, ch_redirect: $('#c7').checked, redirect_url: urlOk ? url : null, phone: $('#f4').value.trim() || null };
+      ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: $('#c6').checked, ch_call: $('#c3').checked && $('#c4').checked, call_app: !$('#cmT').checked, ch_redirect: $('#c7').checked, redirect_url: urlOk ? url : null, phone: $('#f4').value.trim() || null };
     if (NATIVE && $('#c8')) { const o = $('#f8').selectedOptions[0]; Object.assign(row, { bt_auto: $('#c8').checked && $('#c2').checked, bt_addr: $('#f8').value || null, bt_name: o && o.value ? o.dataset.name : null, bt_drive_off: $('#c9').checked }); }
     S.busy = true; S.err = ''; render();
     const r = isNew ? await sb.from('codes').insert({ ...row, owner_id: S.user.id }).select().single() : await sb.from('codes').update(row).eq('id', c.id).select().single();
@@ -2461,9 +2461,14 @@ function codeCols(c) { const g = '#8d979b'; if (!c.is_on) return [g, g, g, g]; i
   return [c.ch_alert || c.auto_alert ? '#e8352b' : g, c.ch_chat || c.ch_call ? '#2fc23a' : g, c.ch_info ? '#e8b923' : g, c.ch_mail ? '#1f86e0' : g]; }
 
 /* ---------- chat ---------- */
+// chat de grupo: participantes con alias al azar (Zorro azul…); color según el alias
+const GCOL = { azul: '#1f86e0', verde: '#2fc23a', rojo: '#e8352b', morado: '#8e5cf0', naranja: '#f28c00', amarillo: '#e8b923', rosa: '#e0249a', gris: '#8d979b' };
+async function loadGMembers() { const ids = S.chats.filter(x => x.is_group).map(x => x.id); if (!ids.length) return; const { data } = await sb.from('chat_members').select('id,chat_id,alias,color,real_name,revealed,blocked').in('chat_id', ids); S.gmem = {}; (data || []).forEach(x => S.gmem[x.id] = x); if (S.view?.t === 'chat') render(true); }
+const memName = x => x ? (x.revealed && x.real_name ? x.real_name + ' (' + x.alias + ')' : x.alias) : 'Participante';
+const memTop = mid => { const x = S.gmem?.[mid]; if (mid && !x && !S.gmemAsk) { S.gmemAsk = 1; setTimeout(() => { S.gmemAsk = 0; loadGMembers(); }, 800); } return `<div class="who" style="color:${GCOL[x?.color] || '#8d979b'};font-weight:700;opacity:1">${esc(memName(x))}${x?.blocked ? ' · bloqueado' : ''}</div>`; };
 const ownerMsgs = (ch, list) => (v2Msgs(ch.id, list, { side: 'o', other: ch.name || 'Chat', id: m => m.id, at: m => m.created_at, mine: m => !m.from_visitor, who: m => m.from_visitor ? 'v' : 'o:' + (m.sender_id || ''),
   pm: m => m.from_visitor && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
-  top: m => !m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : '',
+  top: m => m.from_visitor && m.member_id ? memTop(m.member_id) : !m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : '',
   tick: m => m.from_visitor ? '' : bm(m.id, isPlayable(unwrap(m.body)) ? !!(m.played_at || pctOf(m.id) >= 100) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at, isPlayable(unwrap(m.body)) ? Math.max(m.played_pct || 0, pctOf(m.id)) : 0) }) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
 const visitorMsgs = (v, list) => (v2Msgs(v.id, list, { side: 'v', other: v.name || v.public_name || 'Chat', id: m => m.id, at: m => m.at, mine: m => m.mine, who: m => m.mine ? 'v' : 'o',
   pm: m => !m.mine && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
@@ -2520,7 +2525,7 @@ function renderChat() {
   const key = ['c', ch.id, ch.name, ch.note, ch.avatar, ch.blocked, off, fav, code?.name, ch.code_name, ls.get('sa_tour_chat', 0)].join('|');
   if (patchMsgs(key, ownerMsgs(ch, list))) return markRead();
   app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button><button class="cavb" id="cav" title="Imagen del contacto">${v2AvHtml(ch.avatar, ch.name, 38, ch.id, ch.blocked)}</button><div class="grow" style="min-width:0"><div style="font-size:19px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="nm">${esc(ch.name)}</div><div style="font-size:12px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ch.note || code?.name || (ch.code_name ? ch.code_name + ' (código borrado)' : ''))}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
-    ${off || ch.blocked ? '' : `<button class="ib dark" id="call" title="Llamar">${IC.phone(24)}</button>`}<button class="star" id="fv" title="Favorito">${IC.star(28, fav)}</button><button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
+    ${off || ch.blocked || ch.is_group ? '' : `<button class="ib dark" id="call" title="Llamar">${IC.phone(24)}</button>`}<button class="star" id="fv" title="Favorito">${IC.star(28, fav)}</button><button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
     ${ch.blocked ? '<div class="notice" style="background:#eee">Has bloqueado a este contacto: no puede escribirte. Desbloquéalo desde ⋮.</div>' : ''}${off ? `<div class="notice">${code ? 'Este código está apagado' : 'El código de este chat se ha borrado'}: el chat está cerrado. Márcalo como favorito ★ para mantenerlo activo.</div>` : ''}
     ${screenTour('chat')}${pcHint()}<div class="body scrollme" id="cb" style="padding-bottom:0"><div class="msgs" id="ms">${ownerMsgs(ch, list)}</div></div>
     ${COMPOSE}`;
@@ -2542,12 +2547,14 @@ function renderChat() {
   $('#cm').onclick = () => {
     $('#overlay').innerHTML = `<div class="sheet keep" id="cms"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">${face(ch.blocked, 44)}<div><b>${esc(ch.name)}</b><div style="font-size:13px;color:#777">${ch.blocked ? 'Contacto bloqueado: no puede escribirte' : 'Contacto activo'}</div></div></div>
-      ${ch.blocked ? '' : `<label class="chk" style="margin:0 0 10px"><input type="checkbox" id="pc" ${ch.calls ? 'checked' : ''}> ${IC.phone(18)} Permitir que me llame <span style="font-size:13px;color:#888">· por la app, sin ver tu número</span></label>`}
+      ${ch.is_group ? `<div style="font-size:13px;font-weight:700;color:#777;margin:0 0 6px">PARTICIPANTES (${Object.values(S.gmem || {}).filter(x => x.chat_id === ch.id).length})</div><div style="max-height:220px;overflow:auto;margin-bottom:10px">${Object.values(S.gmem || {}).filter(x => x.chat_id === ch.id).map(x => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0"><span style="width:10px;height:10px;border-radius:50%;background:${GCOL[x.color] || '#999'}"></span><span style="flex:1">${esc(memName(x))}</span><button class="btn sm light" data-gb="${x.id}" style="width:auto;padding:4px 10px">${x.blocked ? 'Desbloquear' : 'Bloquear'}</button></div>`).join('') || '<div style="font-size:13px;color:#999">Aún no ha entrado nadie.</div>'}</div>` : ''}
+      ${ch.blocked || ch.is_group ? '' : `<label class="chk" style="margin:0 0 10px"><input type="checkbox" id="pc" ${ch.calls ? 'checked' : ''}> ${IC.phone(18)} Permitir que me llame <span style="font-size:13px;color:#888">· por la app, sin ver tu número</span></label>`}
       <button class="btn light" id="bl" style="margin-bottom:8px">${ch.blocked ? 'Desbloquear contacto' : 'Bloquear contacto'}</button>
       <button class="btn light" id="dc" style="color:var(--red);margin-bottom:8px">${IC.trash(18)} Borrar chat</button>
       <button class="btn light" id="hw">${IC.play(16)} Cómo funciona el chat</button></div></div>`;
     $('#cms').onclick = () => { $('#overlay').innerHTML = ''; };
     $('#hw').onclick = () => chatHelp();
+    document.querySelectorAll('[data-gb]').forEach(b => b.onclick = async () => { const x = S.gmem[b.dataset.gb]; const v = !x.blocked; const { error } = await sb.from('chat_members').update({ blocked: v }).eq('id', x.id); if (error) return toast('No se ha podido cambiar.'); x.blocked = v; b.textContent = v ? 'Desbloquear' : 'Bloquear'; toast(v ? memName(x) + ' ya no puede escribir' : memName(x) + ' puede volver a escribir'); render(true); });
     if ($('#pc')) $('#pc').onchange = async () => { const v = $('#pc').checked; ch.calls = v; const { error } = await sb.from('chats').update({ calls: v }).eq('id', ch.id); if (error) { ch.calls = !v; $('#pc').checked = !v; toast('No se ha podido cambiar.'); } else toast(v ? 'Te puede llamar desde este chat' : 'Ya no te puede llamar desde este chat'); };
     $('#bl').onclick = async () => { const v = !ch.blocked; $('#overlay').innerHTML = ''; ch.blocked = v; render(); const { error } = await sb.from('chats').update({ blocked: v }).eq('id', ch.id); if (error) { ch.blocked = !v; render(); toast('No se ha podido cambiar.'); } else toast(v ? 'Contacto bloqueado: ya no puede escribirte' : 'Contacto desbloqueado'); };
     $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { $('#overlay').innerHTML = ''; await sb.from('chats').delete().eq('id', ch.id); S.chats = S.chats.filter(x => x.id !== ch.id); S.view = null; S.tab = 'chats'; toast('Chat borrado'); render(); } else { $('#dc').dataset.sure = 1; $('#dc').textContent = 'Pulsa otra vez para borrar el chat'; } };

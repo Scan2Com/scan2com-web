@@ -247,8 +247,8 @@ html.dark [style*="color:#555"],html.dark [style*="color:#666"],html.dark [style
 .pdfb{background:#e8352b!important;color:#fff!important;border-radius:12px;padding:6px 10px!important;display:flex;align-items:center;gap:4px;font-weight:700;font-size:14px}
 .tour .x{background:none;border:0;color:#999;font-size:13px;cursor:pointer;padding:4px 0 0}
 /* ayuda hablando: se oscurece todo menos lo que se explica */
-.hl{position:relative;z-index:50;box-shadow:0 0 0 3px #33b5e5,0 0 18px 4px rgba(51,181,229,.55),0 0 0 100vmax rgba(0,0,0,.62)!important;transition:box-shadow .3s}
-.item.hl,.ib.hl{position:relative;border-radius:12px}
+.hl{z-index:50;box-shadow:0 0 0 3px #33b5e5,0 0 18px 4px rgba(51,181,229,.55),0 0 0 100vmax rgba(0,0,0,.62)!important;transition:box-shadow .3s}
+.item.hl,.ib.hl{position:relative;border-radius:12px}.btn.hl,.chk.hl,.star.hl,.tabs button.hl,.chips.hl{position:relative}
 .pw.hl,.fab.hl{border-radius:50%}
 .howto{margin:10px 16px 4px;background:#eef6ff;border:1px solid #cfe3fb;border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.5;color:#33475b}
 .howto summary{cursor:pointer;font-weight:600;color:#1f6fc5;list-style:none}
@@ -2638,8 +2638,12 @@ async function startVChat(id) {
 }
 function busy(on, txt = 'Abriendo…') { let el = $('#busy'); if (!on) return el && el.remove(); if (el) return; el = document.createElement('div'); el.id = 'busy'; el.className = 'busy'; el.innerHTML = `<div style="text-align:center"><i></i>${txt}</div>`; document.body.appendChild(el); }
 async function startVChat2(id) {
+  // chat de grupo: se entra por la página del código (con su alias); se reutiliza la plaza si ya entré
+  const gk = ['scan2com_chat_' + id, 'scan2com_chat_' + String(id).toUpperCase()], open = () => { location.href = '/s/' + String(id).toUpperCase(); };
+  try { if (gk.some(k => JSON.parse(localStorage.getItem(k) || 'null')?.group)) return open(); } catch (e) {}
   const { data: r } = await sb.rpc('start_chat', { p_id: id, p_first: null });
   if (!r?.ok) return toast(r?.error === 'rate_limited' ? 'Demasiados chats nuevos con este código. Prueba en unos minutos.' : 'Este código no admite chat ahora.');
+  if (r.group) { const v = JSON.stringify({ id: r.chat_id, token: r.token, group: true }); gk.forEach(k => { try { localStorage.setItem(k, v); } catch (e) {} }); return open(); }
   await sb.rpc('link_visitor_chat', { p_chat: r.chat_id, p_token: r.token });
   try { const l = await sb.rpc('my_visitor_chats'); if (l.data) S.vchats = l.data; } catch (e) {}
   S.view = { t: 'vchat', id: r.chat_id }; render();

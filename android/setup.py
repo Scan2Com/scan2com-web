@@ -301,7 +301,7 @@ if _sp:
                 out = Image.new('RGB', (w, h), (0, 0, 0)); side = int(min(w, h) * 0.6)
                 ic = icon.resize((side, int(side * icon.height / icon.width)), Image.LANCZOS)
                 out.paste(ic, ((w - ic.width) // 2, (h - ic.height) // 2)); out.save(p)
-    # icono adaptativo (Android 8+): fondo negro + icono original en alta resolución, sin bordes blancos
+    # icono adaptativo (Android 8+): fondo blanco fijo (algunos móviles rellenaban de negro) + icono original en alta resolución, sin bordes blancos
     for d, sz in {'mdpi': 108, 'hdpi': 162, 'xhdpi': 216, 'xxhdpi': 324, 'xxxhdpi': 432}.items():
         p = os.path.join(RES, 'mipmap-' + d); os.makedirs(p, exist_ok=True)
         fg = Image.new('RGBA', (sz, sz), (0, 0, 0, 0)); side = int(sz * 0.50)  # entero dentro del círculo visible
@@ -310,7 +310,7 @@ if _sp:
     ad = os.path.join(RES, 'mipmap-anydpi-v26'); os.makedirs(ad, exist_ok=True)
     xml = '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n    <background android:drawable="@color/ic_launcher_background"/>\n    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n</adaptive-icon>\n'
     for n in ('ic_launcher.xml', 'ic_launcher_round.xml'): open(os.path.join(ad, n), 'w').write(xml)
-    open(os.path.join(RES, 'values', 'ic_launcher_background.xml'), 'w').write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#000000</color>\n</resources>\n')
+    open(os.path.join(RES, 'values', 'ic_launcher_background.xml'), 'w').write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#FFFFFF</color>\n</resources>\n')
 
 # Android 12+: fondo negro e icono original en la pantalla de inicio del sistema
 st = os.path.join(RES, 'values', 'styles.xml'); x = open(st, encoding='utf-8').read()

@@ -143,7 +143,7 @@ label{font-size:13px;color:var(--mut)}
 .compose{display:flex;gap:6px;align-items:center;padding:10px 10px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #ddd;background:#fff;position:sticky;bottom:0}
 .compose input{margin:0;border:0;border-bottom:2px solid #33b5e5;border-radius:0;padding:10px 4px}
 .compose input:focus{outline:none}
-.cbtn{border:0;background:none;color:#7d8590;padding:4px;cursor:pointer;flex:none;display:flex;line-height:0}.compose.panel .cbtn{color:#1aa3d9}.compose.rec .cbtn{visibility:hidden}
+.cbtn{border:0;background:none;color:#7d8590;padding:4px;cursor:pointer;flex:none;display:flex;line-height:0}.compose[data-pk="emj"] #emj,.compose[data-pk="att"] #att{color:#1aa3d9}.compose.rec .cbtn{visibility:hidden}
 .cpanel{background:#f4f5f7;border-top:1px solid #ddd;flex:none;padding-bottom:env(safe-area-inset-bottom)}.compose.panel{padding-bottom:10px}
 .attg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:18px 14px}.attg button{border:0;background:none;font:inherit;font-size:13px;color:#444;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}.attg i{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-size:25px;font-style:normal}
 .emt{display:flex;border-bottom:1px solid #ddd}.emt button{flex:1;border:0;background:none;font-size:20px;padding:8px 0;cursor:pointer;border-bottom:3px solid transparent}.emt button.on{border-bottom-color:#33b5e5}
@@ -151,7 +151,7 @@ label{font-size:13px;color:var(--mut)}
 .daysep{align-self:center;margin:6px 0}.daysep span{background:#e4e7ea;color:#555;font-size:12px;padding:4px 12px;border-radius:12px;text-transform:capitalize}
 .m.pend .phw{display:inline-block}.m.pend .mph{opacity:.55}.spin{position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;border:4px solid rgba(255,255,255,.55);border-top-color:#1aa3d9;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .locw{display:block;color:inherit;text-decoration:none}.locmap{display:block;position:relative;overflow:hidden;border-radius:12px;max-width:100%;background:#dfe6ea}.locmap img{position:absolute;width:256px;height:256px;max-width:none}.locpin{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-22px 0 0 -11px;background:#e8352b;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 5px rgba(0,0,0,.4)}.loct{display:block;font-size:14px;margin-top:5px}
-html.dark .cpanel{background:#202225;border-top-color:#2e3135}html.dark .attg button{color:#cfd2d6}html.dark .emt{border-bottom-color:#2e3135}html.dark .daysep span{background:#2a2d31;color:#b9bdc3}
+html.dark .cpanel{background:#202225;border-top-color:#2e3135}.attg i{background:color-mix(in srgb,var(--ac) 16%,transparent)!important;color:var(--ac);font-style:normal}.attg i svg{display:block}html.dark .attg button{color:#cfd2d6}html.dark .emt{border-bottom-color:#2e3135}html.dark .daysep span{background:#2a2d31;color:#b9bdc3}
 .sendb{background:none;border:0;color:#8a8a8a;cursor:pointer;padding:4px;touch-action:none;user-select:none;-webkit-user-select:none}.sendb .bmsend{display:none}.sendb.txt .bmsend{display:block}.sendb.txt .micb{display:none}.micb{display:block;color:#1aa3d9;line-height:0}.compose.rec .micb{color:#e8352b;transform:scale(1.35)}.compose.rec input,.compose.rec .camb{visibility:hidden}.recst{position:absolute;left:16px;right:70px;top:50%;transform:translateY(-50%);font-size:17px;color:#333;pointer-events:none}.recst b{color:#e8352b}.recst span{color:#999;font-size:13px;margin-left:8px}.stopi{display:none;width:30px;height:30px;border-radius:50%;background:#e8352b;position:relative;box-shadow:0 0 0 4px rgba(232,53,43,.25);animation:recp 1.2s infinite}.stopi::after{content:'';position:absolute;left:10px;top:10px;width:10px;height:10px;background:#fff;border-radius:2px}.compose.lock .micb svg{display:none}.compose.lock .stopi{display:block}@keyframes recp{50%{box-shadow:0 0 0 8px rgba(232,53,43,.12)}}
 .recx{position:absolute;left:8px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:22px;cursor:pointer;padding:4px;z-index:2}.compose.lock .recst{left:48px}html.dark .recst{color:#e6e6e6}
 .filw{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;min-width:200px;max-width:260px}.fic{flex:none;width:42px;height:50px;border-radius:6px;background:#3b7ddd;color:#fff;font-style:normal;font-size:11px;font-weight:800;display:grid;place-items:center}.fnm{min-width:0;display:flex;flex-direction:column}.fnm b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fnm small{font-size:12px;color:#888}
@@ -700,10 +700,16 @@ const EMOJI = [
   ['🍕', '🍏 🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🍒 🍑 🥝 🍅 🥑 🥕 🌽 🥔 🍞 🥐 🧀 🥚 🥓 🍔 🍟 🍕 🌭 🌮 🥗 🍝 🍣 🍤 🍰 🍪 🍫 🍿 🍩 🍦 ☕ 🍵 🥤 🍺 🍻 🍷 🥂 🍾'],
   ['🚗', '🚗 🚕 🚙 🚌 🚓 🚑 🚒 🚚 🚜 🏍️ 🛵 🚲 🛴 ✈️ 🚀 🚁 ⛵ 🚢 🚆 🚇 🚦 🚧 ⛽ 🅿️ 🗺️ 📍 🏠 🏢 🏥 🏫 🏪 ⛪ 🏖️ ⛰️ 🏕️ ⚽ 🏀 🎾 🏐 🎮 🎬 📱 💻 ⌚ 📷 🔑 🔒 💡 🔧 🧰 💶 💳 📦 ✉️ 📅 ⏰']
 ];
+// iconos del panel de adjuntos (trazo fino, del color de cada opción)
+const AIC = (() => { const sv = d => `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`; return {
+  gal: sv('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="9.5" r="1.8"/><path d="M21 15.5l-5-5-9 9"/>'),
+  cam: sv('<path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.6"/>'),
+  loc: sv('<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>'),
+  fil: sv('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>') }; })();
 function attachPanel(cmp, kind) {
-  const old = $('#cpanel'); const same = old && old.dataset.k === kind; old?.remove(); cmp.classList.remove('panel');
+  const old = $('#cpanel'); const same = old && old.dataset.k === kind; old?.remove(); cmp.classList.remove('panel'); delete cmp.dataset.pk;
   if (same || !kind) return null;
-  const p = document.createElement('div'); p.id = 'cpanel'; p.className = 'cpanel'; p.dataset.k = kind; cmp.insertAdjacentElement('afterend', p); cmp.classList.add('panel');
+  const p = document.createElement('div'); p.id = 'cpanel'; p.className = 'cpanel'; p.dataset.k = kind; cmp.insertAdjacentElement('afterend', p); cmp.classList.add('panel'); cmp.dataset.pk = kind;
   const cb = $('#cb'); if (cb) setTimeout(() => { cb.scrollTop = cb.scrollHeight; }, 30);
   return p;
 }
@@ -730,7 +736,7 @@ function bindCompose(chatId, sendBody) {
   $('#ph').onclick = camera;
   $('#att').onclick = () => {
     const p = attachPanel(cmp, 'att'); if (!p) return; inp.blur();
-    p.innerHTML = `<div class="attg"><button data-a="gal"><i style="background:#7a5cf0">🖼️</i>Galería</button><button data-a="cam"><i style="background:#e8352b">📷</i>Cámara</button><button data-a="loc"><i style="background:#1a9c16">📍</i>Ubicación</button><button data-a="fil"><i style="background:#3b7ddd">📄</i>Archivo</button></div>`;
+    p.innerHTML = `<div class="attg"><button data-a="gal"><i style="--ac:#8e5cf0">${AIC.gal}</i>Galería</button><button data-a="cam"><i style="--ac:#e8352b">${AIC.cam}</i>Cámara</button><button data-a="loc"><i style="--ac:#2fc23a">${AIC.loc}</i>Ubicación</button><button data-a="fil"><i style="--ac:#1f86e0">${AIC.fil}</i>Archivo</button></div>`;
     p.querySelector('[data-a="fil"]').onclick = async () => { attachPanel(cmp, null); const f = await pickAnyFile(); if (f) sendFile(chatId, f, sendBody); };
     p.querySelector('[data-a="gal"]').onclick = () => photos(false);
     p.querySelector('[data-a="cam"]').onclick = camera;

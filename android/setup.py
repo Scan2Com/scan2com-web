@@ -348,6 +348,7 @@ comp = '''
             </intent-filter>
         </receiver>
         <service android:name=".DriveService" android:exported="false" android:foregroundServiceType="location" />
+        <receiver android:name=".CallReceiver" android:exported="false" />
 '''
 if 'AlarmActivity' not in m: m = m.replace('</application>', comp + '    </application>')
 m = re.sub(r'android:launchMode="[^"]*"', 'android:launchMode="singleTask"', m, count=1)

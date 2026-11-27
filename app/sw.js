@@ -10,6 +10,7 @@ self.addEventListener('push', e => {
     data: { url: d.url || '/app/' }
   };
   if (d.alarm) { opt.requireInteraction = true; opt.vibrate = [600, 200, 600, 200, 600, 200, 600]; opt.image = '/app/alert_red.png'; }
+  else if (d.call) { opt.requireInteraction = true; opt.vibrate = [800, 400, 800, 400, 800, 400, 800]; }
   else opt.vibrate = [200, 100, 200];
   e.waitUntil((async () => {
     // si la app está a la vista, ella ya avisa (sirena / aviso dentro)

@@ -211,4 +211,15 @@ public class ScanAutoPlugin extends Plugin {
         if (Build.VERSION.SDK_INT >= 34) go(new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:" + getContext().getPackageName())));
         call.resolve();
     }
+
+    /** llamada contestada, rechazada o terminada en la web: deja de sonar la notificación de llamada */
+    @PluginMethod
+    public void callStop(PluginCall call) { AlarmService.stopCall(getContext()); call.resolve(); }
+    /** llamada terminada: la app deja de verse encima de la pantalla de bloqueo */
+    @PluginMethod
+    public void callDone(PluginCall call) {
+        AlarmService.stopCall(getContext());
+        if (Build.VERSION.SDK_INT >= 27 && getActivity() != null) getActivity().runOnUiThread(() -> { getActivity().setShowWhenLocked(false); getActivity().setTurnScreenOn(false); });
+        call.resolve();
+    }
 }

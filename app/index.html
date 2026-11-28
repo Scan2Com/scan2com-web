@@ -1256,12 +1256,16 @@ async function zoneGeo(force) {
   const pos = await hereNow(false); if (!pos) return;
   ls.set(k, Date.now()); sb.rpc('set_my_geo', { p_lat: pos.lat, p_lng: pos.lng, p_acc: pos.acc || null }).then(() => {}, () => {});
 }
+const ZONE_PRO = `<div style="font-size:13px;color:#555;line-height:1.45;background:#f3f6f8;border-radius:10px;padding:10px 12px;margin:6px 0 10px">🏛️ <b>¿Eres un servicio público</b> (ayuntamiento, policía, emergencias…)? Contáctanos para ofrecer estos avisos a los vecinos de tu zona. <button class="btn" data-pro style="margin-top:8px;background:#1f86e0">🏛️ Contactar con Scan2Com</button><div style="font-size:12px;color:#888;margin-top:4px;text-align:center">o escríbenos a pro@scan2com.com</div></div>`;
 const ZONE_INFO = `<ul style="font-size:13px;color:#555;line-height:1.45;padding-left:18px;margin:10px 0">
       <li>Son avisos <b>locales o de tu comarca</b>, enviados directamente por la policía local, el ayuntamiento o los servicios de emergencia de la zona (calles cortadas, retirada de coches, una inundación en tu barrio…). Las emergencias de toda España o de tu comunidad llegan por <b>ES-Alert</b>, el sistema oficial de Protección Civil.</li>
       <li>Guardamos solo tu <b>última ubicación</b>, cuando abres la app, y dónde quedó tu coche al bajarte (si tienes su pegatina vinculada al Bluetooth).</li>
       <li>Nadie ve tu ubicación: solo se usa para saber si estás dentro de la zona de un aviso.</li>
       <li>Puedes desactivarlo cuando quieras en ⋮ y <b>se borran tus ubicaciones</b> al momento.</li></ul>
-    <div style="font-size:13px;color:#555;line-height:1.45;background:#f3f6f8;border-radius:10px;padding:10px 12px;margin:6px 0 10px">🏛️ <b>¿Eres un servicio público</b> (ayuntamiento, policía, emergencias…)? Contáctanos para ofrecer estos avisos a los vecinos de tu zona. <button class="btn" data-pro style="margin-top:8px;background:#1f86e0">🏛️ Contactar con Scan2Com</button><div style="font-size:12px;color:#888;margin-top:4px;text-align:center">o escríbenos a pro@scan2com.com</div></div>`;
+    `;
+// consentimiento específico solo para los avisos por zona: casilla sin marcar, separada del resto de la app (RGPD: libre, informado y específico)
+const ZONE_OK = `<label class="chk" style="font-size:14px;line-height:1.4;margin:8px 0 14px;align-items:flex-start;background:#fff8e1;border:1px solid #f5c542;border-radius:10px;padding:10px 12px"><input type="checkbox" id="zck" style="margin-top:3px"> <span><b>Acepto</b> que Scan2Com guarde mi última ubicación y, si la tengo vinculada, la posición donde dejo el coche, <b>solo para enviarme avisos de emergencia de mi zona</b>. Puedo retirarlo cuando quiera en ⋮ y se borran al momento. <a href="#" data-terms>Más información</a></span></label>`;
+const zoneWire = btn => { const c = $('#zck'), b = $(btn); if (!c || !b) return; const f = () => { b.disabled = !c.checked; b.style.opacity = c.checked ? 1 : .45; }; c.onchange = f; f(); };
 const zoneSheetBox = inner => `<div class="sheet keep" id="zs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));text-align:left" onclick="event.stopPropagation()">${inner}</div></div>`;
 // deja lista la ubicación para los avisos por zona: pide el permiso (ventana de Android), abre los ajustes si ya se denegó
 // o la pantalla para encender la ubicación del móvil. 'ok' = ubicación guardada · 'left' = se ha salido a Android (se sigue al volver) · 'fail'
@@ -1304,10 +1308,10 @@ function zoneHelp() {
 function zoneAsk() {
   return new Promise(done => {
     $('#overlay').innerHTML = zoneSheetBox(`<div style="font-weight:700;font-size:18px;margin-bottom:6px">📢 ¿Avisos de emergencia en tu zona?</div>
-      <div style="font-size:14px;color:#444;line-height:1.45">Incendios, calles cortadas, retirada de coches… cerca de donde estás o de donde has dejado el coche. Es opcional.</div>${ZONE_INFO}
-      <button class="btn teal" id="zyes">Sí, quiero recibirlos</button><button class="btn light" id="zno" style="margin-top:8px">No, gracias</button>`);
+      <div style="font-size:14px;opacity:.85;line-height:1.45">Incendios, calles cortadas, retirada de coches… cerca de donde estás o de donde has dejado el coche. Es opcional.</div>${ZONE_INFO}${ZONE_OK}
+      <button class="btn teal" id="zyes">Activar avisos de mi zona</button><button class="btn light" id="zno" style="margin-top:8px">No, gracias</button>${ZONE_PRO}`);
     $('#zs').onclick = e => e.stopPropagation();
-    $('#zyes').onclick = () => done(true); $('#zno').onclick = () => done(false);
+    zoneWire('#zyes'); $('#zyes').onclick = () => { if ($('#zck').checked) done(true); }; $('#zno').onclick = () => done(false);
   });
 }
 async function zoneSet(on) {
@@ -1317,12 +1321,14 @@ async function zoneSet(on) {
 }
 function zoneSheet() {
   $('#overlay').innerHTML = zoneSheetBox(`<div style="font-weight:700;font-size:18px;margin-bottom:6px">📢 Avisos de emergencia en tu zona</div>
-    <div style="font-size:14px;color:#444;line-height:1.45">Te llegarán avisos importantes de la zona en la que estás o en la que has dejado tu coche: un incendio, una calle que hay que despejar, una emergencia…</div>${ZONE_INFO}
-    <label class="chk" style="font-size:15px;margin:6px 0 14px"><input type="checkbox" id="zck" ${S.zone ? 'checked' : ''}> Acepto recibir avisos de emergencia en mi zona</label>
-    <button class="btn teal" id="zok">Guardar</button>`);
+    <div style="font-size:14px;opacity:.85;line-height:1.45">Te llegarán avisos importantes de la zona en la que estás o en la que has dejado tu coche: un incendio, una calle que hay que despejar, una emergencia…</div>${ZONE_INFO}${S.zone
+      ? `<div style="font-size:14px;color:#1a9c16;font-weight:600;margin:8px 0 12px">✓ Aceptaste estos avisos${S.zoneAt ? ' el ' + new Date(S.zoneAt).toLocaleDateString('es-ES') : ''}.</div><button class="btn light" id="zoff" style="color:#b3261e">Retirar el consentimiento y borrar mis ubicaciones</button>`
+      : ZONE_OK + '<button class="btn teal" id="zok">Activar avisos de mi zona</button>'}<div style="margin-top:12px">${ZONE_PRO}</div>`);
   $('#zs').onclick = () => { $('#overlay').innerHTML = ''; };
+  if ($('#zoff')) $('#zoff').onclick = async () => { $('#zoff').disabled = true; if (await zoneSet(false)) { $('#overlay').innerHTML = ''; render(); toast('Avisos de tu zona desactivados y ubicaciones borradas'); } else $('#zoff').disabled = false; };
+  if (!$('#zok')) return; zoneWire('#zok');
   $('#zok').onclick = async () => {
-    const on = $('#zck').checked; $('#zok').disabled = true;
+    const on = $('#zck').checked; if (!on) return; $('#zok').disabled = true;
     if (!await zoneSet(on)) { $('#zok').disabled = false; return; }
     $('#overlay').innerHTML = ''; render();
     if (!on) return toast('Avisos de tu zona desactivados y ubicaciones borradas');
@@ -1501,8 +1507,8 @@ async function loadAll() {
   try { const [au, pr] = await Promise.all([sb.rpc('my_authority'), sb.from('profiles').select('terms_version').eq('id', S.user.id).maybeSingle()]);
     S.auth = au.data || null; S.terms = pr.data?.terms_version || null; } catch (e) {}
   try { const v = await vcList(); S.vchats = v.data || []; } catch (e) { S.vchats = S.vchats || []; }
-  try { const [g, z, ad] = await Promise.all([sb.from('user_geo').select('optin').eq('user_id', S.user.id).maybeSingle(), sb.rpc('my_zone_alerts'), sb.rpc('my_zone_role')]);
-    S.zone = !!g.data?.optin; S.zrole = ad.data || null; S.admin = !!(ad.data && (ad.data.admin || (ad.data.groups || []).length)); sb.rpc('can_see_feedback').then(r => { S.fbView = r.data === true; }, () => {}); S.zalerts = Array.isArray(z.data) ? z.data : []; } catch (e) { S.zalerts = S.zalerts || []; }
+  try { const [g, z, ad] = await Promise.all([sb.from('user_geo').select('optin,optin_at').eq('user_id', S.user.id).maybeSingle(), sb.rpc('my_zone_alerts'), sb.rpc('my_zone_role')]);
+    S.zone = !!g.data?.optin; S.zoneAt = g.data?.optin_at || null; S.zrole = ad.data || null; S.admin = !!(ad.data && (ad.data.admin || (ad.data.groups || []).length)); sb.rpc('can_see_feedback').then(r => { S.fbView = r.data === true; }, () => {}); S.zalerts = Array.isArray(z.data) ? z.data : []; } catch (e) { S.zalerts = S.zalerts || []; }
   // pestaña ENVÍOS: solo para las cuentas que pueden enviar avisos por zona; ven el historial de todos los avisos enviados
   TABS.splice(3); if (S.admin) { TABS.push('sent'); try { const h = await sb.rpc('zone_history'); S.zhist = h.data?.items || []; } catch (e) { S.zhist = S.zhist || []; } } else if (S.tab === 'sent') S.tab = 'codes';
   S.codes = c.data || []; S.chats = ch.data || []; loadGMembers(); S.favs = new Set((f.data || []).map(x => x.chat_id)); S.events = ev.data || []; S.places = pl.data || [];

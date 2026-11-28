@@ -1964,25 +1964,31 @@ function backupSheet() {
   $('#bki').onchange = e => { const f = e.target.files?.[0]; $('#overlay').innerHTML = ''; if (f) backupImport(f); };
 }
 // ---------- bloqueo de la app con PIN (en este móvil) ----------
+const useBio = () => { try { return localStorage.getItem('sa_lock_bio') === '1' && !!AUTO()?.bioAuth; } catch (e) { return false; } };
 const appPin = () => { try { return localStorage.getItem('sa_lock') || ''; } catch (e) { return ''; } };
 const pinHash = async p => b64(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('s2c:' + p)));
 async function lockSheet() {
   if (appPin()) {
     if (!confirm('El bloqueo está activado. ¿Quitarlo?')) return;
     const p = prompt('Escribe tu PIN actual'); if (!p) return; if (await pinHash(p.trim()) !== appPin()) return toast('PIN incorrecto.');
-    try { localStorage.removeItem('sa_lock'); } catch (e) {} toast('Bloqueo quitado.'); return accountMenu();
+    try { localStorage.removeItem('sa_lock'); localStorage.removeItem('sa_lock_bio'); } catch (e) {} toast('Bloqueo quitado.'); return accountMenu();
   }
   const p = prompt('Elige un PIN de 4 a 8 cifras. Se pedirá al abrir la app en este móvil.'); if (!p) return; if (!/^\d{4,8}$/.test(p.trim())) return toast('El PIN tiene que tener de 4 a 8 cifras.');
   const p2 = prompt('Repite el PIN'); if (p2?.trim() !== p.trim()) return toast('Los PIN no coinciden.');
-  try { localStorage.setItem('sa_lock', await pinHash(p.trim())); } catch (e) {} toast('Bloqueo activado.'); accountMenu();
+  try { localStorage.setItem('sa_lock', await pinHash(p.trim())); } catch (e) {}
+  const A = AUTO(); let bio = false; try { bio = !!(A?.bioAvailable && (await A.bioAvailable()).ok); } catch (e) {}
+  if (bio && confirm('¿Quieres desbloquear también con tu huella o tu cara? (el PIN seguirá valiendo)')) { try { localStorage.setItem('sa_lock_bio', '1'); } catch (e) {} } else { try { localStorage.removeItem('sa_lock_bio'); } catch (e) {} }
+  toast('Bloqueo activado.'); accountMenu();
 }
 let LOCKED = false;
 function lockScreen() {
   if (!appPin() || LOCKED || document.getElementById('lockv')) return; LOCKED = true;
   const d = document.createElement('div'); d.id = 'lockv';
-  d.innerHTML = `<div class="lockb">${LOGO(64)}<div style="font-weight:700;font-size:18px;margin:14px 0 4px">Scan2Com bloqueado</div><div style="font-size:13px;opacity:.7;margin-bottom:14px">Escribe tu PIN</div><input id="lockp" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockm" style="font-size:13px;color:#ff6b5e;min-height:18px;margin-top:8px"></div><button class="btn" id="lockg">Entrar</button><button id="lockf" style="background:none;border:0;color:#9aa0a6;margin-top:14px;font-size:13px">¿Has olvidado el PIN?</button></div>`;
+  d.innerHTML = `<div class="lockb">${LOGO(64)}<div style="font-weight:700;font-size:18px;margin:14px 0 4px">Scan2Com bloqueado</div><div style="font-size:13px;opacity:.7;margin-bottom:14px">Escribe tu PIN</div><input id="lockp" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockm" style="font-size:13px;color:#ff6b5e;min-height:18px;margin-top:8px"></div><button class="btn" id="lockg">Entrar</button>${useBio() ? '<button class="btn light" id="lockb" style="margin-top:8px">👆 Usar huella</button>' : ''}<button id="lockf" style="background:none;border:0;color:#9aa0a6;margin-top:14px;font-size:13px">¿Has olvidado el PIN?</button></div>`;
   document.body.appendChild(d); const go = async () => { if (await pinHash($('#lockp').value.trim()) === appPin()) { d.remove(); LOCKED = false; } else { $('#lockm').textContent = 'PIN incorrecto'; $('#lockp').value = ''; } };
-  $('#lockg').onclick = go; $('#lockp').onkeydown = e => { if (e.key === 'Enter') go(); }; setTimeout(() => $('#lockp')?.focus(), 200);
+  $('#lockg').onclick = go; $('#lockp').onkeydown = e => { if (e.key === 'Enter') go(); };
+  const bio = async () => { try { const r = await AUTO().bioAuth({ title: 'Desbloquear Scan2Com' }); if (r?.ok) { d.remove(); LOCKED = false; } } catch (e) {} };
+  if (useBio()) { $('#lockb').onclick = bio; setTimeout(bio, 300); } else setTimeout(() => $('#lockp')?.focus(), 200);
   $('#lockf').onclick = async () => { if (!confirm('Para quitar el bloqueo hay que cerrar la sesión y volver a entrar con tu email. Los chats de este móvil se conservan. ¿Seguir?')) return; try { localStorage.removeItem('sa_lock'); await sb.auth.signOut(); } catch (e) {} location.reload(); };
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden && appPin()) setTimeout(() => { if (document.hidden) lockScreen(); }, 30000); });
@@ -2036,7 +2042,7 @@ function accountMenu() {
     ${mrow('zn', IC.alert(20), 'Avisos de emergencia en tu zona', 'Te avisa de incendios, inundaciones, calles cortadas o retirada de coches cerca de ti o de donde dejaste el coche. Los envían la policía y los servicios de emergencia. ¿Eres un servicio público? Contáctanos para ofrecerlos · <b style="color:' + (S.zone ? '#1a9c16' : '#999') + '">' + (S.zone ? (S.av && (S.av.loc === false || S.av.locOn === false) ? 'Falta la ubicación' : 'Activados') : 'Desactivados') + '</b>')}
     ${mrow('cbg', IC.chat(20), 'Fondo de los chats', chatBgName())}
     ${mrow('bkp', '💾', 'Copia de seguridad de los chats', 'Guárdalos en un archivo protegido con PIN y recupéralos en otro móvil')}
-    ${mrow('lck', '🔒', 'Bloqueo de la app', appPin() ? 'Activado: pide tu PIN al abrir' : 'Pide un PIN al abrir la app')}
+    ${mrow('lck', '🔒', 'Bloqueo de la app', appPin() ? (useBio() ? 'Activado: huella o PIN al abrir' : 'Activado: pide tu PIN al abrir') : 'Pide un PIN o tu huella al abrir la app')}
     ${mrow('sp', BTCAR, 'Coche: Bluetooth y lugares seguros', `La pegatina del coche se activa sola al apagarse el Bluetooth del coche (al bajarte), salvo en tus lugares seguros (${(S.places || []).length})`)}
     <div class="msec">AYUDA</div>
     ${mrow('rh', IC.play(20), 'Ayudas de cada pantalla', 'Te llevo a cada pantalla y te la explico en voz alta')}

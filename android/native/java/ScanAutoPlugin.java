@@ -17,6 +17,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.hardware.biometrics.BiometricManager;
+import android.hardware.biometrics.BiometricPrompt;
+import android.os.CancellationSignal;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -244,5 +247,43 @@ public class ScanAutoPlugin extends Plugin {
         AlarmService.stopCall(getContext());
         if (Build.VERSION.SDK_INT >= 27 && getActivity() != null) getActivity().runOnUiThread(() -> { getActivity().setShowWhenLocked(false); getActivity().setTurnScreenOn(false); });
         call.resolve();
+    }
+
+    // ---------- desbloqueo con huella / cara (o el PIN o patrón del propio móvil) ----------
+    @SuppressLint({"NewApi", "MissingPermission"})
+    @PluginMethod
+    public void bioAvailable(PluginCall call) {
+        JSObject r = new JSObject(); boolean ok = false;
+        try {
+            if (Build.VERSION.SDK_INT >= 30) {
+                BiometricManager bm = getContext().getSystemService(BiometricManager.class);
+                ok = bm != null && bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS;
+            } else if (Build.VERSION.SDK_INT >= 29) {
+                BiometricManager bm = getContext().getSystemService(BiometricManager.class);
+                ok = bm != null && bm.canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS;
+            } else if (Build.VERSION.SDK_INT >= 28) {
+                ok = getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_FINGERPRINT);
+            }
+        } catch (Exception e) { ok = false; }
+        r.put("ok", ok); call.resolve(r);
+    }
+
+    @SuppressLint({"NewApi", "MissingPermission"})
+    @PluginMethod
+    public void bioAuth(PluginCall call) {
+        if (Build.VERSION.SDK_INT < 28) { JSObject r = new JSObject(); r.put("ok", false); r.put("error", "old"); call.resolve(r); return; }
+        final String title = call.getString("title", "Desbloquear Scan2Com");
+        getActivity().runOnUiThread(() -> {
+            try {
+                BiometricPrompt.Builder b = new BiometricPrompt.Builder(getContext()).setTitle(title).setSubtitle("Usa tu huella o tu cara");
+                if (Build.VERSION.SDK_INT >= 30) b.setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.DEVICE_CREDENTIAL);
+                else if (Build.VERSION.SDK_INT >= 29) b.setDeviceCredentialAllowed(true);
+                else b.setNegativeButton("Usar el PIN", getContext().getMainExecutor(), (d, w) -> { JSObject r = new JSObject(); r.put("ok", false); r.put("error", "cancel"); call.resolve(r); });
+                b.build().authenticate(new CancellationSignal(), getContext().getMainExecutor(), new BiometricPrompt.AuthenticationCallback() {
+                    @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult res) { JSObject r = new JSObject(); r.put("ok", true); call.resolve(r); }
+                    @Override public void onAuthenticationError(int code, CharSequence msg) { JSObject r = new JSObject(); r.put("ok", false); r.put("error", String.valueOf(msg)); call.resolve(r); }
+                });
+            } catch (Exception e) { JSObject r = new JSObject(); r.put("ok", false); r.put("error", e.getMessage()); call.resolve(r); }
+        });
     }
 }

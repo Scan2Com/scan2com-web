@@ -1677,6 +1677,8 @@ function bmSync() {
       return;
     }
     if (cur === want) return bmPlace(el, want);
+    // del servidor no vuelve directo: primero llega a su teléfono (el otro lado) y desde ahí vuelve, aunque lo lea al momento
+    if (cur === 'mid' && want !== 'left') { S.bmPos[id] = 'left'; S.bmBusy[id] = Date.now() + 1300; bmFly(el, 'mid', 'left'); return setTimeout(bmSync, 1350); }
     S.bmPos[id] = want; S.bmBusy[id] = Date.now() + 1300; bmFly(el, cur, want);
   });
 }

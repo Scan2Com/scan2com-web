@@ -1619,6 +1619,13 @@ async function gProgress(chat, token, force) {
 const gSeenT = {};
 function gSeen(chat, upto, token) { if (!upto || (gSeenT[chat] || 0) >= upto) return; gSeenT[chat] = upto; sb.rpc('group_seen', token ? { p_chat: chat, p_upto: upto, p_token: token } : { p_chat: chat, p_upto: upto }).then(() => {}, () => {}); }
 setInterval(() => { if (document.hidden) return; const vw = S.view; if (vw?.t === 'chat') { const ch = S.chats.find(x => x.id === vw.id); if (ch?.is_group) { gProgress(ch.id); gSeen(ch.id, (S.msgs?.[ch.id] || []).at(-1)?.id); } } }, 5000);
+// red de seguridad (ahorro de batería, conexión en tiempo real caída): si hay mensajes tuyos recientes sin leer en el chat abierto,
+// se pregunta solo por esos cada 4 s durante 3 min; con el tiempo real funcionando casi nunca hace falta
+setInterval(async () => { if (document.hidden) return; const vw = S.view; if (vw?.t !== 'chat') return; const ch = S.chats.find(x => x.id === vw.id); if (!ch || ch.is_group) return;
+  const up = S.reads?.[ch.id]?.visitor_upto || 0, ids = (S.msgs[ch.id] || []).filter(m => !m.from_visitor && !m.read_at && m.id > up && Date.now() - new Date(m.created_at) < 180000).map(m => m.id); if (!ids.length) return;
+  try { const { data } = await sb.from('messages').select('id,read_at,played_pct,played_at').in('id', ids); let ch2 = false;
+    (data || []).forEach(r => { const x = S.msgs[ch.id].find(y => y.id === r.id); if (x && (r.read_at !== x.read_at || r.played_pct !== x.played_pct)) { Object.assign(x, r); ch2 = true; } });
+    if (ch2) { saveHist(); if (S.view?.t === 'chat' && S.view.id === ch.id) render(true); } } catch (e) {} }, 4000);
 S.bmPos = {}; S.vread = {}; S.bmBusy = {};
 // tocar "enviar" no debe quitar el foco del cuadro de texto (si no, el teclado se cierra)
 function keepKb() { const b = $('#os'); if (b) { b.onpointerdown = e => e.preventDefault(); b.onmousedown = e => e.preventDefault(); } }

@@ -205,7 +205,7 @@ async function pvShare(url, at) {
 function pvHtml(url, at, tag) {
   const src = /#cam$/.test(url) ? '📷 Hecha desde la cámara' : /#gal$/.test(url) ? '🖼️ De la galería' : 'Foto';
   return `<div class="pview" id="pv"><div class="pvs" id="pvs"><img id="pvi" src="${esc(mBlobs.get(url.split('#')[0]) || url.split('#')[0])}" alt="Foto" draggable="false"></div>
-  <div class="pvt pvbar"><button class="pvbtn" id="pvx" aria-label="Volver"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><div class="pvinfo"><b>${src}</b>${at ? `<span>${esc(pvTime(at))}</span>` : ''}</div></div>
+  <div class="pvt pvbar"><button class="pvbtn" id="pvx" aria-label="Volver"><svg width="24" height="24" viewBox="-64 -64 128 128" style="display:block"><path d="${BMP2}" fill="currentColor" transform="rotate(-45) translate(-27 -27)"/></svg></button><div class="pvinfo"><b>${src}</b>${at ? `<span>${esc(pvTime(at))}</span>` : ''}</div></div>
   <div class="pvf pvbar"><button class="pvact" id="pvd"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Descargar</button><button class="pvact" id="pvsh"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg>Compartir</button></div>
   <div class="pvm" id="pvm"></div></div>`;
 }

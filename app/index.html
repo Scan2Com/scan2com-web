@@ -2882,6 +2882,8 @@ async function toggleFav(id) {
 
 /* ---------- añadir: nuevo código / vincular pack / escanear ---------- */
 let stream = null;
+// el escáner a pantalla completa se queda en negro si la cámara se paró (al abrir un enlace, ir a otra app o cerrar la hoja con «atrás»): se vuelve a encender
+const scanResume = () => { if (S.view?.t === 'pack' && S.view.only && !stream && !$('#overlay').innerHTML.trim() && !document.hidden) { S.view.scan = true; renderPack(); } };
 function stopCam() { stream?.getTracks().forEach(t => t.stop()); stream = null; }
 function renderPack() {
   if (S.view.only) {   // cámara: solo el escáner a pantalla completa
@@ -3033,7 +3035,7 @@ function foreignQR(t, onClose) {
     <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px"><div style="font-size:30px;line-height:1">${ic}</div><div style="min-width:0"><div style="font-weight:700;margin-bottom:2px">${ti}</div><div style="font-size:14px;word-break:break-all;color:#444">${body}</div></div></div>
     ${acts.map(([l], i) => `<button class="btn ${i ? 'light' : ''}" data-fa="${i}" style="margin-bottom:8px">${l}</button>`).join('')}</div></div>`;
   $('#fq').onclick = () => { $('#overlay').innerHTML = ''; onClose?.(); };
-  $('#fq').querySelectorAll('[data-fa]').forEach(b => b.onclick = () => { acts[+b.dataset.fa][1](); });
+  $('#fq').querySelectorAll('[data-fa]').forEach(b => b.onclick = () => { const a = acts[+b.dataset.fa]; if (a[0] !== 'Copiar' && !/Conectarse/.test(a[0])) { $('#overlay').innerHTML = ''; setTimeout(() => { if (!document.hidden) onClose?.(); }, 700); } a[1](); });
 }
 async function claim(id) {
   if (!id) return; S.err = '';
@@ -3261,7 +3263,7 @@ function appBack() {
   if ($('#cpanel') && !$('#overlay')?.innerHTML.trim()) { $('#cpanel').remove(); $('.compose')?.classList.remove('panel'); return true; }   // panel de emojis o adjuntos abierto
   if (S.alarm) return true;
   const ov = $('#overlay');
-  if (ov && ov.innerHTML.trim()) { if (!ov.querySelector('#trm')) ov.innerHTML = ''; return true; }
+  if (ov && ov.innerHTML.trim()) { if (!ov.querySelector('#trm')) { ov.innerHTML = ''; setTimeout(scanResume, 50); } return true; }
   const bk = $('#bk');
   if ((S.view || (!S.user && S.screen && S.screen !== 'welcome')) && bk) { bk.click(); return true; }
   if (S.view && S.user) { S.view = null; render(); return true; }   // pantallas sin flecha (p. ej. Ver código): atrás vuelve a la lista
@@ -3359,7 +3361,7 @@ async function start(session) {
 })();
 sb.auth.onAuthStateChange((ev, session) => { if (ev === 'SIGNED_IN' && !S.user) start(session); if (ev === 'SIGNED_OUT') { S.user = null; render(); } if (ev === 'PASSWORD_RECOVERY') { S.recovery = true; render(); } });
 const { data: { session } } = await sb.auth.getSession(); if (!S.user || S.user.id !== session?.user?.id) start(session);  // no arrancar dos veces (SIGNED_IN + getSession) con la misma cuenta
-document.addEventListener('visibilitychange', async () => { if (document.hidden && S.touring) stopTour(); if (!document.hidden && S.user) { if (S.view?.t === 'edit') { refreshAutoPerm(); return; } await loadAll(); render(true); zoneGeo(); } });
+document.addEventListener('visibilitychange', async () => { if (document.hidden && S.touring) stopTour(); if (document.hidden && S.view?.t === 'pack' && S.view.only) stopCam(); if (!document.hidden) setTimeout(scanResume, 300); if (!document.hidden && S.user) { if (S.view?.t === 'edit') { refreshAutoPerm(); return; } await loadAll(); render(true); zoneGeo(); } });
 try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => {}; } catch (e) {}
 if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/app/sw.js').catch(() => {}); navigator.serviceWorker.addEventListener('message', ev => { if (ev.data?.type === 'open' && S.user) openUrl(ev.data.url); }); }
 </script>

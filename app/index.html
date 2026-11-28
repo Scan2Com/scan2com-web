@@ -160,7 +160,7 @@ label{font-size:13px;color:var(--mut)}
 .emt{display:flex;border-bottom:1px solid #ddd}.emt button{flex:1;border:0;background:none;font-size:20px;padding:8px 0;cursor:pointer;border-bottom:3px solid transparent}.emt button.on{border-bottom-color:#33b5e5}
 .emg{display:grid;grid-template-columns:repeat(8,1fr);height:230px;overflow-y:auto;padding:6px;align-content:start}.emg button{border:0;background:none;font-size:26px;padding:5px 0;cursor:pointer;line-height:1.15}
 .daysep{align-self:center;margin:6px 0}.daysep span{background:#e4e7ea;color:#555;font-size:12px;padding:4px 12px;border-radius:12px;text-transform:capitalize}
-.m.pend .phw{display:inline-block}.m.pend .mph{opacity:.55}.spin{position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;border:4px solid rgba(255,255,255,.55);border-top-color:#1aa3d9;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.pbx{display:flex;align-items:center;gap:10px;min-width:150px;padding:4px 2px}.pbx span{opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}.spin2{flex:none;width:22px;height:22px;border-radius:50%;border:3px solid rgba(255,255,255,.22);border-top-color:#1aa3d9;animation:spin .8s linear infinite}.m.pend .phw{display:inline-block}.m.pend .mph{opacity:.55}.spin{position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;border:4px solid rgba(255,255,255,.55);border-top-color:#1aa3d9;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .locw{display:block;color:inherit;text-decoration:none}.locmap{display:block;position:relative;overflow:hidden;border-radius:12px;max-width:100%;background:#dfe6ea}.locmap img{position:absolute;width:256px;height:256px;max-width:none}.locpin{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-22px 0 0 -11px;background:#e8352b;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 5px rgba(0,0,0,.4)}.loct{display:block;font-size:14px;margin-top:5px}
 html.dark .cpanel{background:#202225;border-top-color:#2e3135}.attg i{background:color-mix(in srgb,var(--ac) 16%,transparent)!important;color:var(--ac);font-style:normal}.attg i svg{display:block}html.dark .attg button{color:#cfd2d6}html.dark .emt{border-bottom-color:#2e3135}html.dark .daysep span{background:#2a2d31;color:#b9bdc3}
 .sendb{background:none;border:0;color:#8a8a8a;cursor:pointer;padding:4px;touch-action:none;user-select:none;-webkit-user-select:none}.sendb .bmsend{display:none}.sendb.txt .bmsend{display:block}.sendb.txt .micb{display:none}.micb{display:block;color:#1aa3d9;line-height:0}.compose.rec .micb{color:#e8352b;transform:scale(1.35)}.compose.rec input,.compose.rec .camb{visibility:hidden}.recst{position:absolute;left:16px;right:70px;top:50%;transform:translateY(-50%);font-size:17px;color:#333;pointer-events:none}.recst b{color:#e8352b}.recst span{color:#999;font-size:13px;margin-left:8px}.stopi{display:none;width:30px;height:30px;border-radius:50%;background:#e8352b;position:relative;box-shadow:0 0 0 4px rgba(232,53,43,.25);animation:recp 1.2s infinite}.stopi::after{content:'';position:absolute;left:10px;top:10px;width:10px;height:10px;background:#fff;border-radius:2px}.compose.lock .micb svg{display:none}.compose.lock .stopi{display:block}@keyframes recp{50%{box-shadow:0 0 0 8px rgba(232,53,43,.12)}}
@@ -454,7 +454,13 @@ function locBody(b) {
 }
 // fotos que se están subiendo: se ven ya en el chat con un círculo de carga
 const S_PEND = {};
-const pendHtml = id => (S_PEND[id] || []).map(x => `<div class="m me pend"><span class="phw"><img class="mph" src="${x.url}" alt="Foto"><i class="spin"></i></span><div class="tm">Enviando…</div></div>`).join('');
+// audios, vídeos y archivos igual: su bocadillo con el reloj de carga dentro, no a pantalla completa
+const pendHtml = id => (S_PEND[id] || []).map(x => x.k === 'aud' ? `<div class="m me pend"><div class="pbx"><i class="spin2"></i><span>🎙️ Audio · ${fmtT(x.secs || 0)}</span></div><div class="tm">Enviando…</div></div>`
+  : x.k === 'vid' ? `<div class="m me pend"><span class="phw"><video class="mph" src="${x.url}#t=0.1" muted playsinline preload="metadata"></video><i class="spin"></i></span><div class="tm">Enviando vídeo…</div></div>`
+  : x.k === 'fil' ? `<div class="m me pend"><div class="pbx"><i class="spin2"></i><span>📄 ${esc(x.name)} · ${fSize(x.size)}</span></div><div class="tm">Enviando…</div></div>`
+  : `<div class="m me pend"><span class="phw"><img class="mph" src="${x.url}" alt="Foto"><i class="spin"></i></span><div class="tm">Enviando…</div></div>`).join('');
+function pendAdd(chatId, x) { (S_PEND[chatId] ||= []).push(x); S.bmJustSent = Date.now(); render(); const cb = $('#cb'); if (cb) { cb._stick = true; cb.scrollTop = cb.scrollHeight; }
+  return () => { S_PEND[chatId] = (S_PEND[chatId] || []).filter(y => y !== x); if (x.url) setTimeout(() => URL.revokeObjectURL(x.url), 3000); }; }
 const hm = d => new Date(d).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 const dayLbl = d => { const a = new Date(d), t = new Date(), y = new Date(Date.now() - 864e5); return a.toDateString() === t.toDateString() ? 'Hoy' : a.toDateString() === y.toDateString() ? 'Ayer' : a.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', ...(a.getFullYear() !== t.getFullYear() ? { year: 'numeric' } : {}) }); };
 const withDays = (list, at, row) => { let last = ''; return list.map(m => { const k = new Date(at(m)).toDateString(), sep = k !== last ? `<div class="daysep"><span>${dayLbl(at(m))}</span></div>` : ''; last = k; return sep + row(m); }).join(''); };
@@ -600,12 +606,12 @@ function bindMic(chatId, sendBody) {
       stream.getTracks().forEach(t => t.stop()); clearInterval(timer); cmp.classList.remove('rec', 'lock'); $('#recst')?.remove(); $('#recx')?.remove(); lock = false;
       const ms = Date.now() - t0; if (cancel || ms < 800) return cancel && toast('Audio cancelado');
       const type = (rec.mimeType || mt || 'audio/webm').split(';')[0], blob = new Blob(chunks, { type });
-      busy(true, 'Enviando audio…');
+      const done = pendAdd(chatId, { k: 'aud', secs: Math.round(ms / 1000) });
       try {
         const path = `${chatId}/${crypto.randomUUID()}.${type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm'}`;
         const { error } = await sb.storage.from('chat-audio').upload(path, blob, { contentType: type }); if (error) throw error;
-        await sendBody('aud:' + AUDIO_URL + path + '#' + Math.round(ms / 1000));
-      } catch (err) { toast('No se ha podido enviar el audio.'); } finally { busy(false); }
+        done(); await sendBody('aud:' + AUDIO_URL + path + '#' + Math.round(ms / 1000));
+      } catch (err) { done(); render(); toast('No se ha podido enviar el audio.'); }
     };
     t0 = Date.now(); rec.start(); cmp.classList.add('rec');
     if (!held) setLock();   // se soltó mientras arrancaba el micrófono: fue un toque
@@ -627,12 +633,12 @@ async function sendVideo(chatId, f, sendBody, secs, src) {   // src: 'cam' = gra
   if (f.size > FILE_MAX) return toast('El vídeo pesa ' + fSize(f.size) + '. El máximo son 10 MB: prueba con uno más corto.');
   const type = (f.type || 'video/mp4').split(';')[0], ext = type.includes('webm') ? 'webm' : type.includes('quicktime') ? 'mov' : type.includes('3gpp') ? '3gp' : 'mp4';
   if (secs === undefined) secs = await vidSecs(f);
-  busy(true, 'Enviando vídeo…');
+  const done = pendAdd(chatId, { k: 'vid', url: URL.createObjectURL(f) });
   try {
     const path = `${chatId}/${crypto.randomUUID()}.${ext}`;
     const { error } = await sb.storage.from('chat-files').upload(path, f, { contentType: type }); if (error) throw error;
-    await sendBody('vid:' + FILE_URL + path + (src ? '?src=' + src : '') + '#' + (secs || 0));
-  } catch (e) { toast('No se ha podido enviar el vídeo.'); } finally { busy(false); }
+    done(); await sendBody('vid:' + FILE_URL + path + (src ? '?src=' + src : '') + '#' + (secs || 0));
+  } catch (e) { done(); render(); toast('No se ha podido enviar el vídeo.'); }
 }
 // iconos de la cámara (trazos limpios, estilo Lucide · licencia ISC)
 const camSvg = (p, w = 26) => `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -702,12 +708,12 @@ async function sendFile(chatId, f, sendBody) {
   if (!type) return toast('Ese tipo de archivo no se puede enviar. Prueba con PDF, Word, Excel, imagen, audio, vídeo o ZIP.');
   if (/^(mp4|mov|3gp|webm)$/.test(ext)) return sendVideo(chatId, f, sendBody, undefined, 'gal');
   if (f.size > FILE_MAX) return toast('El archivo pesa ' + fSize(f.size) + '. El máximo son 10 MB.');
-  busy(true, 'Enviando archivo…');
+  const done = pendAdd(chatId, { k: 'fil', name: f.name, size: f.size });
   try {
     const path = `${chatId}/${crypto.randomUUID()}.${ext}`;
     const { error } = await sb.storage.from('chat-files').upload(path, f, { contentType: type }); if (error) throw error;
-    await sendBody('fil:' + FILE_URL + path + '#' + f.size + '|' + encodeURIComponent(f.name.slice(-120)));
-  } catch (e) { toast('No se ha podido enviar el archivo.'); } finally { busy(false); }
+    done(); await sendBody('fil:' + FILE_URL + path + '#' + f.size + '|' + encodeURIComponent(f.name.slice(-120)));
+  } catch (e) { done(); render(); toast('No se ha podido enviar el archivo.'); }
 }
 // la foto aparece al momento en el chat con su círculo de carga; cuando termina de subir se envía el mensaje
 async function sendPhotos(chatId, files, sendBody) {

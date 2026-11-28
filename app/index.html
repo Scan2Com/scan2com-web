@@ -1519,7 +1519,7 @@ async function loadAll() {
   S.vmsgs ||= {}; S.vread ||= {};
   Object.entries(local.v || {}).forEach(([k, l]) => { S.vmsgs[k] = mergeById(l, S.vmsgs[k]); });
   Object.entries(local.vr || {}).forEach(([k, n]) => { S.vread[k] = Math.max(n || 0, S.vread[k] || 0); });
-  loadDlv(local.dl); loadMutes();
+  loadDlv(local.dl); loadMutes(); setTimeout(offerLock, 8000);
   (S.vchats || []).forEach(v => { const l = S.vmsgs[v.id]; if (l?.length && (!v.last || v.last.id < l.at(-1).id)) v.last = { ...l.at(-1) }; });
   saveHist(); histChannel();
   if (IS_PHONE) Promise.all((S.vchats || []).map(v => vFetch(v, true))).then(() => cacheAllMedia()); else cacheAllMedia();
@@ -1967,7 +1967,7 @@ function backupSheet() {
 const useBio = () => { try { return localStorage.getItem('sa_lock_bio') === '1' && !!AUTO()?.bioAuth; } catch (e) { return false; } };
 const appPin = () => { try { return localStorage.getItem('sa_lock') || ''; } catch (e) { return ''; } };
 const pinHash = async p => b64(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('s2c:' + p)));
-async function lockSheet() {
+async function lockSheet(fromOffer) {
   if (appPin()) {
     if (!confirm('El bloqueo está activado. ¿Quitarlo?')) return;
     const p = prompt('Escribe tu PIN actual'); if (!p) return; if (await pinHash(p.trim()) !== appPin()) return toast('PIN incorrecto.');
@@ -1977,8 +1977,20 @@ async function lockSheet() {
   const p2 = prompt('Repite el PIN'); if (p2?.trim() !== p.trim()) return toast('Los PIN no coinciden.');
   try { localStorage.setItem('sa_lock', await pinHash(p.trim())); } catch (e) {}
   const A = AUTO(); let bio = false; try { bio = !!(A?.bioAvailable && (await A.bioAvailable()).ok); } catch (e) {}
-  if (bio && confirm('¿Quieres desbloquear también con tu huella o tu cara? (el PIN seguirá valiendo)')) { try { localStorage.setItem('sa_lock_bio', '1'); } catch (e) {} } else { try { localStorage.removeItem('sa_lock_bio'); } catch (e) {} }
-  toast('Bloqueo activado.'); accountMenu();
+  if (bio && (fromOffer === true || confirm('¿Quieres desbloquear también con tu huella o tu cara? (el PIN seguirá valiendo)'))) { try { localStorage.setItem('sa_lock_bio', '1'); } catch (e) {} } else { try { localStorage.removeItem('sa_lock_bio'); } catch (e) {} }
+  toast('Bloqueo activado.'); if (fromOffer !== true) accountMenu();
+}
+// una sola vez: ofrecer proteger la app con huella (sin obligar), solo en la app Android con huella o cara
+async function offerLock() {
+  try { if (appPin() || localStorage.getItem('sa_lock_offer') || !S.user || S.touring || S.view || $('#overlay').innerHTML.trim() || document.hidden) return; } catch (e) { return; }
+  const A = AUTO(); let ok = false; try { ok = !!(A?.bioAvailable && (await A.bioAvailable()).ok); } catch (e) {} if (!ok) return;
+  try { localStorage.setItem('sa_lock_offer', '1'); } catch (e) {}
+  $('#overlay').innerHTML = `<div class="sheet" id="lofs"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
+    <div style="font-weight:700;font-size:18px;margin-bottom:6px">👆 ¿Proteger Scan2Com con tu huella?</div>
+    <div style="font-size:14px;color:#555;line-height:1.45;margin-bottom:14px">Así nadie podrá leer tus chats si coge tu móvil desbloqueado. Elegirás también un PIN por si la huella falla. Puedes cambiarlo cuando quieras en ⋮ → «Bloqueo de la app».</div>
+    <button class="btn" id="lofy">Sí, protegerla</button><button class="btn light" id="lofn" style="margin-top:8px">Ahora no</button></div></div>`;
+  $('#lofs').onclick = $('#lofn').onclick = () => { $('#overlay').innerHTML = ''; };
+  $('#lofy').onclick = () => { $('#overlay').innerHTML = ''; lockSheet(true); };
 }
 let LOCKED = false;
 function lockScreen() {

@@ -402,6 +402,11 @@ html:not(.dark) .pinbar{box-shadow:0 1px 3px #0000001a}
 .pill.mpill{color:var(--mc);border:1.5px solid color-mix(in srgb,var(--mc) 55%,transparent);background:color-mix(in srgb,var(--mc) 12%,transparent)}.pill.mpill svg{color:var(--mc)}
 .chips.mic{gap:10px;margin-top:5px}.chips span.mi{position:relative;width:16px;height:16px;padding:0;display:inline-flex;align-items:center;justify-content:center;color:var(--mc);background:none}.chips span.mi svg{width:15px;height:15px}.chips span.mi.moff{color:#8d979b;background:none}.chips span.mi .mcp{position:absolute;right:-5px;bottom:-4px;width:10px;height:10px;border-radius:50%;background:#2fc23a;color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;box-shadow:0 0 0 2px var(--v2card,#1b2023)}.chips span.mi .mcp svg{width:7px;height:7px}
 .chips span.mc{color:var(--mc);background:color-mix(in srgb,var(--mc) 15%,transparent)}
+.bm .emj{display:none}.bm.emo i{display:none!important}.bm.emo .emj{display:block;position:absolute;left:-3px;top:-7px;font-size:18px;line-height:1;text-decoration:none;font-style:normal;transform:scaleX(var(--dir,1))}
+.bm.emo.home:not(.fly) .emj{display:none}.bm.emo.fly .emj{animation:hop .3s ease-in-out infinite}@keyframes hop{50%{translate:0 -6px}}
+.bm .emj u{display:none;position:absolute;right:100%;top:7px;font-size:11px;text-decoration:none}.bm.emo.carrot:not(.fly):not(.home) .emj u{display:inline}
+.bm.emo.carrot:not(.fly):not(.home) .emj{animation:nib .8s ease-in-out infinite}@keyframes nib{50%{rotate:-14deg;translate:-1px 1px}}
+.bmfly.emo{background:none!important;-webkit-mask:none!important;mask:none!important;font-size:24px;line-height:1;text-align:center}.bmfly.emo span{display:block;animation:hop .3s ease-in-out infinite}
 .bmfly{position:fixed;z-index:70;pointer-events:none;background:#2fc23a;-webkit-mask-size:100% 100%;mask-size:100% 100%;transform:rotate(225deg)}
 .sendb.regrow .micb{animation:micgrow .55s cubic-bezier(.25,1.4,.5,1) .15s both}
 @keyframes micgrow{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
@@ -459,7 +464,7 @@ const pendHtml = id => (S_PEND[id] || []).map(x => x.k === 'aud' ? `<div class="
   : x.k === 'vid' ? `<div class="m me pend"><span class="phw"><video class="mph" src="${x.url}#t=0.1" poster="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" muted playsinline preload="auto" style="background:#000;min-width:160px;min-height:120px"></video><i class="spin"></i></span><div class="tm">Enviando vídeo…</div></div>`
   : x.k === 'fil' ? `<div class="m me pend"><div class="pbx"><i class="pspin"></i><span>📄 ${esc(x.name)} · ${fSize(x.size)}</span></div><div class="tm">Enviando…</div></div>`
   : `<div class="m me pend"><span class="phw"><img class="mph" src="${x.url}" alt="Foto"><i class="spin"></i></span><div class="tm">Enviando…</div></div>`).join('');
-function pendAdd(chatId, x) { (S_PEND[chatId] ||= []).push(x); S.bmJustSent = Date.now(); render(); const cb = $('#cb'); if (cb) { cb._stick = true; cb.scrollTop = cb.scrollHeight; }
+function pendAdd(chatId, x) { (S_PEND[chatId] ||= []).push(x); S.bmJustSent = V2.sentAt = Date.now(); render(); const cb = $('#cb'); if (cb) { cb._stick = true; toEnd(cb); }
   return () => { S_PEND[chatId] = (S_PEND[chatId] || []).filter(y => y !== x); if (x.url) setTimeout(() => URL.revokeObjectURL(x.url), 3000); }; }
 const hm = d => new Date(d).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 const dayLbl = d => { const a = new Date(d), t = new Date(), y = new Date(Date.now() - 864e5); return a.toDateString() === t.toDateString() ? 'Hoy' : a.toDateString() === y.toDateString() ? 'Ayer' : a.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', ...(a.getFullYear() !== t.getFullYear() ? { year: 'numeric' } : {}) }); };
@@ -497,6 +502,9 @@ let mPosT = 0; const mPosSave = () => { clearTimeout(mPosT); mPosT = setTimeout(
 const isCall = b => typeof b === 'string' && /^cal:(missed|\d+)$/.test(b);
 const callTxt = b => b === 'cal:missed' ? '📞 Llamada perdida' : '📞 Llamada · ' + Math.floor(+b.slice(4) / 60) + ':' + String(+b.slice(4) % 60).padStart(2, '0');
 const callBody = b => `<span class="callmsg${b === 'cal:missed' ? ' miss' : ''}">${callTxt(b)}</span>`;
+// «emoji#mensaje»: el emoji no se ve en el texto; sustituye al boomerang (p. ej. 🐇#hola → un conejo que va dando saltos y, si se para, come zanahoria)
+const emoParse = b => { const m = typeof b === 'string' && b.match(/^((?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\uFE0F|\u200D)+)#\s?([\s\S]+)$/u); return m ? { e: m[1], t: m[2] } : null; };
+const isCarrot = e => /🐇|🐰/u.test(e);
 const msgBody = (b, at) => isCall(b) ? callBody(b) : isVideo(b) ? vidBody(b) : isFile(b) ? fileBody(b) : isAudio(b) ? audBody(b) : isLoc(b) ? locBody(b) : isPhoto(b) ? `<a href="${esc(b.slice(4))}" data-photo="${esc(b.slice(4))}" data-at="${esc(at || '')}" class="phw"><img class="mph" src="${esc(b.slice(4))}" loading="lazy" alt="Foto">${photoTag(b)}</a>` : esc(b);
 // visor de fotos: encajada en pantalla, zoom con dos dedos (o doble toque), arrastrar con un dedo cuando hay zoom,
 // barra arriba con origen y hora, abajo Descargar y Compartir; un toque oculta/muestra las barras
@@ -1633,7 +1641,8 @@ function bmPlace(el, p) { el.classList.remove('home', 'left', 'mid', 'fly', 'par
 // cada boomerang hace su viaje por su cuenta; si la conversación se redibuja a medio viaje, el nuevo sigue desde el mismo punto (retraso negativo), sin saltos
 function bmFly(el, from, to, id, off = 0) {
   if (id) { (S.bmTrip ||= {})[id] = { from, to, t0: Date.now() - off }; el._trip = S.bmTrip[id]; }
-  const i = el.querySelector('i'); bmPlace(el, from); el.classList.add('fly');
+  const i = el.querySelector('i'), T = q => ({ home: 0, mid: .5, left: 1 })[q] ?? 1 - (+el.dataset.pct || 0) / 100; el.style.setProperty('--dir', T(to) >= T(from) ? 1 : -1);   // el emoji mira hacia donde va
+  bmPlace(el, from); el.classList.add('fly');
   if (off > 0) { el.style.transitionDelay = i.style.transitionDelay = -off + 'ms'; }
   el.classList.remove(from); el.classList.add(to);
   setTimeout(() => { el.classList.remove('fly'); el.style.transitionDelay = i.style.transitionDelay = ''; if (to === 'home' && off < 1000) { el.classList.add('arr'); setTimeout(() => el.classList.remove('arr'), 600); } }, Math.max(0, 1150 - off));
@@ -2781,11 +2790,12 @@ function v2Msgs(k, list, o) {
   for (const m of list) { const r = rxParse(m.body); if (r) { (rx[r.to] ||= {})[o.who(m)] = r.e; continue; } if (dlParse(m.body) || dl.has(o.id(m))) continue; if (!hid.has(o.id(m))) shown.push(m); }
   V2.rx = rx;
   return withDays(shown, o.at, m => {
-    const id = o.id(m), rp = rpParse(m.body), body = rp ? rp.b : m.body, mine = o.mine(m), pin = pins.includes(id);
+    const id = o.id(m), rp = rpParse(m.body), em = emoParse(rp ? rp.b : m.body), body = em ? em.t : rp ? rp.b : m.body, mine = o.mine(m), pin = pins.includes(id);
+    const tk = em ? o.tick(m).replace('class="bm"', 'class="bm emo' + (isCarrot(em.e) ? ' carrot' : '') + '"').replace('<i></i>', '<i></i><s class="emj">' + esc(em.e) + '<u>🥕</u></s>') : o.tick(m);
     const rs = Object.values(rx[id] || {}).filter(Boolean), uniq = [...new Set(rs)];
     const q = rp ? '<div class="quote" data-goto="' + (+rp.i || 0) + '"><b>' + esc(rp.s ? (rp.s === o.side ? 'Tú' : o.other) : (rp.w || '')) + '</b>' + esc(rp.t || '') + '</div>' : '';
     return '<div class="m ' + (mine ? 'me' : 'them') + (pin ? ' pinned' : '') + '" data-id="' + id + '"' + o.pm(m) + '>' + o.top(m) + q + (o.flag && o.flag(m) ? '<div class="tap" onclick="event.stopPropagation();this.classList.add(\'show\')"><span class="tapl">🙊 Mensaje tapado por insultos · tocar para ver</span><div class="tapb">' + msgBody(body, o.at(m)) + '</div></div>' : msgBody(body, o.at(m)))
-      + '<div class="tm">' + hm(o.at(m)) + o.tick(m) + '</div>' + (rs.length ? '<span class="rxs">' + uniq.map(e => { const n = rs.filter(x => x === e).length; return e + (n > 1 ? '<b>' + n + '</b>' : ''); }).join(' ') + '</span>' : '') + (pin ? FRAME() : '') + '</div>';
+      + '<div class="tm">' + hm(o.at(m)) + tk + '</div>' + (rs.length ? '<span class="rxs">' + uniq.map(e => { const n = rs.filter(x => x === e).length; return e + (n > 1 ? '<b>' + n + '</b>' : ''); }).join(' ') + '</span>' : '') + (pin ? FRAME() : '') + '</div>';
   });
 }
 // chat en el que estoy: dueño (o vinculado) de un código, o quien escaneó el código de otro
@@ -2939,14 +2949,14 @@ function v2SendFly() {
   const btn = $('#os'), ic = btn?.querySelector('.bmsend'), cb = $('#cb'), ms = $('#ms'); if (!ic || !btn.classList.contains('txt') || !cb || !ms) return;
   const r = ic.getBoundingClientRect(); if (!r.width) return;
   V2.sentAt = Date.now();
-  const f = document.createElement('i'), cs = getComputedStyle(ic); f.className = 'bmfly'; f.dataset.k = 's' + Date.now();
+  const em = emoParse($('#oi')?.value.trim() || ''), f = document.createElement('i'), cs = getComputedStyle(ic); f.className = 'bmfly' + (em ? ' emo' : ''); if (em) f.innerHTML = '<span>' + esc(em.e) + '</span>'; f.dataset.k = 's' + Date.now();
   f.style.cssText = 'left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;-webkit-mask-image:' + cs.webkitMaskImage + ';mask-image:' + (cs.maskImage || cs.webkitMaskImage);
   document.body.appendChild(f);
   // dónde quedará el acuse del mensaje nuevo: al final de la conversación, junto a la hora, y su sitio de espera a la izquierda
   const cr = cb.getBoundingClientRect(), mr = ms.getBoundingClientRect(), bs = 16 / r.width;
   const vw = S.view, grp = vw?.t === 'chat' ? S.chats.find(x => x.id === vw.id)?.is_group : (S.vchats || []).find(x => x.id === vw?.id)?.group;
   const hx = mr.right - 14 - 6 - 16, hy = Math.min(cr.bottom, innerHeight) - 10 - 6 - 17, lx = grp ? mr.left + 8 : (hx + mr.left + 8) / 2;   // chat de dos: llega al servidor (medio camino); grupo: al otro lado
-  const T = (x, y, a, sc) => 'translate(' + (x - r.left) + 'px,' + (y - r.top) + 'px) rotate(' + a + 'deg) scale(' + sc + ')';
+  const T = (x, y, a, sc) => 'translate(' + (x - r.left) + 'px,' + (y - r.top) + 'px) rotate(' + (em ? 0 : a) + 'deg) scale(' + sc + ')';
   // salto en arco, sin crecer, directo a la esquina de abajo a la derecha del mensaje; de ahí, por la misma franja, a la izquierda
   const K = (hx, hy, lx) => { const mx = (r.left + hx) / 2, my = Math.min(r.top, hy) - 46; return [
     { transform: T(r.left, r.top, 225, 1), backgroundColor: '#2fc23a', easing: 'cubic-bezier(.3,.5,.6,1)' },

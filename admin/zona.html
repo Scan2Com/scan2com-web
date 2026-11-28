@@ -60,7 +60,7 @@ button.or{background:var(--or)}button.light{background:#e6e8eb;color:var(--ink)}
         <div class="row" style="margin-top:8px"><button class="light" id="me">📍 Usar mi ubicación</button></div>
         <div class="hint">O toca el mapa para fijar el centro del área (puedes arrastrar el marcador).</div>
         <label>Radio</label>
-        <div class="rng"><input type="range" id="rad" min="0" max="100" value="38"><output id="radv">300 m</output></div>
+        <div class="rng"><input type="range" id="rad" min="0" max="100" value="34"><output id="radv">300 m</output></div>
         <label>A quién avisar</label>
         <select id="tg"><option value="both">Coches aparcados y personas en la zona</option><option value="cars">Solo dueños de coches aparcados en la zona</option><option value="people">Solo personas que están en la zona</option></select>
         <div class="hint">Se usa la última ubicación conocida de cada persona y de cada coche. Quien recibe el aviso ve la zona en un mapa y sabe si le afecta.</div>
@@ -101,8 +101,8 @@ const S = { c: null, sent: false };
 const map = L.map('map').setView([40.4168, -3.7038], 6);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
 let mk = null, circ = null, past = null;
-// radio en escala logarítmica: 20 m … 20 km
-const radM = () => { const v = +$('#rad').value / 100; return Math.round(Math.exp(Math.log(20) + v * (Math.log(20000) - Math.log(20))) / 10) * 10 || 20; };
+// radio en escala logarítmica: 20 m … 50 km (el máximo que admite el servidor)
+const radM = () => { const v = +$('#rad').value / 100; return Math.round(Math.exp(Math.log(20) + v * (Math.log(50000) - Math.log(20))) / 10) * 10 || 20; };
 const fmtM = m => m >= 1000 ? (m / 1000).toFixed(m >= 10000 ? 0 : 1).replace('.', ',') + ' km' : m + ' m';
 function draw(fit) {
   $('#radv').textContent = fmtM(radM());

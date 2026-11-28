@@ -1346,7 +1346,7 @@ function groupGame() {
     ${li(3, 'Cada uno entra como <b style="color:#1f86e0">Zorro azul</b>, <b style="color:#e8352b">Búho rojo</b>, <b style="color:#1a9c16">Gato verde</b>…')}
     ${li(4, 'Hablad y <b>descubrid quién se esconde detrás de cada alias</b>. Cada uno decide cuándo revelar su nombre.')}
     ${li(5, '¿Ya sabéis quién es quién? <b>🫙 Votad agitar el bote</b>: cuando vota más de la mitad, todos sacáis un alias nuevo y los mensajes anteriores quedan anónimos.')}
-    ${li(6, 'Cuando todos (o todos menos uno) habéis dicho vuestro nombre, <b>el grupo deja de ser anónimo</b> y pasa a ser un chat de grupo normal. ¿Otra partida? Usad <b>otro código</b> con Chat de grupo.')}
+    ${li(6, 'Cuando todos (o todos menos uno) habéis dicho vuestro nombre, <b>el grupo deja de ser anónimo</b> y pasa a ser un chat de grupo normal. ¿Otra partida? Volved a <b>escanear el mismo código</b>: abre un grupo anónimo nuevo (el anterior se queda como chat normal).')}
     <div style="font-size:14px;line-height:1.45;margin:12px 0 4px;background:rgba(31,134,224,.12);border-radius:10px;padding:10px 12px">🗣️ <b>Habla de temas tabú sin miedo.</b> Como nadie sabe quién es quién, es ideal para hablar con tu grupo de amigos de temas tabú, delicados o conflictivos (política, críticas, lo que nadie se atreve a decir…) y decir lo que piensas de verdad. Respeta a los demás: aunque nadie sepa quién eres, al otro lado hay personas de verdad. <b>Sin insultos:</b> la <a href="#" data-modhelp>barra de mal rollo</a> silencia y, si se repite, expulsa a quien insulta, sin que nadie tenga que moderar.</div>
     <div style="font-size:13px;opacity:.75;line-height:1.4;margin:10px 0 14px;text-align:center">También sirve para una clase, una fiesta, una boda o la cena de empresa. Sin teléfonos: nadie ve el número de nadie.</div>
     <button class="btn teal" id="ggok">¡A jugar!</button>`);
@@ -3002,7 +3002,7 @@ function gNickSheet(chat, key, def) {
   $('#gny').onclick = () => save({ n: $('#gnn').value.trim() || def, d: $('#gnd').value.trim(), img });
 }
 document.addEventListener('click', e => { const el = e.target.closest?.('[data-gk]'); if (!el) return; e.stopPropagation(); const [c, k, d] = el.dataset.gk.split('|'); gNickSheet(c, k, d); }, true);
-const fixedBar = '<div class="unsep">🪪 <b>Ya habéis dicho vuestro nombre (todos o todos menos uno):</b> el juego ha terminado, ya no se puede agitar el bote y queda un chat de grupo normal. Toca el nombre de cualquiera para ponerle el nombre, la foto y la descripción que quieras (solo lo ves tú). La barra de mal rollo sigue activa. <a href="#" data-modhelp>¿Cómo funciona?</a></div>';
+const fixedBar = '<div class="unsep">🪪 <b>Ya habéis dicho vuestro nombre (todos o todos menos uno):</b> el juego ha terminado, ya no se puede agitar el bote y queda un chat de grupo normal. Quien escanee ahora el código entra en un grupo anónimo nuevo. Toca el nombre de cualquiera para ponerle el nombre, la foto y la descripción que quieras (solo lo ves tú). La barra de mal rollo sigue activa. <a href="#" data-modhelp>¿Cómo funciona?</a></div>';
 const saysName = (alias, name) => name ? alias + ' · dice ser «' + name + '» ⚠️' : alias;
 const memName = x => x ? saysName(x.alias, x.revealed && x.real_name) : 'Participante';
 const memTop = mid => { const x = S.gmem?.[mid]; if (mid && !x && !S.gmemAsk) { S.gmemAsk = 1; setTimeout(() => { S.gmemAsk = 0; loadGMembers(); }, 800); } if (!x) return `<div class="who" style="color:#8d979b;font-weight:700;opacity:1">Participante</div>`;

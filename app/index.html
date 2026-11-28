@@ -456,7 +456,7 @@ function locBody(b) {
 const S_PEND = {};
 // audios, vídeos y archivos igual: su bocadillo con el reloj de carga dentro, no a pantalla completa
 const pendHtml = id => (S_PEND[id] || []).map(x => x.k === 'aud' ? `<div class="m me pend"><div class="pbx"><i class="pspin"></i><span>🎙️ Audio · ${fmtT(x.secs || 0)}</span></div><div class="tm">Enviando…</div></div>`
-  : x.k === 'vid' ? `<div class="m me pend"><span class="phw"><video class="mph" src="${x.url}#t=0.1" muted playsinline preload="metadata"></video><i class="spin"></i></span><div class="tm">Enviando vídeo…</div></div>`
+  : x.k === 'vid' ? `<div class="m me pend"><span class="phw"><video class="mph" src="${x.url}#t=0.1" poster="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" muted playsinline preload="auto" style="background:#000;min-width:160px;min-height:120px"></video><i class="spin"></i></span><div class="tm">Enviando vídeo…</div></div>`
   : x.k === 'fil' ? `<div class="m me pend"><div class="pbx"><i class="pspin"></i><span>📄 ${esc(x.name)} · ${fSize(x.size)}</span></div><div class="tm">Enviando…</div></div>`
   : `<div class="m me pend"><span class="phw"><img class="mph" src="${x.url}" alt="Foto"><i class="spin"></i></span><div class="tm">Enviando…</div></div>`).join('');
 function pendAdd(chatId, x) { (S_PEND[chatId] ||= []).push(x); S.bmJustSent = Date.now(); render(); const cb = $('#cb'); if (cb) { cb._stick = true; cb.scrollTop = cb.scrollHeight; }
@@ -1470,8 +1470,10 @@ function playReport(id, pct) {
 }
 ['timeupdate', 'ended', 'pause'].forEach(ev => document.addEventListener(ev, e => {
   const el = e.target, m = el.closest?.('[data-pm]'); if (!m) return; const id = +m.dataset.pm;
-  const dur = isFinite(el.duration) && el.duration > 0 ? el.duration : +m.dataset.secs || 0;
-  const pct = ev === 'ended' ? 100 : dur ? Math.min(100, Math.round(el.currentTime / dur * 100)) : 0;
+  // duración: la que midió quien lo grabó manda si el vídeo dice otra cosa (los vídeos de la cámara a veces traen una duración falsa y nunca llegaban al 100 %)
+  const d1 = isFinite(el.duration) && el.duration > 0 ? el.duration : 0, d2 = +m.dataset.secs || 0, dur = d1 && d2 ? Math.min(d1, d2) : d1 || d2;
+  const near = dur && el.currentTime >= dur - 1.2;   // a punto de acabar (o parado al final): cuenta como visto entero
+  const pct = ev === 'ended' || near ? 100 : dur ? Math.min(100, Math.round(el.currentTime / dur * 100)) : 0;
   if (pct >= 98) return playReport(id, 100); if (pct > 0) playReport(id, pct);
 }, true));
 // archivo: se descarga desde la copia del móvil (o del servidor si aún está)

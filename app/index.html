@@ -1612,7 +1612,7 @@ async function loadAll() {
   try { const [g, z, ad] = await Promise.all([sb.from('user_geo').select('optin,optin_at').eq('user_id', S.user.id).maybeSingle(), sb.rpc('my_zone_alerts'), sb.rpc('my_zone_role')]);
     S.zone = !!g.data?.optin; S.zoneAt = g.data?.optin_at || null; S.zrole = ad.data || null; S.admin = !!(ad.data && (ad.data.admin || (ad.data.groups || []).length)); sb.rpc('can_see_feedback').then(r => { S.fbView = r.data === true; }, () => {}); S.zalerts = Array.isArray(z.data) ? z.data : []; } catch (e) { S.zalerts = S.zalerts || []; }
   // pestaña ENVÍOS: solo para las cuentas que pueden enviar avisos por zona; ven el historial de todos los avisos enviados
-  TABS.splice(3); if (S.admin) { TABS.push('sent'); try { const h = await sb.rpc('zone_history'); S.zhist = h.data?.items || []; } catch (e) { S.zhist = S.zhist || []; } } else if (S.tab === 'sent') S.tab = 'codes';
+  if (S.admin) { if (!TABS.includes('sent')) TABS.push('sent'); try { const h = await sb.rpc('zone_history'); S.zhist = h.data?.items || []; } catch (e) { S.zhist = S.zhist || []; } } else if (S.tab === 'sent') S.tab = 'codes';
   S.codes = c.data || []; S.chats = ch.data || []; loadGMembers(); S.favs = new Set((f.data || []).map(x => x.chat_id)); S.events = ev.data || []; S.places = pl.data || [];
   const local = (await IDB.get(histKey())) || {};
   const srv = {}, ids = S.chats.map(x => x.id);
@@ -1907,7 +1907,13 @@ function traduce(m) {
 
 function renderHome() {
   const nEv = newEvents(), nUn = unreadTotal();
-  const tabs = [['codes', 'CÓDIGOS', 0], ['chats', 'CHATS', nUn], ['alerts', 'AVISOS', nEv]]; if (TABS.includes('sent')) tabs.push(['sent', 'ENVÍOS', 0]);
+  // pestañas solo con contenido: al principio solo CÓDIGOS; con el primer chat, CHATS pasa a ser la primera (la app es para comunicarse); AVISOS cuando llega el primero
+  const hasCh = (S.chats || []).length > 0 || (S.vchats || []).length > 0, hasAv = (S.events || []).length > 0 || (S.zalerts || []).length > 0, adm = TABS.includes('sent');
+  TABS.length = 0; if (hasCh) TABS.push('chats'); TABS.push('codes'); if (hasAv) TABS.push('alerts'); if (adm) TABS.push('sent');
+  if (hasCh && !S.tabInit) { S.tabInit = 1; if (S.tab === 'codes') S.tab = 'chats'; }   // con chats, la app abre en CHATS
+  if (S.tabWant && TABS.includes(S.tabWant.t) && Date.now() - S.tabWant.at < 15000) { S.tab = S.tabWant.t; S.tabWant = null; }   // pedida antes de cargar los datos (p. ej. desde una notificación)
+  if (!TABS.includes(S.tab)) { if (!S.tabWant) S.tabWant = { t: S.tab, at: Date.now() }; S.tab = TABS[0]; }
+  const TL = { codes: ['CÓDIGOS', 0], chats: ['CHATS', nUn], alerts: ['AVISOS', nEv], sent: ['ENVÍOS', 0] }, tabs = TABS.map(k => [k, ...TL[k]]);
   const q = (S.q || '').toLowerCase(), match = (...xs) => !q || xs.some(x => (x || '').toLowerCase().includes(q));
   const page = tab => { let body = '';
   if (tab === 'sent') {

@@ -123,7 +123,7 @@ const fileBody = b => { const { u, size, name } = fileMeta(b), ext = (name.match
 const FILE_TYPES = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', odt: 'application/vnd.oasis.opendocument.text', ods: 'application/vnd.oasis.opendocument.spreadsheet', odp: 'application/vnd.oasis.opendocument.presentation', txt: 'text/plain', csv: 'text/csv', zip: 'application/zip', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', heic: 'image/heic', mp3: 'audio/mpeg', m4a: 'audio/mp4', ogg: 'audio/ogg', wav: 'audio/wav', mp4: 'video/mp4', mov: 'video/quicktime', '3gp': 'video/3gpp', webm: 'video/webm' };
 const FILE_MAX = 10 * 1048576;
 const isVideo = b => typeof b === 'string' && b.startsWith('vid:' + FILE_URL);
-const vidBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/#(\d+)$/) || [])[1] || 0; return `<div class="vidw"><video class="mvid" controls playsinline preload="metadata" poster="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" src="${esc(u)}#t=0.1"></video><span>🎥 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span></div>`; };
+const vidBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/#(\d+)$/) || [])[1] || 0; return `<div class="vidw"><video class="mvid" controls playsinline preload="metadata" poster="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" src="${esc(u)}#t=0.1"></video><span>🎥 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}${/[?&]src=cam\b/.test(u) ? ' · grabado desde la cámara' : /[?&]src=gal\b/.test(u) ? ' · de la galería' : ''}</span></div>`; };
 const vidSecs = f => new Promise(ok => { const v = document.createElement('video'), u = URL.createObjectURL(f); v.preload = 'metadata'; v.onloadedmetadata = () => { URL.revokeObjectURL(u); ok(isFinite(v.duration) ? Math.round(v.duration) : 0); }; v.onerror = () => ok(0); v.src = u; });
 const audMime = () => ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus'].find(t => window.MediaRecorder?.isTypeSupported?.(t)) || '';
 // micrófono: con el campo vacío (máx. 2 min). Mantener pulsado graba, soltar envía, deslizar a la izquierda cancela.
@@ -379,7 +379,7 @@ function render() {
     ${off ? `<div class="offbox"><div class="offic"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></div><div class="offt">${code.schedule ? 'Fuera de horario' : 'Código desactivado temporalmente'}</div><div class="offs">${code.schedule ? schedTxt(code.schedule) : 'El dueño lo ha apagado: ahora no se le puede escribir.'}</div></div>` : ''}
     <div class="card info">${FRAMEW(Array(4).fill('#e8b923'))}<h1>${esc(code.public_name || 'Scan2Com')}</h1>${off ? '' : `<p>${esc(code.public_desc || '')}</p>`}</div>
     ${any ? `<div class="ws"><input id="ws" placeholder="Escribe y envía" maxlength="1000"></div>` : ''}
-    <div class="status ${statusErr ? 'err' : ''}">${esc(status)}${pending && !statusErr ? '<div style="font-size:14px;margin-top:4px">Esperando a que el dueño lo lea<span class="wait"></span></div>' : ''}</div>
+    <div class="status ${statusErr ? 'err' : ''}">${esc(status)}${pending && !statusErr ? '<div style="font-size:14px;margin-top:4px">Esperando a que el dueño lo lea<span class="wait"></span></div>' + (readKind === 'alert' ? '<button id="evx" style="margin-top:10px;font:inherit;font-size:15px;font-style:normal;font-weight:600;border:0;border-radius:22px;padding:9px 16px;background:#e8f6e7;color:#1a9c16;cursor:pointer">✅ Ya está solucionado · detener la alerta</button>' : '') : ''}</div>
     ${!off && ch.call && code.call_app ? `<button class="act call appcall" id="bCall">${FRAMEW(Array(4).fill('#2fc23a'))}${I.call}Llamar por la app</button>` : !off && ch.call && code.phone ? `<div class="callrow"><a class="act call" href="tel:${esc(code.phone)}">${I.call}${esc(code.phone)}</a></div>` : ''}
     <div class="acts">
       <button class="act mail ${off || !ch.mail ? 'hidden' : ''}" id="bMail">${FRAMEW(Array(4).fill('#1f86e0'))}${I.mail}Mail</button>
@@ -408,6 +408,17 @@ async function sendEvent(kind, auto = false, body = null, reply = null) {
   view = 'home'; render();
 }
 
+// quien avisó: «Ya está solucionado» para la sirena del dueño (si aún no la ha visto)
+document.addEventListener('click', async e => {
+  if (e.target?.id !== 'evx' || !pending) return;
+  if (!confirm('¿Detener la alerta? Al dueño le dejará de sonar y verá que ya está solucionado.')) return;
+  e.target.disabled = true;
+  const r = await rpc('event_cancel', { p_event: pending.eventId, p_token: pending.token });
+  if (r.ok) { clearInterval(readPoll); pending = null; status = '✅ Alerta detenida. ¡Gracias!'; statusErr = false; }
+  else if (r.error === 'already_read') { clearInterval(readPoll); pending = null; status = 'El dueño ya la había visto.'; statusErr = false; }
+  else { status = 'No se ha podido detener ahora.'; statusErr = true; }
+  render();
+});
 function watchRead(eventId, token, kind) {
   pending = { eventId, token }; readKind = kind; clearInterval(readPoll); const t0 = Date.now();
   readPoll = setInterval(async () => {
@@ -495,7 +506,7 @@ function renderChat() {
     <div class="msgs scrollme" id="ms">${msgs.length ? wMsgs() : '<div class="m sys">Escribe tu mensaje. Ninguno de los dos verá el teléfono ni el email del otro.</div>'}${alive ? '' : `<div class="m sys">${gMe ? 'El dueño te ha bloqueado en este grupo.' : 'El dueño ha cerrado este chat.'}</div>`}</div>
     ${alive ? `<div class="ws"><button class="camb" id="cph" title="Enviar foto, ubicación o archivo"><i></i></button><input id="ci" placeholder="Escribe y envía" maxlength="2000"><button class="send" id="cs"><span class="st">Enviar</span><span class="sm"><svg width="26" height="26" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="stopi"></span></span></button></div>` : ''}`;
   $('#bk').onclick = () => { view = 'home'; clearInterval(poll); render(); };
-  if ($('#grev')) $('#grev').onclick = async () => { const n = gMe.revealed ? '' : prompt('¿Qué nombre quieres que vean los demás?'); if (!gMe.revealed && !n?.trim()) return; await rpc('member_reveal', { p_chat: chat.id, p_token: chat.token, p_name: n || '' }); fetchMsgs(); };
+  if ($('#grev')) $('#grev').onclick = async () => { const n = gMe.revealed ? '' : prompt('Escribe el nombre que verán los demás.\n\n⚠️ Si escribes tu nombre real, estás revelando tu identidad a todo el grupo. Los demás verán un aviso de que no pueden saber si es tu nombre de verdad.'); if (!gMe.revealed && !n?.trim()) return; await rpc('member_reveal', { p_chat: chat.id, p_token: chat.token, p_name: n || '' }); fetchMsgs(); };
   if ($('#tcall')) $('#tcall').onclick = callOwner;
   app.classList.add('full'); const ms = $('#ms'); ms.scrollTop = ms.scrollHeight; wAfter();
   if ($('#ci')) $('#ci').onfocus = () => setTimeout(fitVV, 300);

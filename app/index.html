@@ -1472,7 +1472,7 @@ function playReport(id, pct) {
   const el = e.target, m = el.closest?.('[data-pm]'); if (!m) return; const id = +m.dataset.pm;
   // duración: la que midió quien lo grabó manda si el vídeo dice otra cosa (los vídeos de la cámara a veces traen una duración falsa y nunca llegaban al 100 %)
   const d1 = isFinite(el.duration) && el.duration > 0 ? el.duration : 0, d2 = +m.dataset.secs || 0, dur = d1 && d2 ? Math.min(d1, d2) : d1 || d2;
-  const near = dur && el.currentTime >= dur - 1.2;   // a punto de acabar (o parado al final): cuenta como visto entero
+  const near = dur >= 4 && el.currentTime >= dur - 1.2;   // a punto de acabar (o parado al final): cuenta como visto entero
   const pct = ev === 'ended' || near ? 100 : dur ? Math.min(100, Math.round(el.currentTime / dur * 100)) : 0;
   if (pct >= 98) return playReport(id, 100); if (pct > 0) playReport(id, pct);
 }, true));

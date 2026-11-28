@@ -34,6 +34,7 @@ button.or{background:var(--or)}button.light{background:#e6e8eb;color:var(--ink)}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
 .stat{background:#f7f8fa;border-radius:10px;padding:10px;text-align:center}.stat b{display:block;font-size:24px;line-height:1.1}.stat small{color:var(--mut);font-size:12px}
 .hint{font-size:12px;color:var(--mut);margin-top:6px}
+#ptools{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:500;display:flex;gap:6px;align-items:center;background:#fff;border-radius:24px;padding:5px 6px 5px 12px;box-shadow:0 3px 12px rgba(0,0,0,.25);white-space:nowrap}#ptools[hidden]{display:none}#ptools span{font-size:13px;font-weight:600;color:#555}#ptools button{min-height:36px;padding:6px 12px;border-radius:18px;font-size:14px;background:#2a2d31}#ptools button:disabled{opacity:.4}
 .zmode{display:flex;gap:6px;margin:4px 0 10px}.zmode button{flex:1;background:#eef1f4;color:#2a2d31}.zmode button.on{background:#f28c00;color:#fff}
 .rng{display:flex;gap:8px;align-items:center}.rng input[type=range]{flex:1;padding:0;border:0}.rng output{width:72px;text-align:right;font-weight:600}
 #hist .h{padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer}#hist .h:hover b{color:var(--or)}#hist .h small{display:block;color:var(--mut)}
@@ -68,7 +69,6 @@ button.or{background:var(--or)}button.light{background:#e6e8eb;color:var(--ink)}
         </div>
         <div id="mpoly" hidden>
           <div class="hint" style="margin-top:0">Toca el mapa para marcar los puntos del borde de la zona, en orden (mínimo 3; hasta 50 km desde el centro).</div>
-          <div class="row" style="margin-top:8px"><button class="light" id="pundo">↶ Quitar último punto</button><button class="light" id="pclr">Borrar zona</button></div>
           <div class="hint" id="pinfo">0 puntos.</div>
         </div>
         <label>A quién avisar</label>
@@ -98,7 +98,7 @@ button.or{background:var(--or)}button.light{background:#e6e8eb;color:var(--ink)}
       <div class="box"><h2>Avisos enviados</h2><div id="hist"><div class="empty">Cargando…</div></div><div class="row"><button class="light" id="out">Cerrar sesión</button></div></div>
     </div>
   </div>
-  <div id="mapw"><div id="map"></div><div id="badge" hidden></div></div>
+  <div id="mapw"><div id="map"></div><div id="badge" hidden></div><div id="ptools" hidden><span id="pcount">0 puntos</span><button type="button" id="pundo">↶ Quitar último</button><button type="button" id="pclr">🗑 Borrar</button></div></div>
 </main>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -139,14 +139,14 @@ function drawPoly() {
   });
   if (!pl) pl = L.polygon(S.pts, { color: '#f28c00', weight: 2, fillOpacity: .15 }).addTo(map); else pl.setLatLngs(S.pts);
   polyFit();
-  const big = S.r > 50000;
+  const big = S.r > 50000; $('#pcount').textContent = S.pts.length + ' punto' + (S.pts.length === 1 ? '' : 's'); $('#pundo').disabled = $('#pclr').disabled = !S.pts.length;
   $('#pinfo').innerHTML = S.pts.length < 3 ? `${S.pts.length} punto${S.pts.length === 1 ? '' : 's'}: marca al menos 3.` : big ? '<span class="err">La zona es demasiado grande: como mucho 50 km desde el centro.</span>' : `${S.pts.length} puntos · unos ${fmtM(S.r)} desde el centro.`;
   if (S.pts.length < 3 || big) { S.users = null; $('#badge').hidden = true; $('#sU').textContent = $('#sC').textContent = $('#sP').textContent = '–'; checkSend(); return; }
   preview();
 }
 function setMode(m) {
   S.mode = m; $('.zmode').querySelectorAll('[data-m]').forEach(b => b.classList.toggle('on', b.dataset.m === m));
-  $('#mcircle').hidden = m !== 'circle'; $('#mpoly').hidden = m !== 'poly';
+  $('#mcircle').hidden = m !== 'circle'; $('#mpoly').hidden = m !== 'poly'; $('#ptools').hidden = m !== 'poly';
   if (mk) { mk.remove(); mk = null; } if (circ) { circ.remove(); circ = null; } pmk.forEach(x => x.remove()); pmk = []; if (pl) { pl.remove(); pl = null; }
   S.c = null; S.pts = []; S.users = null; $('#badge').hidden = true; $('#sU').textContent = $('#sC').textContent = $('#sP').textContent = '–';
   $('#sT').textContent = m === 'poly' ? 'Marca al menos 3 puntos en el mapa.' : 'Elige un punto en el mapa.'; if (m === 'poly') drawPoly(); else draw(); checkSend();
@@ -202,7 +202,7 @@ function preview() {
   $('#badge').hidden = false; $('#badge').textContent = 'Calculando…';
   pt = setTimeout(async () => {
     const { data, error } = await sb.rpc('zone_preview', args());
-    if (error || !data?.ok) { $('#badge').hidden = true; $('#sT').innerHTML = '<span class="err">' + esc(error?.message || data?.error || 'Error') + '</span>'; return; }
+    if (error || !data?.ok) { $('#badge').hidden = true; $('#sT').innerHTML = '<span class="err">' + esc(S.mode === 'poly' && error ? 'El servidor aún no admite zonas dibujadas (falta aplicar la actualización 043). Usa el círculo de momento.' : { too_big: 'La zona es demasiado grande (máximo 50 km).', bad_zone: 'La zona no es válida.' }[data?.error] || error?.message || data?.error || 'Error') + '</span>'; S.users = null; checkSend(); return; }
     $('#sU').textContent = data.users; $('#sC').textContent = data.cars; $('#sP').textContent = data.people;
     // el recuento se ve siempre encima del mapa y en el botón de enviar
     $('#badge').hidden = false; $('#badge').innerHTML = `Llegará a <b>${data.users}</b> persona${data.users === 1 ? '' : 's'} · 🚗 ${data.cars} · 🚶 ${data.people}`;

@@ -292,7 +292,8 @@ html.dark .page .ev.new{background:var(--v2card)}
 /* tarjeta de código: QR en miniatura con los 4 boomerangs del color de cada medio */
 .qrt{position:relative;width:58px;height:58px;flex:none;padding:8px;cursor:pointer}
 .qrt .q{width:100%;height:100%;border-radius:4px;overflow:hidden;background:#fff}
-.item.off .qrt .q{opacity:.45}.item.off .mcp{background:#8d979b}
+.item.off .qrt .q{opacity:.45}
+.cselbar{display:flex;align-items:center;gap:10px;padding:10px 12px;position:sticky;top:0;z-index:3;background:var(--v2card,#fff)}.cselact{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px}.cselact .btn{width:auto;flex:1 1 40%;margin:0}.csck{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid #9aa0a6;display:grid;place-items:center;font-weight:700;color:#fff;font-size:14px}.csck.on{background:#2fc23a;border-color:#2fc23a}.item.off .mcp{background:#8d979b}
 .qrt .bfr{inset:0}.qrt .bfr i{width:16px;height:16px}
 .chips{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}.chips span{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:8px;background:var(--v2muted);color:var(--v2sub)}
 .sw2{width:46px;height:28px;border-radius:14px;background:#2fc23a;position:relative;flex:none;border:0;cursor:pointer;transition:background .2s}.sw2::after{content:'';position:absolute;top:3px;left:21px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 2px #0003}
@@ -1740,6 +1741,14 @@ function renderHome() {
     const simple = favs.map(row).join('') + flat;   // como los contactos de WhatsApp: todos juntos, los favoritos arriba
     body = screenTour('chats') + pcHint() + ((mineHTML || vlist.length) ? !tr ? simple : `<div class="pad" style="font-size:13px;color:#777;padding-bottom:0">La trazabilidad de cada chat queda fijada al crearse: si el dueño del código la oculta o la vuelve a mostrar después, los chats que ya existían no cambian.</div>` + mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].hidden ? 'Código con trazabilidad oculta' : g[0].code_id ? (g[0].public_name || 'Código ' + g[0].code_id) : (g[0].public_name ? g[0].public_name + ' (código borrado)' : 'Código borrado'), g.length, vOrigin(g[0]), g[0].code_id || '') + g.map(vrow).join('')).join('')}` : '')
       : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.<br><br>Y si tú escaneas el código de otra persona con la app y le escribes, el chat también aparecerá aquí.</div>`);
+    if (S.csel) {   // venimos de «N chats de este código»: solo esos chats, ya seleccionados, para actuar sobre todos a la vez
+      const cd = codeOf(S.csel.code), sel = S.csel.ids, these = S.chats.filter(x => x.code_id === S.csel.code);
+      const ck = on => `<span class="csck${on ? ' on' : ''}">${on ? '✓' : ''}</span>`;
+      body = `<div class="cselbar"><button class="ib" id="cselx" title="Salir">${IC.back(18)}</button><div style="flex:1;min-width:0"><b>${sel.size} de ${these.length} seleccionado${sel.size === 1 ? '' : 's'}</b><div style="font-size:12.5px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Chats del código «${esc(cd ? (cd.name || cd.public_name || cd.id) : '')}»</div></div><button class="btn sm light" id="cselall">${sel.size === these.length ? 'Ninguno' : 'Todos'}</button></div>
+        <div class="cselact"><button class="btn sm light" data-cs="block">Bloquear</button><button class="btn sm light" data-cs="unblock">Desbloquear</button><button class="btn sm light" data-cs="nocall">Sin llamadas</button><button class="btn sm light" data-cs="call">Con llamadas</button></div>`
+        + these.map(c => `<div class="item ${chatOff(c) ? 'off' : ''}" data-csel="${c.id}">${ck(sel.has(c.id))}<div style="flex:none">${v2AvHtml(c.avatar, c.name, 42, c.id, c.blocked)}</div><div class="grow"><div class="t">${esc(c.name)}</div><div class="s">${c.blocked ? 'Bloqueado' : c.calls ? 'Puede escribirte y llamarte' : 'Puede escribirte'}</div></div></div>`).join('')
+        + (these.length ? '' : '<div class="empty">Este código ya no tiene chats.</div>');
+    }
     body += '<div style="height:90px"></div>';   // hueco para la barra fija de trazabilidad
   } else {
     const seen = S.seenEv, za = S.zalerts || [];
@@ -1763,7 +1772,7 @@ function renderHome() {
   app.innerHTML = `<div class="bar">${S.searching ? `<input id="sq" class="searchin" placeholder="Buscar…" value="${esc(S.q || '')}">` : `<span class="name">${S.auth ? 'Scan2Com Police' : 'Scan2Com'}</span>`}<button class="ib dark" id="bSearch" title="Buscar">${IC.search(26)}</button><button class="ib dark" id="bScan" title="Escanear">${SCANI(34)}</button><button class="ib dark" id="bMenu" title="Menú">${IC.dots(24)}${S.ver?.old ? '<i class="mdot"></i>' : ''}</button></div>
     <div class="tabs ${tabs.length > 3 ? 'tabs4' : ''}">${tabs.map(([k, l, n]) => `<button class="${S.tab === k ? 'on' : ''}" data-tab="${k}">${l}${n && S.tab !== k ? `<span class="badge">${n}</span>` : ''}</button>`).join('')}<i class="ind" id="ind" style="width:${100 / tabs.length}%;transform:translateX(${idx * 100}%)"></i></div>
     <div class="pager" id="pg"><div class="track" id="tr" style="transform:translateX(${-idx * 100}%)">${TABS.map(t => `<div class="page body" data-page="${t}">${page(t)}</div>`).join('')}</div></div>${S.tab === 'codes' ? `<button class="fab" id="fab" style="display:grid;place-items:center">${IC.plus(28)}</button><div class="buybar" id="buy">Quiero pegatinas <b>impresas</b></div>` : S.tab === 'chats' ? `<label class="buybar" id="trc" style="display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer"><input type="checkbox" id="trcb" ${ls.get('sa_trace', false) ? 'checked' : ''} style="width:20px;height:20px;margin:0"><span>Mostrar <b>trazabilidad</b></span></label>` : ''}`;
-  app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { const i = TABS.indexOf(b.dataset.tab); $('#tr').style.transform = `translateX(${-i * 100}%)`; $('#ind').style.transform = `translateX(${i * 100}%)`; setTimeout(() => { S.tab = b.dataset.tab; render(); }, 290); });
+  app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { S.csel = null; const i = TABS.indexOf(b.dataset.tab); $('#tr').style.transform = `translateX(${-i * 100}%)`; $('#ind').style.transform = `translateX(${i * 100}%)`; setTimeout(() => { S.tab = b.dataset.tab; render(); }, 290); });
   app.querySelectorAll('[data-page]').forEach(p => { if (keepScroll[p.dataset.page]) p.scrollTop = keepScroll[p.dataset.page]; });
   app.querySelectorAll('[data-pw]').forEach(b => b.onclick = e => { e.stopPropagation(); togglePower(b.dataset.pw); });
   app.querySelectorAll('[data-mt]').forEach(b => { let t; b.oncontextmenu = e => e.preventDefault(); b.onpointerdown = e => { e.stopPropagation(); t = setTimeout(() => toast(b.dataset.mt), 400); }; b.onpointerup = b.onpointerleave = () => clearTimeout(t); b.onclick = e => e.stopPropagation(); });
@@ -1774,6 +1783,20 @@ function renderHome() {
     b.onpointerup = b.onpointerleave = b.onpointercancel = () => clearTimeout(t); b.oncontextmenu = e => e.preventDefault();
     b.onclick = () => { if (lp) { lp = false; return; } S.view = { t: 'qr', id: b.dataset.code }; render(); }; });
   app.querySelectorAll('[data-chat]').forEach(b => b.onclick = () => { S.view = { t: 'chat', id: b.dataset.chat }; render(); });
+  if (S.csel && S.tab === 'chats') {
+    app.querySelectorAll('[data-csel]').forEach(b => b.onclick = () => { const id = b.dataset.csel; S.csel.ids.has(id) ? S.csel.ids.delete(id) : S.csel.ids.add(id); render(true); });
+    if ($('#cselx')) $('#cselx').onclick = () => { S.csel = null; render(); };
+    if ($('#cselall')) $('#cselall').onclick = () => { const these = S.chats.filter(x => x.code_id === S.csel.code).map(x => x.id); S.csel.ids = new Set(S.csel.ids.size === these.length ? [] : these); render(true); };
+    app.querySelectorAll('[data-cs]').forEach(b => b.onclick = async () => {
+      const ids = [...S.csel.ids]; if (!ids.length) return toast('Selecciona al menos un chat.');
+      const a = b.dataset.cs, upd = a === 'block' ? { blocked: true } : a === 'unblock' ? { blocked: false } : { calls: a === 'call' };
+      if (a === 'block' && !confirm(`¿Bloquear ${ids.length} chat${ids.length > 1 ? 's' : ''}? No podrán escribirte ni llamarte.`)) return;
+      const { error } = await sb.from('chats').update(upd).in('id', ids);
+      if (error) return toast('No se ha podido cambiar.');
+      S.chats.forEach(c => { if (S.csel.ids.has(c.id)) Object.assign(c, upd); });
+      toast({ block: 'Bloqueados', unblock: 'Desbloqueados', nocall: 'Ya no pueden llamarte', call: 'Ya pueden llamarte por la app' }[a] + ` (${ids.length})`); render(true);
+    });
+  }
   app.querySelectorAll('[data-vchat]').forEach(b => b.onclick = () => { S.view = { t: 'vchat', id: b.dataset.vchat }; render(); });
   app.querySelectorAll('[data-qrc]').forEach(b => b.onclick = () => codeOf(b.dataset.qrc) ? (S.view = { t: 'qr', id: b.dataset.qrc }, render()) : showScannedQR(b.dataset.qrc, b.dataset.qrn));
   app.querySelectorAll('[data-fav]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleFav(b.dataset.fav); });
@@ -2213,7 +2236,7 @@ function renderQR() {
     }
     const a = document.createElement('a'); a.href = data; a.download = name; a.click();
   };
-  if ($('#gc')) $('#gc').onclick = () => { S.view = null; S.tab = 'chats'; render(); };
+  if ($('#gc')) $('#gc').onclick = () => { const code = S.view.id; S.csel = { code, ids: new Set(S.chats.filter(x => x.code_id === code).map(x => x.id)) }; S.view = null; S.tab = 'chats'; render(); };
   bindScreenTour('qr');
 }
 
@@ -3204,6 +3227,7 @@ function showTerms() {
 document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('[data-terms]'); if (a) { e.preventDefault(); e.stopPropagation(); showTerms(); } }, true);
 /* gesto o botón "atrás" de Android: vuelve a la pantalla anterior en vez de salir de la app */
 function appBack() {
+  if (S.csel && !S.view && !$('#overlay').innerHTML) { S.csel = null; render(); return true; }
   if ($('#camv')) { camClose(); return true; }
   if ($('#tview')) { $('#tview').remove(); return true; }
   if ($('#mmenu')) { $('#mmenu').remove(); return true; }

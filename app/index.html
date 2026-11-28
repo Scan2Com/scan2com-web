@@ -89,6 +89,7 @@ label{font-size:13px;color:var(--mut)}
 .toast.show{transform:translate(-50%,0)}
 .alarm{position:fixed;inset:0;background:#fff;color:#222;z-index:15;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;gap:10px;animation:bgflash 1.2s infinite}
 .sheet{position:fixed;inset:0;z-index:15;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;background:rgba(0,0,0,.55)}
+.quota{font-size:13px;color:#777;line-height:1.45}.quota.full{color:#e8352b;background:rgba(232,53,43,.08);border:1px solid rgba(232,53,43,.35);border-radius:12px;padding:10px 12px}
 .stickpad{height:150px}.stickbar{position:fixed;left:0;right:0;bottom:0;z-index:6;max-width:var(--appw,none);margin:0 auto;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#f7f7f7;box-shadow:0 -6px 14px -8px rgba(0,0,0,.25)}html.dark .stickbar{background:#121212}
 .sheet>div.fixsheet{display:flex;flex-direction:column;overflow:hidden}.fixsheet>.fsscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin:0 -18px;padding:0 18px}.fixsheet>.fsfoot{flex:none;padding-top:8px;border-top:1px solid rgba(128,128,128,.18)}
 .sheet>div{max-height:calc(100vh - 16px - env(safe-area-inset-top));max-height:calc(100dvh - 16px - env(safe-area-inset-top));overflow-y:auto;overscroll-behavior:contain}
@@ -2095,7 +2096,7 @@ async function renderEdit() {
     S.busy = true; S.err = ''; render();
     const r = isNew ? await sb.from('codes').insert({ ...row, owner_id: S.user.id }).select().single() : await sb.from('codes').update(row).eq('id', c.id).select().single();
     S.busy = false;
-    if (r.error) { S.err = 'No se ha podido guardar: ' + r.error.message; return render(); }
+    if (r.error) { S.err = /code_limit/.test(r.error.message) ? 'Has usado tus 10 códigos gratis (los borrados no se recuperan). Pronto podrás comprar más.' : 'No se ha podido guardar: ' + r.error.message; return render(); }
     if (isNew) S.codes.push(r.data); else Object.assign(c, r.data);
     toast('Guardado'); S.view = { t: 'qr', id: r.data.id }; render(); syncAuto(); if ((r.data.ch_alert || r.data.auto_alert) && !notifOn()) askNotif(true);
   };
@@ -2943,7 +2944,8 @@ function renderPack() {
   }
   app.innerHTML = `<div class="bar"><button class="back" id="bk">${IC.back(24)}</button><span class="name" style="font-size:16px;font-family:Inter">Añadir código</span></div><div class="body pad">
     <button class="btn" id="nw">${IC.plus(20)}Crear un código nuevo</button>
-    <div style="font-size:13px;color:#777;margin:6px 2px 18px">Lo imprimes tú o lo compartes como enlace.</div>
+    <div style="font-size:13px;color:#777;margin:6px 2px 4px">Lo imprimes tú o lo compartes como enlace.</div>
+    <div id="quota" class="quota" style="margin:0 2px 18px"></div>
     <div class="section">VINCULAR UN PACK DE PEGATINAS</div>
     <div style="font-size:14px;color:#555;margin-bottom:10px">Escanea el <b>QR maestro</b> de tu pack: todas sus pegatinas quedarán vinculadas a tu cuenta.</div>
     <div class="camwrap" id="cw" style="display:none"><video poster="data:image/gif;base64,R0lGODlhAQABAAAAACw=" id="vd" playsinline muted></video><div class="laser"></div>${FRAME()}<canvas class="pts" id="pts"></canvas></div>
@@ -2951,7 +2953,11 @@ function renderPack() {
     <div style="display:flex;gap:6px;margin-top:10px"><input id="pk" placeholder="o escribe el código del pack" style="margin:0;text-transform:uppercase"><button class="btn sm light" id="pkb">Vincular</button></div>
     ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}</div>`;
   $('#bk').onclick = () => { stopCam(); S.err = ''; S.view = null; render(); };
-  $('#nw').onclick = () => { stopCam(); S.view = { t: 'edit' }; render(); };
+  $('#nw').onclick = () => { if ($('#nw').disabled) return; stopCam(); S.view = { t: 'edit' }; render(); };
+  // cupo: 10 códigos gratis; los borrados no devuelven la plaza (las pegatinas impresas no cuentan)
+  sb.rpc('my_code_quota').then(({ data: q }) => { const el = $('#quota'); if (!el || !q) return; const left = Math.max(0, q.limit - q.used);
+    el.innerHTML = left ? `Llevas <b>${q.used} de ${q.limit}</b> códigos gratis. Los códigos borrados no se recuperan.` : `<b>Has usado tus ${q.limit} códigos gratis.</b> Los borrados no se recuperan. Pronto podrás comprar más: <b>+10 por 1,99 €</b> o <b>+50 por 6,99 €</b>. Las pegatinas impresas no cuentan.`;
+    el.classList.toggle('full', !left); if (!left) { $('#nw').disabled = true; $('#nw').style.opacity = '.45'; } });
   $('#pkb').onclick = () => claim($('#pk').value.trim());
   $('#sc').onclick = startScan;
   if (S.view.scan) { S.view.scan = false; startScan(); }

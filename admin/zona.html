@@ -34,6 +34,7 @@ button.or{background:var(--or)}button.light{background:#e6e8eb;color:var(--ink)}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
 .stat{background:#f7f8fa;border-radius:10px;padding:10px;text-align:center}.stat b{display:block;font-size:24px;line-height:1.1}.stat small{color:var(--mut);font-size:12px}
 .hint{font-size:12px;color:var(--mut);margin-top:6px}
+.zmode{display:flex;gap:6px;margin:4px 0 10px}.zmode button{flex:1;background:#eef1f4;color:#2a2d31}.zmode button.on{background:#f28c00;color:#fff}
 .rng{display:flex;gap:8px;align-items:center}.rng input[type=range]{flex:1;padding:0;border:0}.rng output{width:72px;text-align:right;font-weight:600}
 #hist .h{padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer}#hist .h:hover b{color:var(--or)}#hist .h small{display:block;color:var(--mut)}
 .empty{color:var(--mut);font-size:13px}
@@ -58,9 +59,18 @@ button.or{background:var(--or)}button.light{background:#e6e8eb;color:var(--ink)}
         <p class="msg" style="margin:0 0 10px">Estos avisos son <b>locales o comarcales</b>: los envía directamente tu policía local, ayuntamiento o servicio de emergencias a quien está en la zona. Para emergencias de toda España o de una comunidad autónoma está <b>ES-Alert</b>, el sistema oficial de Protección Civil.</p>
         <div class="row" style="margin-top:0"><input id="q" placeholder="Buscar dirección o lugar…" style="flex:3;margin:0"><button class="light" id="qs" style="flex:1">Buscar</button></div>
         <div class="row" style="margin-top:8px"><button class="light" id="me">📍 Usar mi ubicación</button></div>
-        <div class="hint">O toca el mapa para fijar el centro del área (puedes arrastrar el marcador).</div>
-        <label>Radio</label>
-        <div class="rng"><input type="range" id="rad" min="0" max="100" value="34"><output id="radv">300 m</output></div>
+        <label>Forma de la zona</label>
+        <div class="zmode"><button type="button" class="on" data-m="circle">⭕ Círculo</button><button type="button" data-m="poly">✏️ Dibujar con puntos</button></div>
+        <div id="mcircle">
+          <div class="hint" style="margin-top:0">Toca el mapa para fijar el centro del área (puedes arrastrar el marcador).</div>
+          <label>Radio</label>
+          <div class="rng"><input type="range" id="rad" min="0" max="100" value="34"><output id="radv">300 m</output></div>
+        </div>
+        <div id="mpoly" hidden>
+          <div class="hint" style="margin-top:0">Toca el mapa para marcar los puntos del borde de la zona, en orden (mínimo 3; hasta 50 km desde el centro).</div>
+          <div class="row" style="margin-top:8px"><button class="light" id="pundo">↶ Quitar último punto</button><button class="light" id="pclr">Borrar zona</button></div>
+          <div class="hint" id="pinfo">0 puntos.</div>
+        </div>
         <label>A quién avisar</label>
         <select id="tg"><option value="both">Coches aparcados y personas en la zona</option><option value="cars">Solo dueños de coches aparcados en la zona</option><option value="people">Solo personas que están en la zona</option></select>
         <div class="hint">Se usa la última ubicación conocida de cada persona y de cada coche. Quien recibe el aviso ve la zona en un mapa y sabe si le afecta.</div>
@@ -100,7 +110,8 @@ const S = { c: null, sent: false };
 /* ---------- mapa (OpenStreetMap) ---------- */
 const map = L.map('map').setView([40.4168, -3.7038], 6);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
-let mk = null, circ = null, past = null;
+let mk = null, circ = null, past = null, pl = null, pmk = [];
+S.mode = 'circle'; S.pts = [];
 // radio en escala logarítmica: 20 m … 50 km (el máximo que admite el servidor)
 const radM = () => { const v = +$('#rad').value / 100; return Math.round(Math.exp(Math.log(20) + v * (Math.log(50000) - Math.log(20))) / 10) * 10 || 20; };
 const fmtM = m => m >= 1000 ? (m / 1000).toFixed(m >= 10000 ? 0 : 1).replace('.', ',') + ' km' : m + ' m';
@@ -112,7 +123,37 @@ function draw(fit) {
   if (fit) map.fitBounds(circ.getBounds(), { padding: [30, 30] });
   preview();
 }
-map.on('click', e => { S.c = e.latlng; draw(map.getZoom() < 12); });   // si el mapa está muy alejado, se acerca al área
+map.on('click', e => {
+  if (S.mode === 'poly') { if (S.pts.length >= 60) return alert('Máximo 60 puntos.'); S.pts.push(e.latlng); return drawPoly(); }
+  S.c = e.latlng; draw(map.getZoom() < 12);   // si el mapa está muy alejado, se acerca al área
+});
+// zona dibujada con puntos: centro = media de los puntos, radio = distancia al punto más lejano (el servidor filtra por el polígono exacto)
+function polyFit() {
+  const n = S.pts.length; if (n < 3) { S.c = null; S.r = 0; return; }
+  S.c = L.latLng(S.pts.reduce((a, p) => a + p.lat, 0) / n, S.pts.reduce((a, p) => a + p.lng, 0) / n);
+  S.r = Math.ceil(Math.max(...S.pts.map(p => map.distance(S.c, p))) / 10) * 10 + 10;
+}
+function drawPoly() {
+  pmk.forEach(m => m.remove()); pmk = [];
+  S.pts.forEach((p, i) => { const m = L.circleMarker(p, { radius: 7, color: '#f28c00', fillColor: '#fff', fillOpacity: 1, weight: 3 }).addTo(map); pmk.push(m);
+  });
+  if (!pl) pl = L.polygon(S.pts, { color: '#f28c00', weight: 2, fillOpacity: .15 }).addTo(map); else pl.setLatLngs(S.pts);
+  polyFit();
+  const big = S.r > 50000;
+  $('#pinfo').innerHTML = S.pts.length < 3 ? `${S.pts.length} punto${S.pts.length === 1 ? '' : 's'}: marca al menos 3.` : big ? '<span class="err">La zona es demasiado grande: como mucho 50 km desde el centro.</span>' : `${S.pts.length} puntos · unos ${fmtM(S.r)} desde el centro.`;
+  if (S.pts.length < 3 || big) { S.users = null; $('#badge').hidden = true; $('#sU').textContent = $('#sC').textContent = $('#sP').textContent = '–'; checkSend(); return; }
+  preview();
+}
+function setMode(m) {
+  S.mode = m; $('.zmode').querySelectorAll('[data-m]').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  $('#mcircle').hidden = m !== 'circle'; $('#mpoly').hidden = m !== 'poly';
+  if (mk) { mk.remove(); mk = null; } if (circ) { circ.remove(); circ = null; } pmk.forEach(x => x.remove()); pmk = []; if (pl) { pl.remove(); pl = null; }
+  S.c = null; S.pts = []; S.users = null; $('#badge').hidden = true; $('#sU').textContent = $('#sC').textContent = $('#sP').textContent = '–';
+  $('#sT').textContent = m === 'poly' ? 'Marca al menos 3 puntos en el mapa.' : 'Elige un punto en el mapa.'; if (m === 'poly') drawPoly(); else draw(); checkSend();
+}
+$('.zmode').querySelectorAll('[data-m]').forEach(b => b.onclick = () => setMode(b.dataset.m));
+$('#pundo').onclick = () => { S.pts.pop(); drawPoly(); };
+$('#pclr').onclick = () => { S.pts = []; drawPoly(); };
 $('#rad').oninput = () => draw();
 $('#tg').onchange = () => preview();
 $('#qs').onclick = async () => {
@@ -120,7 +161,7 @@ $('#qs').onclick = async () => {
   try {
     const r = await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=es&q=' + encodeURIComponent(q))).json();
     if (!r[0]) return alert('No se ha encontrado ese lugar.');
-    S.c = L.latLng(+r[0].lat, +r[0].lon); draw(true);
+    if (S.mode === 'poly') map.setView([+r[0].lat, +r[0].lon], 15); else { S.c = L.latLng(+r[0].lat, +r[0].lon); draw(true); }
   } catch (e) { alert('No se ha podido buscar ahora.'); }
 };
 $('#q').onkeydown = e => { if (e.key === 'Enter') $('#qs').click(); };
@@ -147,13 +188,14 @@ $('#kinds').querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
 $('#me').onclick = () => {
   if (!navigator.geolocation) return alert('Este navegador no da la ubicación.');
   $('#me').disabled = true; $('#me').textContent = 'Buscando…';
-  navigator.geolocation.getCurrentPosition(p => { S.c = L.latLng(p.coords.latitude, p.coords.longitude); draw(true); $('#me').disabled = false; $('#me').textContent = '📍 Usar mi ubicación'; },
+  navigator.geolocation.getCurrentPosition(p => { if (S.mode === 'poly') map.setView([p.coords.latitude, p.coords.longitude], 15); else { S.c = L.latLng(p.coords.latitude, p.coords.longitude); draw(true); } $('#me').disabled = false; $('#me').textContent = '📍 Usar mi ubicación'; },
     () => { alert('No se ha podido obtener tu ubicación.'); $('#me').disabled = false; $('#me').textContent = '📍 Usar mi ubicación'; }, { enableHighAccuracy: true, timeout: 15000 });
 };
 
 /* ---------- destinatarios ---------- */
 let pt = null;
-function args() { return { p_lat: S.c.lat, p_lng: S.c.lng, p_radius: radM(), p_targets: $('#tg').value }; }
+const poly = () => S.mode === 'poly' && S.pts.length >= 3 ? S.pts.map(p => [+p.lat.toFixed(6), +p.lng.toFixed(6)]) : null;
+function args() { const P = poly(); return { p_lat: S.c.lat, p_lng: S.c.lng, p_radius: P ? S.r : radM(), p_targets: $('#tg').value, p_poly: P }; }
 function preview() {
   clearTimeout(pt); if (!S.c) return;
   $('#sT').textContent = 'Calculando…';
@@ -175,7 +217,7 @@ function checkSend() {
 $('#ti').oninput = $('#bo').oninput = checkSend;
 $('#send').onclick = async () => {
   const n = S.users;
-  if (!confirm(`Se enviará «${$('#ti').value.trim()}» a ${n} persona${n === 1 ? '' : 's'} en un radio de ${fmtM(radM())}. Esta acción no se puede deshacer. ¿Enviar?`)) return;
+  if (!confirm(`Se enviará «${$('#ti').value.trim()}» a ${n} persona${n === 1 ? '' : 's'} ${poly() ? 'en la zona dibujada (' + S.pts.length + ' puntos)' : 'en un radio de ' + fmtM(radM())}. Esta acción no se puede deshacer. ¿Enviar?`)) return;
   $('#send').disabled = true; $('#smsg').className = 'msg'; $('#smsg').textContent = 'Enviando…';
   const { data, error } = await sb.rpc('zone_send', { p_title: $('#ti').value.trim(), p_body: $('#bo').value.trim(), p_kind: S.kind, p_group: $('#grp').value ? +$('#grp').value : null, ...args() });
   if (error || !data?.ok) { $('#smsg').className = 'msg err'; $('#smsg').textContent = error?.message || data?.error || 'No se ha podido enviar.'; checkSend(); return; }
@@ -187,10 +229,10 @@ $('#send').onclick = async () => {
 async function hist() {
   const { data } = await sb.rpc('zone_history');
   const it = data?.items || [];
-  $('#hist').innerHTML = it.length ? it.map((h, i) => `<div class="h" data-i="${i}">${(KINDS.find(k => k[0] === h.kind) || KINDS[4])[1]} <b>${esc(h.title)}</b>${h.group && (S.role.admin || S.role.groups.length > 1) ? ` <span style="color:var(--mut)">· ${esc(h.group)}</span>` : ''} · ${h.users} avisad${h.users === 1 ? 'a' : 'as'}, ${h.read} lo ${h.read === 1 ? 'ha' : 'han'} leído<small>${new Date(h.at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })} · ${fmtM(h.radius)} · ${{ both: 'coches y personas', cars: 'coches', people: 'personas' }[h.targets]}</small><small>${esc(h.body)}</small></div>`).join('') : '<div class="empty">Todavía no has enviado ningún aviso.</div>';
+  $('#hist').innerHTML = it.length ? it.map((h, i) => `<div class="h" data-i="${i}">${(KINDS.find(k => k[0] === h.kind) || KINDS[4])[1]} <b>${esc(h.title)}</b>${h.group && (S.role.admin || S.role.groups.length > 1) ? ` <span style="color:var(--mut)">· ${esc(h.group)}</span>` : ''} · ${h.users} avisad${h.users === 1 ? 'a' : 'as'}, ${h.read} lo ${h.read === 1 ? 'ha' : 'han'} leído<small>${new Date(h.at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })} · ${Array.isArray(h.poly) ? 'zona dibujada' : fmtM(h.radius)} · ${{ both: 'coches y personas', cars: 'coches', people: 'personas' }[h.targets]}</small><small>${esc(h.body)}</small></div>`).join('') : '<div class="empty">Todavía no has enviado ningún aviso.</div>';
   $('#hist').querySelectorAll('[data-i]').forEach(d => d.onclick = () => {
     const h = it[+d.dataset.i]; if (past) past.remove();
-    past = L.circle([h.lat, h.lng], { radius: h.radius, color: '#888', dashArray: '6 6', weight: 2, fillOpacity: .06 }).addTo(map).bindTooltip(h.title).openTooltip();
+    past = (Array.isArray(h.poly) && h.poly.length >= 3 ? L.polygon(h.poly, { color: '#888', dashArray: '6 6', weight: 2, fillOpacity: .06 }) : L.circle([h.lat, h.lng], { radius: h.radius, color: '#888', dashArray: '6 6', weight: 2, fillOpacity: .06 })).addTo(map).bindTooltip(h.title).openTooltip();
     map.fitBounds(past.getBounds(), { padding: [30, 30] });
   });
 }

@@ -1329,14 +1329,14 @@ async function zoneSet(on) {
 function groupGame() {
   const li = (n, t) => `<div style="display:flex;gap:10px;align-items:flex-start;margin:8px 0"><span style="flex:none;width:26px;height:26px;border-radius:50%;background:#1a9c16;color:#fff;font-weight:700;display:grid;place-items:center;font-size:14px">${n}</span><span style="font-size:14.5px;line-height:1.4">${t}</span></div>`;
   $('#overlay').innerHTML = zoneSheetBox(`<div style="text-align:center;font-size:44px;line-height:1">🎭</div>
-    <div style="font-weight:800;font-size:20px;text-align:center;margin:6px 0 2px">Juega a «¿Quién es quién?»</div>
-    <div style="font-size:14px;opacity:.85;text-align:center;line-height:1.45;margin-bottom:8px">En un chat de grupo nadie sabe quién es quién: cada uno entra con un alias al azar. Perfecto para jugar con tus amigos.</div>
+    <div style="font-weight:800;font-size:20px;text-align:center;margin:6px 0 2px">Pruébalo jugando con tus amigos</div><div style="font-weight:700;font-size:15px;text-align:center;color:#1a9c16;margin-bottom:6px">«¿Quién es quién?»</div>
+    <div style="font-size:14px;opacity:.85;text-align:center;line-height:1.45;margin-bottom:8px">La mejor forma de entender el chat de grupo es jugando: nadie sabe quién es quién, porque cada uno entra con un alias al azar.</div>
     ${li(1, 'Guarda este código con <b>Chat de grupo</b> activado.')}
     ${li(2, '<b>Pásalo a tus amigos</b>: comparte el enlace o el QR en vuestro grupo de siempre.')}
     ${li(3, 'Cada uno entra como <b style="color:#1f86e0">Zorro azul</b>, <b style="color:#e8352b">Búho rojo</b>, <b style="color:#1a9c16">Gato verde</b>…')}
     ${li(4, 'Hablad y <b>descubrid quién se esconde detrás de cada alias</b>. Cada uno decide cuándo revelar su nombre.')}
     <div style="font-size:13px;opacity:.75;line-height:1.4;margin:10px 0 14px;text-align:center">También sirve para una clase, una fiesta, una boda o la cena de empresa. Sin teléfonos: nadie ve el número de nadie.</div>
-    <button class="btn teal" id="ggok">¡Entendido!</button>`);
+    <button class="btn teal" id="ggok">¡A jugar!</button>`);
   $('#zs').onclick = $('#ggok').onclick = () => { $('#overlay').innerHTML = ''; };
 }
 function zoneSheet() {

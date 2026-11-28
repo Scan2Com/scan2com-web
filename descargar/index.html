@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Descargar Scan2Com</title>
+<meta name="description" content="Scan2Com: con un QR te pueden escribir, llamar o avisar sin ver tu teléfono ni tu email.">
+<link rel="icon" href="/app/logo.png">
+<style>
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#121519;color:#e8eaed;display:grid;place-items:center;min-height:100vh}
+  main{width:min(420px,90vw);text-align:center;padding:30px 0}
+  img.logo{width:96px;height:96px}
+  h1{font-size:26px;margin:14px 0 6px}
+  p{color:#a8adb3;line-height:1.5;font-size:15px;margin:0 0 22px}
+  a.btn{display:block;text-decoration:none;font-weight:700;font-size:16px;border-radius:14px;padding:15px;margin:10px 0;color:#fff;background:#2fc23a}
+  a.btn.alt{background:#2a2f35;color:#e8eaed}
+  small{display:block;color:#7a8088;font-size:12.5px;margin-top:14px;line-height:1.5}
+</style>
+</head>
+<body>
+<main>
+  <img class="logo" src="/app/logo.png" alt="Scan2Com">
+  <h1>Scan2Com</h1>
+  <p>Un QR, un portal a la comunicación: te pueden escribir, llamar o avisar sin ver tu teléfono ni tu email.</p>
+  <div id="b"></div>
+  <small id="n"></small>
+</main>
+<script>
+// Cuando la app esté en las tiendas, poner aquí sus enlaces y se usarán en lugar del APK / la web.
+const PLAY_URL = '', APPSTORE_URL = '', APK = '/app/scan2com.apk', WEB = '/app/';
+const ua = navigator.userAgent, android = /Android/i.test(ua), ios = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document);
+const b = document.getElementById('b'), n = document.getElementById('n');
+const btn = (href, t, alt, dl) => `<a class="btn${alt ? ' alt' : ''}" href="${href}"${dl ? ' download' : ''}>${t}</a>`;
+if (android) {
+  b.innerHTML = (PLAY_URL ? btn(PLAY_URL, 'Descargar en Google Play') + btn(APK, 'Descargar el APK directamente', true, true) : btn(APK, 'Descargar la app para Android', false, true)) + btn(WEB, 'Usarla en el navegador', true);
+  n.textContent = PLAY_URL ? '' : 'Al abrir el archivo, Android puede pedirte permiso para instalar apps de esta fuente: acéptalo solo para Scan2Com.';
+} else if (ios) {
+  b.innerHTML = APPSTORE_URL ? btn(APPSTORE_URL, 'Descargar en la App Store') + btn(WEB, 'Usarla en el navegador', true) : btn(WEB, 'Abrir Scan2Com');
+  n.textContent = APPSTORE_URL ? '' : 'La app de iPhone llegará pronto. Mientras, funciona en Safari: Compartir → «Añadir a pantalla de inicio».';
+} else {
+  b.innerHTML = btn(WEB, 'Abrir Scan2Com en el navegador') + (PLAY_URL ? btn(PLAY_URL, 'Google Play', true) : btn(APK, 'Descargar el APK para Android', true, true)) + (APPSTORE_URL ? btn(APPSTORE_URL, 'App Store', true) : '');
+  n.textContent = 'Abre esta página desde el móvil para instalar la app.';
+}
+</script>
+</body>
+</html>

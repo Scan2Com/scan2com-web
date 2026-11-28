@@ -312,6 +312,11 @@ html.dark .page .ev.new{background:var(--v2card)}
 /* chat */
 #app.full{background:var(--v2bg)}
 #cb{background:var(--v2bg)}
+.qst{font-size:13px;color:var(--v2sub,#888);text-align:center;margin-top:12px}
+.dayr{display:flex;gap:6px}.dayr label{cursor:pointer}.dayr input{display:none}.dayr span{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(128,128,128,.45);font-weight:700;font-size:13px}.dayr input:checked+span{background:#2fc23a;border-color:#2fc23a;color:#fff}
+.srbar{position:absolute;left:0;right:0;top:100%;z-index:8;display:flex;gap:6px;align-items:center;padding:8px 10px;background:var(--v2card,#1b2023);border-bottom:1px solid rgba(128,128,128,.25)}.srbar input{flex:1;min-width:0;font-size:15px;padding:8px 10px;border-radius:10px;border:1px solid rgba(128,128,128,.35);background:transparent;color:inherit}.srbar button{background:none;border:0;color:inherit;font-size:15px;padding:6px}.srbar span{font-size:12px;opacity:.7;min-width:30px;text-align:center}#ms .m.hit{outline:2px solid rgba(232,185,35,.55);outline-offset:2px}#ms .m.hitc{outline:3px solid #e8b923}
+.mdel{display:block;margin:18px auto 6px;background:none;border:0;color:#e8352b;font-size:13.5px;text-decoration:underline;cursor:pointer}
+#lockv{position:fixed;inset:0;z-index:99999;background:#121519;color:#fff;display:grid;place-items:center}.lockb{display:flex;flex-direction:column;align-items:center;width:min(320px,86vw);text-align:center}#lockp{width:100%;font-size:28px;letter-spacing:.4em;text-align:center;padding:10px;border-radius:12px;border:1px solid #3a3f45;background:#1b2023;color:#fff;margin-bottom:4px}
 /* trazabilidad: cada sección enmarcada con su color y el título fijo arriba al bajar */
 .tsec{--tc:#2fc23a;margin:14px 8px 6px;border:2px solid var(--tc);border-radius:18px;padding-bottom:6px}.tsec.tscan{--tc:#1f86e0}.tsech{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:8px;background:var(--tc);color:#fff;font-weight:800;font-size:12.5px;letter-spacing:.05em;padding:9px 14px;border-radius:15px 15px 0 0;margin:-1px -1px 4px}.tsech span{flex:1}.tsech small{background:rgba(255,255,255,.25);border-radius:10px;padding:1px 8px;font-size:12px}.tsech svg{flex:none}
 #cvl{background:none;border:0;color:#fff;width:46px;height:46px;display:grid;place-items:center;border-radius:50%}#cvl.on{color:#ffd23f;background:rgba(255,210,63,.18)}#cvl.on svg{fill:#ffd23f}
@@ -1514,7 +1519,7 @@ async function loadAll() {
   S.vmsgs ||= {}; S.vread ||= {};
   Object.entries(local.v || {}).forEach(([k, l]) => { S.vmsgs[k] = mergeById(l, S.vmsgs[k]); });
   Object.entries(local.vr || {}).forEach(([k, n]) => { S.vread[k] = Math.max(n || 0, S.vread[k] || 0); });
-  loadDlv(local.dl);
+  loadDlv(local.dl); loadMutes();
   (S.vchats || []).forEach(v => { const l = S.vmsgs[v.id]; if (l?.length && (!v.last || v.last.id < l.at(-1).id)) v.last = { ...l.at(-1) }; });
   saveHist(); histChannel();
   if (IS_PHONE) Promise.all((S.vchats || []).map(v => vFetch(v, true))).then(() => cacheAllMedia()); else cacheAllMedia();
@@ -1737,10 +1742,10 @@ function renderHome() {
     const tr = ls.get('sa_trace', false);
     const tline = t => tr ? `<div style="font-size:12px;color:#1f86e0;margin-top:2px">${t}</div>` : '';
     const vrow = v => { const u = S.unread['v' + v.id]; return `<div class="item ${v.alive ? '' : 'off'}" data-vchat="${v.id}"><div style="flex:none">${v2AvHtml(v.avatar, v.name || v.public_name, 46, v.id)}</div>
-      <div class="grow"><div class="t">${esc(v.name || v.public_name || 'Chat')}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(v.last ? (v.last.mine ? 'Tú: ' : '') + prevBody(v.last.body) : (v.public_name || ''))}</div>${tline(v.name && v.name !== v.public_name && v.name !== 'Chat' ? 'Nombre del chat: puesto por ti' : 'Nombre del chat: el nombre público del código')}</div>
+      <div class="grow"><div class="t">${esc(v.name || v.public_name || 'Chat')}${isMuted(v.id) ? ' <span title="Silenciado" style="font-size:13px;opacity:.7">🔕</span>' : ''}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(v.last ? (v.last.mine ? 'Tú: ' : '') + prevBody(v.last.body) : (v.public_name || ''))}</div>${tline(v.name && v.name !== v.public_name && v.name !== 'Chat' ? 'Nombre del chat: puesto por ti' : 'Nombre del chat: el nombre público del código')}</div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;white-space:nowrap">${ago(v.last?.at || v.created_at)}</div></div>`; };
     const row = c => { const lm = lastMsg(c.id), code = codeOf(c.code_id), u = S.unread[c.id]; return `<div class="item ${chatOff(c) ? 'off' : ''}" data-chat="${c.id}"><div style="flex:none">${v2AvHtml(c.avatar, c.name, 46, c.id, c.blocked)}</div>
-      <div class="grow"><div class="t">${esc(c.name)}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + prevBody(lm.body) : (code?.name || c.code_name || ''))}</div>${tline(/^Chat \d+$/.test(c.name || '') ? 'Nombre del chat: automático' : 'Nombre del chat: puesto por ti')}</div>
+      <div class="grow"><div class="t">${esc(c.name)}${isMuted(c.id) ? ' <span title="Silenciado" style="font-size:13px;opacity:.7">🔕</span>' : ''}${u ? `<span class="badge">${u}</span>` : ''}</div><div class="s">${esc(lm ? (lm.from_visitor ? '' : 'Tú: ') + prevBody(lm.body) : (code?.name || c.code_name || ''))}</div>${tline(/^Chat \d+$/.test(c.name || '') ? 'Nombre del chat: automático' : 'Nombre del chat: puesto por ti')}</div>
       <div style="text-align:right;font-size:14px;color:#8a8a8a;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><button class="star" data-fav="${c.id}" title="Favorito" style="padding:0">${IC.star(26, S.favs.has(c.id))}</button><div style="white-space:nowrap">${ago(lm?.created_at || c.created_at)}</div></div></div>`; };
     // agrupados por código: los míos con su nombre privado; los escaneados con el nombre público que tenía el código
     // cabecera de grupo: si el código existe, al tocarla se muestra su QR (para compartirlo)
@@ -1877,6 +1882,111 @@ function chatBgPicker() {
     im.src = URL.createObjectURL(f); };
 }
 applyChatBg();
+// ---------- silenciar un chat (la función push no avisa hasta «until»; null = siempre) ----------
+S.mutes = S.mutes || {};
+const isMuted = id => { const u = S.mutes[id]; return u !== undefined && (u === null || Date.parse(u) > Date.now()); };
+async function loadMutes() { try { const { data } = await sb.from('chat_mutes').select('chat_id,until'); S.mutes = Object.fromEntries((data || []).map(r => [r.chat_id, r.until])); } catch (e) {} }
+function muteMenu(id) {
+  if (isMuted(id)) { sb.from('chat_mutes').delete().eq('chat_id', id).eq('user_id', S.user.id).then(({ error }) => { if (error) return toast('No se ha podido cambiar.'); delete S.mutes[id]; toast('Vuelves a recibir avisos de este chat.'); render(true); }); return; }
+  const opts = [['8 horas', 8], ['1 semana', 168], ['Siempre', 0]];
+  $('#overlay').innerHTML = `<div class="sheet" id="mus"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
+    <div style="font-weight:700;font-size:18px;margin-bottom:4px">🔕 Silenciar avisos de este chat</div><div style="font-size:13.5px;color:#666;margin-bottom:12px">Seguirás recibiendo los mensajes, pero sin notificación. Las llamadas sí sonarán.</div>
+    ${opts.map(([t, h]) => `<button class="btn light" data-mh="${h}" style="margin-bottom:8px">${t}</button>`).join('')}<button class="btn light" id="mux">Cancelar</button></div></div>`;
+  $('#mus').onclick = $('#mux').onclick = () => { $('#overlay').innerHTML = ''; };
+  document.querySelectorAll('[data-mh]').forEach(b => b.onclick = async () => { const h = +b.dataset.mh, until = h ? new Date(Date.now() + h * 3600e3).toISOString() : null; $('#overlay').innerHTML = '';
+    const { error } = await sb.from('chat_mutes').upsert({ user_id: S.user.id, chat_id: id, until }); if (error) return toast('No se ha podido silenciar.'); S.mutes[id] = until; toast(h ? 'Silenciado durante ' + b.textContent : 'Silenciado'); render(true); });
+}
+// ---------- buscar dentro del chat abierto: resalta y salta entre los mensajes que coinciden ----------
+function chatSearch() {
+  if ($('#srbar')) return $('#srq').focus();
+  const bar = $('#app > .bar'); if (!bar) return;
+  bar.insertAdjacentHTML('beforeend', `<div id="srbar" class="srbar"><input id="srq" type="search" placeholder="Buscar en el chat" autocomplete="off"><span id="srn"></span><button id="sru" aria-label="Anterior">▲</button><button id="srd" aria-label="Siguiente">▼</button><button id="srx" aria-label="Cerrar">✕</button></div>`);
+  let hits = [], k = -1;
+  const norm = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const show = () => { document.querySelectorAll('#ms .m.hit,#ms .m.hitc').forEach(e => e.classList.remove('hit', 'hitc')); hits.forEach(e => e.classList.add('hit')); if (k >= 0 && hits[k]) { hits[k].classList.add('hitc'); hits[k].scrollIntoView({ block: 'center', behavior: 'smooth' }); } $('#srn').textContent = hits.length ? (k + 1) + '/' + hits.length : ($('#srq').value.trim() ? '0' : ''); };
+  const find = () => { const q = norm($('#srq').value.trim()); hits = q ? [...document.querySelectorAll('#ms .m[data-id]')].filter(e => norm(e.innerText).includes(q)) : []; k = hits.length - 1; show(); };
+  $('#srq').oninput = find; $('#srq').onkeydown = e => { if (e.key === 'Enter') { k = (k - 1 + hits.length) % hits.length; show(); } };
+  $('#sru').onclick = () => { if (hits.length) { k = (k - 1 + hits.length) % hits.length; show(); } };
+  $('#srd').onclick = () => { if (hits.length) { k = (k + 1) % hits.length; show(); } };
+  $('#srx').onclick = () => { $('#srbar')?.remove(); document.querySelectorAll('#ms .m.hit,#ms .m.hitc').forEach(e => e.classList.remove('hit', 'hitc')); };
+  setTimeout(() => $('#srq').focus(), 50);
+}
+// ---------- compartir la app: siempre nuestro enlace (scan2com.com/descargar), que lleva a la tienda o al APK ----------
+async function shareApp() {
+  const url = SITE + '/descargar', text = 'Te paso Scan2Com: con un QR te pueden escribir, llamar o avisar sin ver tu teléfono ni tu email.';
+  try { if (navigator.share) return await navigator.share({ title: 'Scan2Com', text, url }); } catch (e) { return; }
+  try { await navigator.clipboard.writeText(text + ' ' + url); toast('Enlace copiado: pégalo donde quieras.'); } catch (e) { prompt('Copia este enlace:', url); }
+}
+// ---------- borrar la cuenta (obligatorio en Google Play / App Store) ----------
+async function deleteAccount() {
+  if (!confirm('¿Borrar tu cuenta para siempre?\n\nSe borran tus códigos (dejarán de funcionar y no se podrán recuperar), tus chats y tus avisos. Los chats que tengas en este móvil también se borrarán.')) return;
+  const w = prompt('Para confirmar, escribe BORRAR'); if (!w || w.trim().toUpperCase() !== 'BORRAR') return toast('No se ha borrado nada.');
+  const { data, error } = await sb.rpc('delete_my_account');
+  if (error || !data?.ok) return toast('No se ha podido borrar la cuenta. Inténtalo de nuevo.');
+  try { await IDB.set(histKey(), null); } catch (e) {} try { await pushOff(); } catch (e) {} try { await sb.auth.signOut(); } catch (e) {}
+  alert('Tu cuenta se ha borrado.'); location.reload();
+}
+// ---------- copia de seguridad: archivo cifrado con PIN (AES-GCM, clave derivada con PBKDF2) ----------
+const b64 = u => btoa(String.fromCharCode(...new Uint8Array(u))), unb64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+async function pinKey(pin, salt) { const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']); return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 150000, hash: 'SHA-256' }, k, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']); }
+async function backupExport() {
+  const pin = prompt('Elige un PIN para proteger la copia (mínimo 4 cifras). Lo necesitarás para recuperarla.'); if (!pin) return; if (!/^\d{4,}$/.test(pin.trim())) return toast('El PIN tiene que tener al menos 4 cifras.');
+  const data = (await IDB.get(histKey())) || {}, salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const plain = new TextEncoder().encode(JSON.stringify({ v: 1, user: S.user.email, at: new Date().toISOString(), hist: data, bg: (() => { try { return { id: localStorage.getItem('sa_chatbg'), img: localStorage.getItem('sa_chatbg_img') }; } catch (e) { return null; } })() }));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await pinKey(pin.trim(), salt), plain);
+  const file = JSON.stringify({ scan2com_backup: 1, salt: b64(salt), iv: b64(iv), data: b64(ct) }), name = `scan2com-chats-${new Date().toISOString().slice(0, 10)}.s2c`;
+  const blob = new Blob([file], { type: 'application/octet-stream' }), f = new File([blob], name, { type: 'application/octet-stream' });
+  try { if (navigator.canShare?.({ files: [f] })) { await navigator.share({ files: [f], title: 'Copia de Scan2Com' }); return toast('Copia creada. Guárdala en Drive, en tu correo o en tu ordenador.'); } } catch (e) { if (e?.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Copia descargada: ' + name);
+}
+async function backupImport(file) {
+  try {
+    const j = JSON.parse(await file.text()); if (!j.scan2com_backup) throw new Error('formato');
+    const pin = prompt('Escribe el PIN de la copia'); if (!pin) return;
+    let plain; try { plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(j.iv) }, await pinKey(pin.trim(), unb64(j.salt)), unb64(j.data)); } catch (e) { return toast('PIN incorrecto.'); }
+    const d = JSON.parse(new TextDecoder().decode(plain)), h = d.hist || {}, cur = (await IDB.get(histKey())) || {};
+    const mergeMap = (a = {}, b = {}) => { const o = { ...a }; Object.entries(b).forEach(([k, l]) => { o[k] = Array.isArray(l) ? mergeById(l, o[k] || []) : (o[k] ?? l); }); return o; };
+    const out = { ...cur, o: mergeMap(cur.o, h.o), v: mergeMap(cur.v, h.v), vr: { ...(h.vr || {}), ...(cur.vr || {}) }, r: { ...(h.r || {}), ...(cur.r || {}) }, pp: { ...(h.pp || {}), ...(cur.pp || {}) }, dl: { ...(h.dl || {}), ...(cur.dl || {}) } };
+    await IDB.set(histKey(), out);
+    if (d.bg?.id) try { localStorage.setItem('sa_chatbg', d.bg.id); if (d.bg.img) localStorage.setItem('sa_chatbg_img', d.bg.img); } catch (e) {}
+    alert('Copia recuperada' + (d.at ? ' (del ' + new Date(d.at).toLocaleDateString('es-ES') + ')' : '') + '. La app se va a recargar.'); location.reload();
+  } catch (e) { toast('Ese archivo no es una copia de Scan2Com.'); }
+}
+function backupSheet() {
+  $('#overlay').innerHTML = `<div class="sheet" id="bks"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
+    <div style="font-weight:700;font-size:18px;margin-bottom:6px">💾 Copia de seguridad de los chats</div>
+    <div style="font-size:14px;color:#555;line-height:1.45;margin-bottom:14px">Tus mensajes se guardan <b>solo en este móvil</b>. Haz una copia antes de cambiar de móvil o de borrar la app: se guarda en un archivo protegido con un <b>PIN</b> (nadie puede leerlo sin él, ni nosotros). Guárdalo en Google Drive, en tu correo o en tu ordenador.</div>
+    <button class="btn" id="bke">Crear copia</button>
+    <label class="btn light" style="margin-top:8px;display:block;text-align:center">Recuperar una copia<input type="file" id="bki" accept=".s2c,application/octet-stream,application/json,*/*" style="display:none"></label>
+    <button class="btn light" id="bkx" style="margin-top:8px">Cerrar</button></div></div>`;
+  $('#bks').onclick = $('#bkx').onclick = () => { $('#overlay').innerHTML = ''; };
+  $('#bke').onclick = () => { $('#overlay').innerHTML = ''; backupExport(); };
+  $('#bki').onchange = e => { const f = e.target.files?.[0]; $('#overlay').innerHTML = ''; if (f) backupImport(f); };
+}
+// ---------- bloqueo de la app con PIN (en este móvil) ----------
+const appPin = () => { try { return localStorage.getItem('sa_lock') || ''; } catch (e) { return ''; } };
+const pinHash = async p => b64(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('s2c:' + p)));
+async function lockSheet() {
+  if (appPin()) {
+    if (!confirm('El bloqueo está activado. ¿Quitarlo?')) return;
+    const p = prompt('Escribe tu PIN actual'); if (!p) return; if (await pinHash(p.trim()) !== appPin()) return toast('PIN incorrecto.');
+    try { localStorage.removeItem('sa_lock'); } catch (e) {} toast('Bloqueo quitado.'); return accountMenu();
+  }
+  const p = prompt('Elige un PIN de 4 a 8 cifras. Se pedirá al abrir la app en este móvil.'); if (!p) return; if (!/^\d{4,8}$/.test(p.trim())) return toast('El PIN tiene que tener de 4 a 8 cifras.');
+  const p2 = prompt('Repite el PIN'); if (p2?.trim() !== p.trim()) return toast('Los PIN no coinciden.');
+  try { localStorage.setItem('sa_lock', await pinHash(p.trim())); } catch (e) {} toast('Bloqueo activado.'); accountMenu();
+}
+let LOCKED = false;
+function lockScreen() {
+  if (!appPin() || LOCKED || document.getElementById('lockv')) return; LOCKED = true;
+  const d = document.createElement('div'); d.id = 'lockv';
+  d.innerHTML = `<div class="lockb">${LOGO(64)}<div style="font-weight:700;font-size:18px;margin:14px 0 4px">Scan2Com bloqueado</div><div style="font-size:13px;opacity:.7;margin-bottom:14px">Escribe tu PIN</div><input id="lockp" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="lockm" style="font-size:13px;color:#ff6b5e;min-height:18px;margin-top:8px"></div><button class="btn" id="lockg">Entrar</button><button id="lockf" style="background:none;border:0;color:#9aa0a6;margin-top:14px;font-size:13px">¿Has olvidado el PIN?</button></div>`;
+  document.body.appendChild(d); const go = async () => { if (await pinHash($('#lockp').value.trim()) === appPin()) { d.remove(); LOCKED = false; } else { $('#lockm').textContent = 'PIN incorrecto'; $('#lockp').value = ''; } };
+  $('#lockg').onclick = go; $('#lockp').onkeydown = e => { if (e.key === 'Enter') go(); }; setTimeout(() => $('#lockp')?.focus(), 200);
+  $('#lockf').onclick = async () => { if (!confirm('Para quitar el bloqueo hay que cerrar la sesión y volver a entrar con tu email. Los chats de este móvil se conservan. ¿Seguir?')) return; try { localStorage.removeItem('sa_lock'); await sb.auth.signOut(); } catch (e) {} location.reload(); };
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && appPin()) setTimeout(() => { if (document.hidden) lockScreen(); }, 30000); });
+setTimeout(lockScreen, 0);
 const mrow = (id, ic, t, sub) => `<button class="mrow" id="${id}"><span class="mri">${ic}</span><span class="mrt"><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</span><span class="mrc">${BMA(135, 13)}</span></button>`;
 const BTCAR = '<svg width="22" height="20" viewBox="0 0 26 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l6 5-3 2.5V1.5L9 4 3 9"/><path d="M11 17.5h13M12 17.5v-3l2.2-4.5h6.6l2.2 4.5v3"/><circle cx="15" cy="18.5" r="1.4"/><circle cx="21" cy="18.5" r="1.4"/></svg>';
 // ⋮ → Usar Scan2Com en la web: qué funciona y qué no desde el navegador
@@ -1925,11 +2035,15 @@ function accountMenu() {
     ${mrow('nt', IC.bell(20), 'Notificaciones', NATIVE && S.av ? (avMissing() ? 'Falta configurar: toca para completarlo' : 'Configuradas ✓') : notifOn() ? 'Activadas ✓' : 'Desactivadas: toca para activarlas')}
     ${mrow('zn', IC.alert(20), 'Avisos de emergencia en tu zona', 'Te avisa de incendios, inundaciones, calles cortadas o retirada de coches cerca de ti o de donde dejaste el coche. Los envían la policía y los servicios de emergencia. ¿Eres un servicio público? Contáctanos para ofrecerlos · <b style="color:' + (S.zone ? '#1a9c16' : '#999') + '">' + (S.zone ? (S.av && (S.av.loc === false || S.av.locOn === false) ? 'Falta la ubicación' : 'Activados') : 'Desactivados') + '</b>')}
     ${mrow('cbg', IC.chat(20), 'Fondo de los chats', chatBgName())}
+    ${mrow('bkp', '💾', 'Copia de seguridad de los chats', 'Guárdalos en un archivo protegido con PIN y recupéralos en otro móvil')}
+    ${mrow('lck', '🔒', 'Bloqueo de la app', appPin() ? 'Activado: pide tu PIN al abrir' : 'Pide un PIN al abrir la app')}
     ${mrow('sp', BTCAR, 'Coche: Bluetooth y lugares seguros', `La pegatina del coche se activa sola al apagarse el Bluetooth del coche (al bajarte), salvo en tus lugares seguros (${(S.places || []).length})`)}
     <div class="msec">AYUDA</div>
     ${mrow('rh', IC.play(20), 'Ayudas de cada pantalla', 'Te llevo a cada pantalla y te la explico en voz alta')}
     ${mrow('wb', IC.globe(20), 'Usar Scan2Com en la web', 'Qué cambia si lo usas desde el navegador en vez de la app')}
     ${S.fbView ? mrow('fbl0', '🎙️', 'Opiniones de la beta', '') : ''}
+    ${mrow('shr', IC.shareL ? IC.shareL(20) : '📤', 'Compartir Scan2Com', 'Envía la app a tu familia o amigos')}
+    <button class="mdel" id="dacc">Borrar mi cuenta</button>
     </div><div class="fsfoot">
     ${NATIVE || /android/i.test(navigator.userAgent) ? '<div class="msec">APLICACIÓN</div>' : ''}
     ${NATIVE ? (S.ver?.old ? `<a class="btn red" href="${APK_URL}" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">${IC.refresh(20)}Actualizar a la última versión<div style="font-size:12px;font-weight:400;opacity:.85">${fmtD(S.ver.apk?.date)}</div></a>` : `<button class="btn light" id="ver" style="margin-bottom:8px">${IC.refresh(20)}${S.ver?.ok ? 'Última versión instalada' : 'Comprobar actualización'}${S.ver?.last ? `<div style="font-size:12px;font-weight:400;color:#777">${fmtD(S.ver.last)}</div>` : ''}</button>`) : ''}
@@ -1947,6 +2061,7 @@ function accountMenu() {
   $('#nt').onclick = async () => { $('#overlay').innerHTML = ''; if (NATIVE && S.av) return avOpen(true); if (notifOn()) return toast('Las notificaciones ya están activadas en este móvil.'); await enablePush(true); };
   $('#wb').onclick = webInfo;
   $('#cbg').onclick = chatBgPicker;
+  $('#bkp').onclick = backupSheet; $('#lck').onclick = lockSheet; $('#shr').onclick = shareApp; $('#dacc').onclick = deleteAccount;
   if ($('#ins')) $('#ins').onclick = () => { $('#overlay').innerHTML = ''; toast('En Chrome (Android): menú ⋮ → “Añadir a pantalla de inicio”. En iPhone (Safari): Compartir → “Añadir a pantalla de inicio”.'); };
 }
 
@@ -2016,6 +2131,15 @@ async function renderEdit() {
     <div id="rbox" style="display:${c.ch_redirect ? 'block' : 'none'}"><label class="req">Dirección web</label><input id="f7" type="url" inputmode="url" value="${esc(c.redirect_url)}" placeholder="www.ejemplo.com" maxlength="500">
       <div class="hint" id="rdw" style="color:#d63cc8;font-weight:600;display:none">Los demás medios quedan congelados mientras uses la redirección: se mantienen como los dejaste y vuelven al quitarla.</div><div class="hint">Quien escanee irá directamente a esta web, sin ver los demás medios. Puedes cambiarla cuando quieras, aunque el código ya esté impreso.</div></div>
     </details><details class="blk"><summary>AVANZADO</summary>
+    ${(() => { const sc = c.schedule || null, days = sc?.days || [1, 2, 3, 4, 5]; return `<div class="section">HORARIO</div>
+      <label class="chk"><input type="checkbox" id="sch" ${sc ? 'checked' : ''}> <span>Activo solo en un horario <span style="font-size:12.5px;color:#888">· fuera de él, quien escanee verá el código apagado</span></span></label>
+      <div id="schw" style="display:${sc ? 'block' : 'none'};margin:6px 0 4px 30px"><div class="dayr">${['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => `<label><input type="checkbox" data-day="${i + 1}" ${days.includes(i + 1) ? 'checked' : ''}><span>${d}</span></label>`).join('')}</div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:8px;font-size:14px">De <input type="time" id="schf" value="${esc(sc?.from || '09:00')}" style="width:auto;margin:0"> a <input type="time" id="scht" value="${esc(sc?.to || '18:00')}" style="width:auto;margin:0"></div><div style="font-size:12px;color:#888;margin-top:4px">Hora de España.</div></div>`; })()}
+    <div class="section">RESPUESTA AUTOMÁTICA</div>
+    <div style="font-size:13px;color:#777">Si alguien te escribe por el chat, se le contesta solo con este texto (una vez cada 12 h, si tú no has escrito). Déjalo vacío para no usarla.</div>
+    <textarea id="arp" rows="2" maxlength="300" placeholder="Ej. Estoy conduciendo, te contesto en cuanto pueda." style="margin-top:6px">${esc(c.auto_reply || '')}</textarea>
+    ${isNew ? '' : `<div class="section">TRANSFERIR ESTE CÓDIGO</div><div style="font-size:13px;color:#777">Pásalo a otra cuenta de Scan2Com (p. ej. si vendes el coche). Tus chats de este código se quedan contigo.</div>
+      <div style="display:flex;gap:6px;align-items:center"><input id="trf" type="email" placeholder="Email de la nueva cuenta" style="margin:6px 0"><button class="btn sm light" id="trb">Transferir</button></div>`}
     ${isNew ? '' : `<div class="section">USUARIOS VINCULADOS</div><div style="font-size:13px;color:#777">También reciben las alertas y los chats de este código.</div>
       <div>${mem.map(m => `<span class="pill">${IC.avatar(16, true)} ${esc(m.display_name || 'usuario')}<button class="back" style="font-size:13px" data-rm="${m.user_id}">✕</button></span>`).join('') || '<div style="font-size:13px;color:#999;margin:6px 0">Nadie vinculado.</div>'}</div>
       <div style="display:flex;gap:6px;align-items:center"><input id="f6" type="email" placeholder="Email de otro usuario de Scan2Com" style="margin:6px 0"><button class="btn sm light" id="addm">Vincular</button></div>`}
@@ -2072,6 +2196,12 @@ async function renderEdit() {
   const callUi = focus => { const on = $('#c4').checked, tel = on && $('#cmT').checked; $('#cbox').style.display = on ? 'block' : 'none'; $('#pbox').style.display = tel ? 'block' : 'none'; if (tel && focus) $('#f4').focus(); };
   $('#c4').onchange = () => callUi(true); $('#c3').addEventListener('change', () => { const on = $('#c3').checked; $('#chbox').style.display = on ? 'block' : 'none'; if (!on) { $('#c4').checked = false; callUi(); } }); $('#cmA').onchange = () => callUi(true); $('#cmT').onchange = () => { callUi(true); toast('⚠️ Quien escanee verá tu número.'); };
   app.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { await sb.from('code_members').delete().eq('code_id', c.id).eq('user_id', b.dataset.rm); await loadMembers(c.id); });
+  if ($('#sch')) $('#sch').onchange = () => { $('#schw').style.display = $('#sch').checked ? 'block' : 'none'; };
+  if ($('#trb')) $('#trb').onclick = async () => { const em = $('#trf').value.trim(); if (!em) return toast('Escribe el email de la nueva cuenta.');
+    if (!confirm(`¿Transferir este código a ${em}?\n\nDejará de ser tuyo: lo que llegue por él le llegará a esa cuenta. Tus chats anteriores se quedan contigo.`)) return;
+    const { data, error } = await sb.rpc('transfer_code', { p_code: c.id, p_email: em });
+    if (error || !data?.ok) return toast({ no_user: 'No hay ninguna cuenta de Scan2Com con ese email.', self: 'Ese email es el tuyo.' }[data?.error] || 'No se ha podido transferir.');
+    S.codes = S.codes.filter(x => x.id !== c.id); S.view = null; toast('Código transferido.'); render(); };
   if ($('#addm')) $('#addm').onclick = async () => { const em = $('#f6').value.trim(); if (!em) return; const { data } = await sb.rpc('add_member', { p_code: c.id, p_email: em }); if (data?.ok) { toast('Usuario vinculado'); loadMembers(c.id); } else toast(data?.error === 'user_not_found' ? 'Ese email no tiene cuenta en Scan2Com. Pídele que se registre primero.' : 'No se ha podido vincular.'); };
   if ($('#del')) $('#del').onclick = async () => { if ($('#del').dataset.sure) { await sb.from('codes').delete().eq('id', c.id); S.codes = S.codes.filter(x => x.id !== c.id); S.view = null; toast('Código borrado'); render(); } else { $('#del').dataset.sure = 1; $('#del').textContent = 'Pulsa otra vez para borrar definitivamente'; } };
   bindScreenTour('edit');
@@ -2092,6 +2222,8 @@ async function renderEdit() {
     if (locked && unlocked) style.print_override = true;  // confirmado: el diseño de la pegatina impresa se puede cambiar
     const row = { type: selType, style, name, private_info: $('#f5').value.trim() || null, public_name: pub || null, public_desc: $('#f3').value.trim() || null,
       ch_info: $('#c0').checked, ch_mail: $('#c1').checked, ch_alert: $('#c2').checked, auto_alert: $('#c5').checked, ch_chat: $('#c3').checked, group_chat: $('#c6').checked, ch_call: $('#c3').checked && $('#c4').checked, call_app: !$('#cmT').checked, ch_redirect: $('#c7').checked, redirect_url: urlOk ? url : null, phone: $('#f4').value.trim() || null };
+    row.schedule = $('#sch')?.checked ? { days: [...document.querySelectorAll('[data-day]')].filter(x => x.checked).map(x => +x.dataset.day), from: $('#schf').value || '00:00', to: $('#scht').value || '23:59' } : null;
+    row.auto_reply = $('#arp')?.value.trim() || null;
     if (NATIVE && $('#c8')) { const o = $('#f8').selectedOptions[0]; Object.assign(row, { bt_auto: $('#c8').checked && $('#c2').checked, bt_addr: $('#f8').value || null, bt_name: o && o.value ? o.dataset.name : null, bt_drive_off: $('#c9').checked }); }
     S.busy = true; S.err = ''; render();
     const r = isNew ? await sb.from('codes').insert({ ...row, owner_id: S.user.id }).select().single() : await sb.from('codes').update(row).eq('id', c.id).select().single();
@@ -2289,6 +2421,7 @@ function renderQR() {
         ${c.ch_info && (c.public_name || c.public_desc) ? `<div style="font-size:14px;line-height:1.6"><div><span style="color:var(--v2sub,#888)">Nombre:</span> <b>${esc(c.public_name || '—')}</b>${c.ch_chat || c.ch_call ? ' <span style="font-size:12px;color:var(--v2sub,#888)">· será el nombre de su chat</span>' : ''}</div><div style="white-space:pre-line"><span style="color:var(--v2sub,#888)">Descripción:</span> ${esc(c.public_desc || '—')}${c.ch_chat || c.ch_call ? ' <span style="font-size:12px;color:var(--v2sub,#888)">· será la descripción de su chat</span>' : ''}</div></div>` : '<div style="font-size:13px;color:#888">No has escrito nombre ni descripción públicos.</div>'}
         <div style="margin-top:8px">${chans.map(([col, x]) => { const fz = c.ch_redirect && c.redirect_url && !/Redirige/.test(x); return `<span class="pill mpill" style="--mc:${fz ? '#8d979b' : col}${fz ? ';opacity:.6' : ''}">${x}</span>`; }).join('') || '<span class="pill">Sin medios activos</span>'}</div>
         ${c.ch_redirect && c.redirect_url ? '<div style="font-size:11.5px;color:#e0249a;margin-top:4px">La redirección congela los demás medios: quien escanea va directo a la web.</div>' : ''}</div>
+        ${own ? '<div id="qst" class="qst"></div>' : ''}
         ${nChats ? `<button class="btn light" style="margin-top:14px" id="gc">${IC.chat(20)}${nChats} chat${nChats > 1 ? 's' : ''} de este código</button>` : ''}
       </div></div>`;
   drawDesign($('#cv'), c, url);
@@ -2309,6 +2442,9 @@ function renderQR() {
     }
     const a = document.createElement('a'); a.href = data; a.download = name; a.click();
   };
+  // estadísticas de escaneos (solo el dueño)
+  if ($('#qst')) sb.rpc('code_stats', { p_code: c.id }).then(({ data: q }) => { const el = $('#qst'); if (!el || !q?.ok) return;
+    el.innerHTML = q.total ? `👁 Escaneado <b>${q.total}</b> ${q.total === 1 ? 'vez' : 'veces'} · <b>${q.week}</b> esta semana · hoy <b>${q.today}</b>${q.last ? ` · último ${ago(q.last)}` : ''}` : '👁 Aún nadie ha escaneado este código.'; });
   if ($('#gc')) $('#gc').onclick = () => { const code = S.view.id; S.csel = { code, ids: new Set(S.chats.filter(x => x.code_id === code).map(x => x.id)) }; S.view = null; S.tab = 'chats'; render(); };
   bindScreenTour('qr');
 }
@@ -2791,9 +2927,13 @@ function renderChat() {
       ${ch.blocked || ch.is_group ? '' : `<label class="chk" style="margin:0 0 10px"><input type="checkbox" id="pc" ${ch.calls ? 'checked' : ''}> ${IC.phone(18)} <span>Permitir que me llame por la app, sin ver tu número</span></label>`}
       <button class="btn light" id="bl" style="margin-bottom:8px">${ch.blocked ? 'Desbloquear contacto' : 'Bloquear contacto'}</button>
       <button class="btn light" id="dc" style="color:var(--red);margin-bottom:8px">${IC.trash(18)} Borrar chat</button>
+      <button class="btn light" id="srch" style="margin-bottom:8px">🔍 Buscar en el chat</button>
+      <button class="btn light" id="mute" style="margin-bottom:8px">${isMuted(S.view.id) ? '🔔 Volver a recibir avisos' : '🔕 Silenciar avisos'}</button>
       <button class="btn light" id="hw">${IC.play(16)} Cómo funciona el chat</button></div></div>`;
     $('#cms').onclick = () => { $('#overlay').innerHTML = ''; };
     $('#hw').onclick = () => chatHelp();
+    $('#srch').onclick = () => { $('#overlay').innerHTML = ''; chatSearch(); };
+    $('#mute').onclick = () => { $('#overlay').innerHTML = ''; muteMenu(S.view.id); };
     document.querySelectorAll('[data-gb]').forEach(b => b.onclick = async () => { const x = S.gmem[b.dataset.gb]; const v = !x.blocked; const { error } = await sb.from('chat_members').update({ blocked: v }).eq('id', x.id); if (error) return toast('No se ha podido cambiar.'); x.blocked = v; b.textContent = v ? 'Desbloquear' : 'Bloquear'; toast(v ? memName(x) + ' ya no puede escribir' : memName(x) + ' puede volver a escribir'); render(true); });
     if ($('#pc')) $('#pc').onchange = async () => { const v = $('#pc').checked; ch.calls = v; const { error } = await sb.from('chats').update({ calls: v }).eq('id', ch.id); if (error) { ch.calls = !v; $('#pc').checked = !v; toast('No se ha podido cambiar.'); } else toast(v ? 'Te puede llamar desde este chat' : 'Ya no te puede llamar desde este chat'); };
     $('#bl').onclick = async () => { const v = !ch.blocked; $('#overlay').innerHTML = ''; ch.blocked = v; render(); const { error } = await sb.from('chats').update({ blocked: v }).eq('id', ch.id); if (error) { ch.blocked = !v; render(); toast('No se ha podido cambiar.'); } else toast(v ? 'Contacto bloqueado: ya no puede escribirte' : 'Contacto desbloqueado'); };
@@ -2883,9 +3023,13 @@ async function renderVChat() {
     $('#overlay').innerHTML = `<div class="sheet keep" id="cms"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
       ${v.code_id ? `<button class="btn light" id="og" style="margin-bottom:8px">${IC.eye(18)} Abrir la página del código</button>` : ''}
       <button class="btn light" id="dc" style="color:var(--red);margin-bottom:8px">${IC.trash(18)} Quitar de mi lista</button>
+      <button class="btn light" id="srch" style="margin-bottom:8px">🔍 Buscar en el chat</button>
+      <button class="btn light" id="mute" style="margin-bottom:8px">${isMuted(S.view.id) ? '🔔 Volver a recibir avisos' : '🔕 Silenciar avisos'}</button>
       <button class="btn light" id="hw">${IC.play(16)} Cómo funciona el chat</button></div></div>`;
     $('#cms').onclick = () => { $('#overlay').innerHTML = ''; };
     $('#hw').onclick = () => chatHelp();
+    $('#srch').onclick = () => { $('#overlay').innerHTML = ''; chatSearch(); };
+    $('#mute').onclick = () => { $('#overlay').innerHTML = ''; muteMenu(S.view.id); };
     if ($('#og')) $('#og').onclick = () => { location.href = `${SITE}/s/${v.code_id}`; };
     $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { $('#overlay').innerHTML = ''; await sb.rpc('visitor_forget', { p_chat: v.id }); S.vchats = S.vchats.filter(x => x.id !== v.id); S.view = null; S.tab = 'chats'; toast('Chat quitado de tu lista'); render(); } else { $('#dc').dataset.sure = 1; $('#dc').textContent = 'Pulsa otra vez para quitarlo'; } };
   };

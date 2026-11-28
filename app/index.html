@@ -1636,8 +1636,17 @@ function trTick() {
   x.globalAlpha = 1;
   if (alive || now < TR.until) TR.raf = requestAnimationFrame(trTick);
 }
+// la conversación se queda pegada abajo: si estabas al final (o acabas de enviar), al crecer (audio, foto, vídeo que terminan de cargar) sigue mostrando lo último
+function stickInit() {
+  const cb = $('#cb'), ms = $('#ms'); if (!cb || !ms) return;
+  if (Date.now() - (S.bmJustSent || 0) < 8000) cb._stick = true;
+  if (cb._stickOn) { if (cb._stick) cb.scrollTop = cb.scrollHeight; return; }
+  cb._stickOn = true; cb._stick = cb.scrollHeight - cb.scrollTop - cb.clientHeight < 120;
+  cb.addEventListener('scroll', () => { cb._stick = cb.scrollHeight - cb.scrollTop - cb.clientHeight < 80; }, { passive: true });
+  try { new ResizeObserver(() => { if (cb._stick) cb.scrollTop = cb.scrollHeight; }).observe(ms); } catch (e) {}
+}
 function bmSync() {
-  trKick();
+  trKick(); setTimeout(stickInit, 0);
   hydrateMedia(); setTimeout(v2After, 0);
   const all = [...document.querySelectorAll('.bm')], lastEl = all.at(-1);
   all.forEach(el => {

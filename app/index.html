@@ -1460,12 +1460,13 @@ const pctOf = id => (S.ppct || {})[id] || 0;
 const playSent = {}; let playT = 0;
 function playReport(id, pct) {
   if (pct <= (playSent[id] || 0)) return; (S.ppct ||= {})[id] = Math.max(pctOf(id), pct);
-  clearTimeout(playT); const go = () => { const v = S.ppct[id]; if (v <= (playSent[id] || 0)) return; playSent[id] = v; saveHist();
+  const go = () => { playT = 0; const v = S.ppct[id]; if (v <= (playSent[id] || 0)) return; playSent[id] = v; saveHist();
     if (v >= 100) { const vw = S.view, gc = vw?.t === 'chat' ? S.chats.find(x => x.id === vw.id) : null, gv = vw?.t === 'vchat' ? (S.vchats || []).find(x => x.id === vw.id) : null;
       if (gc?.is_group) sb.rpc('group_played_full', { p_chat: gc.id, p_msg: id }).then(() => {}, () => {}); else if (gv?.group) sb.rpc('group_played_full', { p_chat: gv.id, p_msg: id, p_token: gv.token }).then(() => {}, () => {}); }
-    if (S.view?.t === 'chat') sb.rpc('mark_played', { p_msg: id, p_pct: v }).then(() => {}, () => {});
-    else if (S.view?.t === 'vchat') { const ch = (S.vchats || []).find(x => x.id === S.view.id); if (ch) sb.rpc('visitor_played', { p_chat: ch.id, p_token: ch.token, p_msg: id, p_pct: v }).then(() => {}, () => {}); } };
-  if (pct >= 100 || pct - (playSent[id] || 0) >= 25) go(); else playT = setTimeout(go, 2500);
+    if (S.view?.t === 'chat') sb.rpc('mark_played', { p_msg: id, p_pct: v, p_chat: S.view.id }).then(r => { if (r.error) playSent[id] = 0; }, () => { playSent[id] = 0; });
+    else if (S.view?.t === 'vchat') { const ch = (S.vchats || []).find(x => x.id === S.view.id); if (ch) sb.rpc('visitor_played', { p_chat: ch.id, p_token: ch.token, p_msg: id, p_pct: v }).then(r => { if (r.error) playSent[id] = 0; }, () => { playSent[id] = 0; }); } };
+  // se avisa cada 10 % o, como mucho, cada 2 s mientras se reproduce (el boomerang del otro avanza sin trompicones); al terminar, al momento
+  if (pct >= 100 || pct - (playSent[id] || 0) >= 10) { clearTimeout(playT); go(); } else if (!playT) playT = setTimeout(go, 2000);
 }
 ['timeupdate', 'ended', 'pause'].forEach(ev => document.addEventListener(ev, e => {
   const el = e.target, m = el.closest?.('[data-pm]'); if (!m) return; const id = +m.dataset.pm;
@@ -1731,6 +1732,7 @@ function subscribe() {
       x.read_at = m.read_at; x.played_at = m.played_at; x.played_pct = m.played_pct; if (m.played_pct) (S.ppct ||= {})[m.id] = Math.max(pctOf(m.id), m.played_pct); saveHist(); if (S.view?.t === 'chat' && S.view.id === m.chat_id) render(true);
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'calls' }, ({ new: c }) => callRow(c))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'msg_played' }, ({ new: r }) => { if (!r?.msg_id || !(r.pct > pctOf(+r.msg_id))) return; (S.ppct ||= {})[+r.msg_id] = r.pct; saveHist(); if ((S.view?.t === 'chat' || S.view?.t === 'vchat') && S.view.id === r.chat_id) render(true); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'msg_delivered' }, ({ new: r }) => { if (!r?.chat_id || r.who === S.user?.id || !dlvSet(r.chat_id, +r.upto)) return; saveHist(); if ((S.view?.t === 'chat' || S.view?.t === 'vchat') && S.view.id === r.chat_id) render(true); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'msg_sync' }, ({ new: r }) => { if (!r?.chat_id || r.who === S.user?.id || !dlvSet(r.chat_id, +r.upto)) return; saveHist(); if ((S.view?.t === 'chat' || S.view?.t === 'vchat') && S.view.id === r.chat_id) render(true); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_reads' }, ({ new: r }) => {

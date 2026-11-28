@@ -2903,10 +2903,24 @@ function codeCols(c) { const g = '#8d979b'; if (!c.is_on) return [g, g, g, g]; i
 // chat de grupo: participantes con alias al azar (Zorro azul…); color según el alias
 const GCOL = { azul: '#1f86e0', verde: '#2fc23a', rojo: '#e8352b', morado: '#8e5cf0', naranja: '#f28c00', amarillo: '#e8b923', rosa: '#e0249a', gris: '#8d979b' };
 async function loadGMembers() { const ids = S.chats.filter(x => x.is_group).map(x => x.id); if (!ids.length) return; const { data } = await sb.from('chat_members').select('id,chat_id,alias,color,real_name,revealed,blocked').in('chat_id', ids); S.gmem = {}; (data || []).forEach(x => S.gmem[x.id] = x);
-  try { const r = await sb.from('chats').select('id,round_from,rounds,owner_alias,owner_color').in('id', ids); if (!r.error) { S.ground = {}; (r.data || []).forEach(x => S.ground[x.id] = x); } } catch (e) {}
+  try { const r = await sb.from('chats').select('id,round_from,rounds,owner_alias,owner_color,owner_name').in('id', ids); if (!r.error) { S.ground = {}; (r.data || []).forEach(x => S.ground[x.id] = x); }
+    else { const r2 = await sb.from('chats').select('id,round_from,rounds,owner_alias,owner_color').in('id', ids); if (!r2.error) { S.ground = {}; (r2.data || []).forEach(x => S.ground[x.id] = x); } } } catch (e) {}
   if (S.view?.t === 'chat') render(true); }
 const ANON = '<div class="who" style="color:#8d979b;font-weight:700;opacity:1">🎭 Anónimo · ronda anterior</div>';
-const roundBar = (alias, color, rounds) => alias ? `<div class="unsep">🫙 Bote agitado${rounds > 1 ? ' ' + rounds + ' veces' : ''} · ahora eres <b style="color:${GCOL[color] || '#888'}">${esc(alias)}</b>. Los mensajes anteriores son anónimos.</div>` : '';
+const revBtn = name => `<button class="btn sm light" data-grev style="width:auto;display:inline-block;margin:6px 0 0;padding:4px 12px">${name ? '🙈 Volver a ocultar mi nombre' : '🪪 Decir mi nombre'}</button>`;
+const roundBar = (alias, color, rounds, name) => alias ? `<div class="unsep">🫙 Bote agitado${rounds > 1 ? ' ' + rounds + ' veces' : ''} · ahora eres <b style="color:${GCOL[color] || '#888'}">${esc(alias)}</b>${name ? ' (dices ser «' + esc(name) + '»)' : ''}. Los mensajes anteriores son anónimos.<br>${revBtn(name)}</div>` : '';
+// decir mi nombre en un grupo anónimo (lo decide cada uno; nadie puede revelarlo por otro)
+document.addEventListener('click', async e => {
+  if (!e.target.closest?.('[data-grev]')) return;
+  const vw = S.view; const v = vw?.t === 'vchat' ? (S.vchats || []).find(x => x.id === vw.id) : null; const ch = vw?.t === 'chat' ? S.chats.find(x => x.id === vw.id) : null;
+  const has = v ? (v.me?.revealed && v.me?.name) : S.ground?.[ch?.id]?.owner_name;
+  let n = '';
+  if (!has) { n = prompt('Escribe el nombre que verán los demás.\n\n⚠️ Si escribes tu nombre real, estás revelando tu identidad a todo el grupo. Los demás verán un aviso de que no pueden saber si es tu nombre de verdad.'); if (!n?.trim()) return; }
+  const r = v ? await sb.rpc('member_reveal', { p_chat: v.id, p_token: v.token, p_name: n.trim() }) : await sb.rpc('owner_reveal', { p_chat: ch.id, p_name: n.trim() });
+  if (r.error || !r.data?.ok) return toast('No se ha podido cambiar' + (ch && r.error ? ' (falta una actualización del servidor).' : '.'));
+  toast(has ? '🙈 Vuelves a ser anónimo' : '🪪 Ahora los demás ven el nombre que has escrito');
+  if (v) { v.gk = null; try { await vFetch(v); } catch (e) {} } else await loadGMembers(); render(true);
+});
 // «Agitar el bote»: alias nuevos para todos y los mensajes anteriores quedan anónimos (como sacar tarjetas de un bote, a ciegas)
 async function shakeJar(ch) {
   if (!confirm('¿Agitar el bote?\n\nTodos (tú también) sacaréis un alias nuevo al azar, los nombres revelados se vuelven a ocultar y los mensajes anteriores quedarán como «Anónimo». No se puede deshacer.')) return;
@@ -2917,15 +2931,16 @@ async function shakeJar(ch) {
   await loadGMembers(); const g = S.ground?.[ch.id];
   toast(`🫙 ¡Bote agitado! ${r.data.members} participante${r.data.members === 1 ? '' : 's'} con alias nuevo${g?.owner_alias ? '. Tú eres ' + g.owner_alias : ''}.`); render(true);
 }
-const memName = x => x ? (x.revealed && x.real_name ? x.real_name + ' (' + x.alias + ')' : x.alias) : 'Participante';
+const saysName = (alias, name) => name ? alias + ' · dice ser «' + name + '» ⚠️' : alias;
+const memName = x => x ? saysName(x.alias, x.revealed && x.real_name) : 'Participante';
 const memTop = mid => { const x = S.gmem?.[mid]; if (mid && !x && !S.gmemAsk) { S.gmemAsk = 1; setTimeout(() => { S.gmemAsk = 0; loadGMembers(); }, 800); } return `<div class="who" style="color:${GCOL[x?.color] || '#8d979b'};font-weight:700;opacity:1">${esc(memName(x))}${x?.blocked ? ' · bloqueado' : ''}</div>`; };
-const ownerMsgs = (ch, list) => (ch.is_group ? roundBar(S.ground?.[ch.id]?.owner_alias, S.ground?.[ch.id]?.owner_color, S.ground?.[ch.id]?.rounds) : '') + (v2Msgs(ch.id, list, { side: 'o', other: ch.name || 'Chat', id: m => m.id, at: m => m.created_at, mine: m => !m.from_visitor, who: m => m.from_visitor ? 'v' + (m.member_id || '') : 'o:' + (m.sender_id || ''),
+const ownerMsgs = (ch, list) => (ch.is_group ? roundBar(S.ground?.[ch.id]?.owner_alias, S.ground?.[ch.id]?.owner_color, S.ground?.[ch.id]?.rounds, S.ground?.[ch.id]?.owner_name) : '') + (v2Msgs(ch.id, list, { side: 'o', other: ch.name || 'Chat', id: m => m.id, at: m => m.created_at, mine: m => !m.from_visitor, who: m => m.from_visitor ? 'v' + (m.member_id || '') : 'o:' + (m.sender_id || ''),
   pm: m => m.from_visitor && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
   top: m => m.from_visitor && ch.is_group && m.id <= (S.ground?.[ch.id]?.round_from || 0) ? ANON : m.from_visitor && m.member_id ? memTop(m.member_id) : !m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : '',
   tick: m => m.from_visitor ? '' : bm(m.id, isPlayable(unwrap(m.body)) ? !!(m.played_at || pctOf(m.id) >= 100) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at, isPlayable(unwrap(m.body)) ? Math.max(m.played_pct || 0, pctOf(m.id)) : 0, m.id <= (S.dlv?.[ch.id] || 0)) }) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
-const visitorMsgs = (v, list) => (v.group && v.rf ? roundBar(v.me?.alias, v.me?.color, v.rounds) : v.group && v.me ? `<div class="unsep">👥 Eres <b style="color:${GCOL[v.me.color] || '#888'}">${esc(v.me.alias)}</b>${v.me.revealed ? ' (' + esc(v.me.name || '') + ')' : ''}</div>` : '') + (v2Msgs(v.id, list, { side: 'v', other: v.name || v.public_name || 'Chat', id: m => m.id, at: m => m.at, mine: m => m.mine, who: m => m.mid ? 'm' + m.mid : m.mine ? 'v' : 'o',
+const visitorMsgs = (v, list) => (v.group && v.rf ? roundBar(v.me?.alias, v.me?.color, v.rounds, v.me?.revealed && v.me?.name) : v.group && v.me ? `<div class="unsep">👥 Eres <b style="color:${GCOL[v.me.color] || '#888'}">${esc(v.me.alias)}</b>${v.me.revealed ? ' (dices ser «' + esc(v.me.name || '') + '»)' : ''}<br>${revBtn(v.me.revealed && v.me.name)}</div>` : '') + (v2Msgs(v.id, list, { side: 'v', other: v.name || v.public_name || 'Chat', id: m => m.id, at: m => m.at, mine: m => m.mine, who: m => m.mid ? 'm' + m.mid : m.mine ? 'v' : 'o',
   pm: m => !m.mine && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
-  top: m => v.group && !m.mine ? (v.rf && m.id <= v.rf ? ANON : m.owner ? (v.oa ? `<div class="who" style="color:${GCOL[v.oc] || '#8d979b'};font-weight:700;opacity:1">${esc(v.oa)}</div>` : `<div class="who" style="font-weight:700;opacity:1">${esc(v.public_name || 'Dueño')}</div>`) : (x => `<div class="who" style="color:${GCOL[x?.color] || '#8d979b'};font-weight:700;opacity:1">${esc(x ? (x.name ? x.name + ' (' + x.alias + ')' : x.alias) : 'Participante')}</div>`)(v.gm?.[m.mid])) : '',
+  top: m => v.group && !m.mine ? (v.rf && m.id <= v.rf ? ANON : m.owner ? (v.oa ? `<div class="who" style="color:${GCOL[v.oc] || '#8d979b'};font-weight:700;opacity:1">${esc(saysName(v.oa, v.on))}</div>` : `<div class="who" style="font-weight:700;opacity:1">${esc(v.public_name || 'Dueño')}</div>`) : (x => `<div class="who" style="color:${GCOL[x?.color] || '#8d979b'};font-weight:700;opacity:1">${esc(x ? saysName(x.alias, x.name) : 'Participante')}</div>`)(v.gm?.[m.mid])) : '',
   tick: m => !v.group && m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, isPlayable(unwrap(m.body)) ? pctOf(m.id) >= 100 : m.id <= S.vread[v.id], m.at, isPlayable(unwrap(m.body)) ? pctOf(m.id) : 0, m.id <= (S.dlv?.[v.id] || 0)) : '' }) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
 // al abrir un chat: ir al primer mensaje sin leer (con separador) o al final, y mantener esa posición
 // mientras cargan fotos, vídeos y mapas, hasta que el usuario toque o desplace la conversación
@@ -3121,7 +3136,8 @@ async function vFetch(v, bg) {
   S.vmsgs ||= {}; const l = S.vmsgs[v.id] ||= [];
   const { data } = await sb.rpc('visitor_messages', { p_chat: v.id, p_token: v.token, p_after: l.at(-1)?.id || 0, p_seen: !bg && !document.hidden });
   if (!data?.ok) { if (data?.error === 'blocked' && v.alive) { v.alive = false; render(true); } return; }
-  if (data.group) { const k = JSON.stringify([data.members, data.me, data.round_from, data.owner_alias]); if (k !== v.gk) { v.gk = k; v.gm = data.members || {}; v.me = data.me; v.rf = +data.round_from || 0; v.rounds = +data.rounds || 0; v.oa = data.owner_alias || null; v.oc = data.owner_color || null; if (v.rf) render(true); if (!data.messages.length) render(true); } }
+  if (data.group) { const k = JSON.stringify([data.members, data.me, data.round_from, data.owner_alias, data.owner_name]); if (k !== v.gk) { const old = v.gm; v.gk = k; v.gm = data.members || {}; v.me = data.me; v.on = data.owner_name || null;
+    if (old) Object.entries(v.gm).forEach(([pid, x]) => { if (x.name && old[pid]?.name !== x.name && pid !== String(v.me?.id)) toast(`🪪 ${x.alias} dice llamarse «${x.name}». Ojo: no sabemos si es su nombre real.`); }); v.rf = +data.round_from || 0; v.rounds = +data.rounds || 0; v.oa = data.owner_alias || null; v.oc = data.owner_color || null; if (v.rf) render(true); if (!data.messages.length) render(true); } }
   const ru = Math.max(data.read_upto || 0, S.vread[v.id] || 0); S.ppct ||= {};
   const np = Object.entries(data.played_pct || {}).filter(([id, p]) => p > pctOf(+id)); np.forEach(([id, p]) => { S.ppct[+id] = p; }); if (np.length) saveHist();
   const dch = dlvSet(v.id, +data.deliv_upto || 0); const changed = dch || np.length || data.messages.length || v.alive !== data.alive || ru !== S.vread[v.id]; v.alive = data.alive; S.vread[v.id] = ru;

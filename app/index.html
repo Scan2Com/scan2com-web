@@ -406,6 +406,16 @@ html:not(.dark) .pinbar{box-shadow:0 1px 3px #0000001a}
 .bm.emo.home:not(.fly) .emj{display:none}.bm.emo.fly .emj{animation:hop .3s ease-in-out infinite}@keyframes hop{50%{translate:0 -6px}}
 .bm .emj u{display:none;position:absolute;right:100%;top:7px;font-size:11px;text-decoration:none}.bm.emo.carrot:not(.fly):not(.home) .emj u{display:inline}
 .bm.emo.carrot:not(.fly):not(.home) .emj{animation:nib .8s ease-in-out infinite}@keyframes nib{50%{rotate:-14deg;translate:-1px 1px}}
+.bm.emo.rocket .emj{transform:rotate(calc(-45deg - 90deg * var(--dir,1)))}.bm.emo.rocket:not(.fly):not(.home) .emj{transform:rotate(-45deg);animation:hov 1.6s ease-in-out infinite}
+.bm.emo.rocket .emj::after,.bmfly.emo.rocket span::after{content:'🔥';position:absolute;left:-9px;top:11px;font-size:10px;rotate:225deg;opacity:0}.bm.emo.rocket.fly .emj::after,.bmfly.emo.rocket span::after{opacity:1;animation:flk .12s linear infinite alternate}
+.bm.emo.rocket:not(.fly):not(.home) .emj::after{opacity:.85;animation:flk .2s linear infinite alternate}
+@keyframes flk{from{scale:.7}to{scale:1.15}}@keyframes hov{50%{translate:0 -3px}}
+.bm.emo.ufo.fly .emj{animation:wob .45s ease-in-out infinite}@keyframes wob{25%{rotate:-14deg;translate:0 -3px}75%{rotate:14deg;translate:0 2px}}
+.bm.emo.ufo:not(.fly):not(.home) .emj{animation:hov 1.4s ease-in-out infinite}.bm.emo.ufo .emj::after{content:'';position:absolute;left:4px;top:14px;width:11px;height:13px;background:linear-gradient(rgba(150,255,150,.75),rgba(150,255,150,0));clip-path:polygon(30% 0,70% 0,100% 100%,0 100%);opacity:0}
+.bm.emo.ufo:not(.fly):not(.home) .emj::after{animation:beam 1.4s ease-in-out infinite}@keyframes beam{0%,100%{opacity:.25}50%{opacity:.9}}
+.bm.emo.comet .emj{transform:rotate(calc(-45deg + 90deg * var(--dir,1)))}.bm.emo.comet .emj::after,.bmfly.emo.comet span::after{content:'✨';position:absolute;left:12px;top:-8px;font-size:9px;opacity:0}.bm.emo.comet.fly .emj::after,.bmfly.emo.comet span::after{animation:spk .4s linear infinite}@keyframes spk{0%{opacity:1;scale:1}100%{opacity:0;scale:.3;translate:6px -4px}}
+.bm.emo.comet:not(.fly):not(.home) .emj{animation:hov 2s ease-in-out infinite}
+.bm.emo.rocket.fly .emj,.bm.emo.comet.fly .emj{animation:none}.bmfly.emo.rocket span{animation:none;rotate:-135deg;position:relative}.bmfly.emo.comet span{animation:none;rotate:45deg;position:relative}.bmfly.emo.ufo span{animation:wob .45s ease-in-out infinite}
 .bmfly.emo{background:none!important;-webkit-mask:none!important;mask:none!important;font-size:24px;line-height:1;text-align:center}.bmfly.emo span{display:block;animation:hop .3s ease-in-out infinite}
 .bmfly{position:fixed;z-index:70;pointer-events:none;background:#2fc23a;-webkit-mask-size:100% 100%;mask-size:100% 100%;transform:rotate(225deg)}
 .sendb.regrow .micb{animation:micgrow .55s cubic-bezier(.25,1.4,.5,1) .15s both}
@@ -504,7 +514,10 @@ const callTxt = b => b === 'cal:missed' ? '📞 Llamada perdida' : '📞 Llamada
 const callBody = b => `<span class="callmsg${b === 'cal:missed' ? ' miss' : ''}">${callTxt(b)}</span>`;
 // «emoji#mensaje»: el emoji no se ve en el texto; sustituye al boomerang (p. ej. 🐇#hola → un conejo que va dando saltos y, si se para, come zanahoria)
 const emoParse = b => { const m = typeof b === 'string' && b.match(/^((?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\uFE0F|\u200D)+)#\s?([\s\S]+)$/u); return m ? { e: m[1], t: m[2] } : null; };
-const isCarrot = e => /🐇|🐰/u.test(e);
+// cada emoji especial hace algo de lo suyo: el conejo come zanahoria; el cohete vuela de punta con fuego y, parado, apunta al cielo;
+// la nave alienígena se tambalea al volar y, parada, flota con su rayo; el cometa deja chispas
+const emoKind = e => /🐇|🐰/u.test(e) ? 'carrot' : /🚀/u.test(e) ? 'rocket' : /🛸/u.test(e) ? 'ufo' : /☄/u.test(e) ? 'comet' : '';
+const isCarrot = e => !!emoKind(e);
 const msgBody = (b, at) => isCall(b) ? callBody(b) : isVideo(b) ? vidBody(b) : isFile(b) ? fileBody(b) : isAudio(b) ? audBody(b) : isLoc(b) ? locBody(b) : isPhoto(b) ? `<a href="${esc(b.slice(4))}" data-photo="${esc(b.slice(4))}" data-at="${esc(at || '')}" class="phw"><img class="mph" src="${esc(b.slice(4))}" loading="lazy" alt="Foto">${photoTag(b)}</a>` : esc(b);
 // visor de fotos: encajada en pantalla, zoom con dos dedos (o doble toque), arrastrar con un dedo cuando hay zoom,
 // barra arriba con origen y hora, abajo Descargar y Compartir; un toque oculta/muestra las barras
@@ -2791,7 +2804,7 @@ function v2Msgs(k, list, o) {
   V2.rx = rx;
   return withDays(shown, o.at, m => {
     const id = o.id(m), rp = rpParse(m.body), em = emoParse(rp ? rp.b : m.body), body = em ? em.t : rp ? rp.b : m.body, mine = o.mine(m), pin = pins.includes(id);
-    const tk = em ? o.tick(m).replace('class="bm"', 'class="bm emo' + (isCarrot(em.e) ? ' carrot' : '') + '"').replace('<i></i>', '<i></i><s class="emj">' + esc(em.e) + '<u>🥕</u></s>') : o.tick(m);
+    const tk = em ? o.tick(m).replace('class="bm"', 'class="bm emo ' + emoKind(em.e) + '"').replace('<i></i>', '<i></i><s class="emj">' + esc(em.e) + '<u>🥕</u></s>') : o.tick(m);
     const rs = Object.values(rx[id] || {}).filter(Boolean), uniq = [...new Set(rs)];
     const q = rp ? '<div class="quote" data-goto="' + (+rp.i || 0) + '"><b>' + esc(rp.s ? (rp.s === o.side ? 'Tú' : o.other) : (rp.w || '')) + '</b>' + esc(rp.t || '') + '</div>' : '';
     return '<div class="m ' + (mine ? 'me' : 'them') + (pin ? ' pinned' : '') + '" data-id="' + id + '"' + o.pm(m) + '>' + o.top(m) + q + (o.flag && o.flag(m) ? '<div class="tap" onclick="event.stopPropagation();this.classList.add(\'show\')"><span class="tapl">🙊 Mensaje tapado por insultos · tocar para ver</span><div class="tapb">' + msgBody(body, o.at(m)) + '</div></div>' : msgBody(body, o.at(m)))
@@ -2949,7 +2962,7 @@ function v2SendFly() {
   const btn = $('#os'), ic = btn?.querySelector('.bmsend'), cb = $('#cb'), ms = $('#ms'); if (!ic || !btn.classList.contains('txt') || !cb || !ms) return;
   const r = ic.getBoundingClientRect(); if (!r.width) return;
   V2.sentAt = Date.now();
-  const em = emoParse($('#oi')?.value.trim() || ''), f = document.createElement('i'), cs = getComputedStyle(ic); f.className = 'bmfly' + (em ? ' emo' : ''); if (em) f.innerHTML = '<span>' + esc(em.e) + '</span>'; f.dataset.k = 's' + Date.now();
+  const em = emoParse($('#oi')?.value.trim() || ''), f = document.createElement('i'), cs = getComputedStyle(ic); f.className = 'bmfly' + (em ? ' emo ' + emoKind(em.e) : ''); if (em) f.innerHTML = '<span>' + esc(em.e) + '</span>'; f.dataset.k = 's' + Date.now();
   f.style.cssText = 'left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;-webkit-mask-image:' + cs.webkitMaskImage + ';mask-image:' + (cs.maskImage || cs.webkitMaskImage);
   document.body.appendChild(f);
   // dónde quedará el acuse del mensaje nuevo: al final de la conversación, junto a la hora, y su sitio de espera a la izquierda

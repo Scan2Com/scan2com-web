@@ -1742,10 +1742,10 @@ function renderHome() {
     body = screenTour('chats') + pcHint() + ((mineHTML || vlist.length) ? !tr ? simple : `<div class="pad" style="font-size:13px;color:#777;padding-bottom:0">La trazabilidad de cada chat queda fijada al crearse: si el dueño del código la oculta o la vuelve a mostrar después, los chats que ya existían no cambian.</div>` + mineHTML + (vlist.length ? `<div class="pad section" style="padding-bottom:0">GENERADOS CON CÓDIGOS ESCANEADOS</div>${vGroups.map(g => grpHead(g[0].hidden ? 'Código con trazabilidad oculta' : g[0].code_id ? (g[0].public_name || 'Código ' + g[0].code_id) : (g[0].public_name ? g[0].public_name + ' (código borrado)' : 'Código borrado'), g.length, vOrigin(g[0]), g[0].code_id || '') + g.map(vrow).join('')).join('')}` : '')
       : `<div class="empty">Aún no hay chats.<br>Cuando alguien escanee uno de tus códigos y te escriba, aparecerá aquí, sin ver tu teléfono ni tu email.<br><br>Y si tú escaneas el código de otra persona con la app y le escribes, el chat también aparecerá aquí.</div>`);
     if (S.csel) {   // venimos de «N chats de este código»: solo esos chats, ya seleccionados, para actuar sobre todos a la vez
-      const cd = codeOf(S.csel.code), sel = S.csel.ids, these = S.chats.filter(x => x.code_id === S.csel.code);
+      const cd = S.csel.code && codeOf(S.csel.code), sel = S.csel.ids, these = S.csel.code ? S.chats.filter(x => x.code_id === S.csel.code) : [...favs, ...rest];
       const ck = on => `<span class="csck${on ? ' on' : ''}">${on ? '✓' : ''}</span>`;
-      body = `<div class="cselbar"><button class="ib" id="cselx" title="Salir">${IC.back(18)}</button><div style="flex:1;min-width:0"><b>${sel.size} de ${these.length} seleccionado${sel.size === 1 ? '' : 's'}</b><div style="font-size:12.5px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Chats del código «${esc(cd ? (cd.name || cd.public_name || cd.id) : '')}»</div></div><button class="btn sm light" id="cselall">${sel.size === these.length ? 'Ninguno' : 'Todos'}</button></div>
-        <div class="cselact"><button class="btn sm light" data-cs="block">Bloquear</button><button class="btn sm light" data-cs="unblock">Desbloquear</button><button class="btn sm light" data-cs="nocall">Sin llamadas</button><button class="btn sm light" data-cs="call">Con llamadas</button></div>`
+      body = `<div class="cselbar"><button class="ib" id="cselx" title="Salir">${IC.back(18)}</button><div style="flex:1;min-width:0"><b>${sel.size} de ${these.length} seleccionado${sel.size === 1 ? '' : 's'}</b><div style="font-size:12.5px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${S.csel.code ? `Chats del código «${esc(cd ? (cd.name || cd.public_name || cd.id) : '')}»` : 'Toca para elegir · solo chats de tus códigos'}</div></div><button class="btn sm light" id="cselall">${sel.size === these.length ? 'Ninguno' : 'Todos'}</button></div>
+        <div class="cselact"><button class="btn sm light" data-cs="block">Bloquear</button><button class="btn sm light" data-cs="unblock">Desbloquear</button><button class="btn sm light" data-cs="nocall">Sin llamadas</button><button class="btn sm light" data-cs="call">Con llamadas</button><button class="btn sm light" data-cs="fav">${IC.star(16, true)} Favoritos</button><button class="btn sm light" data-cs="unfav">Quitar de favoritos</button><button class="btn sm light" data-cs="del" style="color:var(--red)">${IC.trash(16)} Borrar</button></div>`
         + these.map(c => `<div class="item ${chatOff(c) ? 'off' : ''}" data-csel="${c.id}">${ck(sel.has(c.id))}<div style="flex:none">${v2AvHtml(c.avatar, c.name, 42, c.id, c.blocked)}</div><div class="grow"><div class="t">${esc(c.name)}</div><div class="s">${c.blocked ? 'Bloqueado' : c.calls ? 'Puede escribirte y llamarte' : 'Puede escribirte'}</div></div></div>`).join('')
         + (these.length ? '' : '<div class="empty">Este código ya no tiene chats.</div>');
     }
@@ -1782,14 +1782,34 @@ function renderHome() {
     b.onpointerdown = e => { if (e.target.closest('[data-pw],[data-edit],[data-mt]')) return; lp = false; t = setTimeout(() => { lp = true; try { navigator.vibrate?.(30); } catch (x) {} codeMenu(b.dataset.code); }, 500); };
     b.onpointerup = b.onpointerleave = b.onpointercancel = () => clearTimeout(t); b.oncontextmenu = e => e.preventDefault();
     b.onclick = () => { if (lp) { lp = false; return; } S.view = { t: 'qr', id: b.dataset.code }; render(); }; });
-  app.querySelectorAll('[data-chat]').forEach(b => b.onclick = () => { S.view = { t: 'chat', id: b.dataset.chat }; render(); });
+  app.querySelectorAll('[data-chat]').forEach(b => {
+    let lt = 0, lp = false, x0 = 0, y0 = 0;
+    b.onclick = () => { if (lp) { lp = false; return; } S.view = { t: 'chat', id: b.dataset.chat }; render(); };
+    // mantener pulsado: elegir varios chats y actuar sobre todos (como los ⋮ de dentro del chat)
+    b.addEventListener('pointerdown', e => { if (e.target.closest('[data-fav]')) return; x0 = e.clientX; y0 = e.clientY; lt = setTimeout(() => { lp = true; navigator.vibrate?.(25); S.csel = { code: null, ids: new Set([b.dataset.chat]) }; render(); }, 520); });
+    b.addEventListener('pointermove', e => { if (Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0) > 12) clearTimeout(lt); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => b.addEventListener(ev, () => clearTimeout(lt)));
+    b.addEventListener('contextmenu', e => e.preventDefault());
+  });
   if (S.csel && S.tab === 'chats') {
     app.querySelectorAll('[data-csel]').forEach(b => b.onclick = () => { const id = b.dataset.csel; S.csel.ids.has(id) ? S.csel.ids.delete(id) : S.csel.ids.add(id); render(true); });
     if ($('#cselx')) $('#cselx').onclick = () => { S.csel = null; render(); };
     if ($('#cselall')) $('#cselall').onclick = () => { const these = S.chats.filter(x => x.code_id === S.csel.code).map(x => x.id); S.csel.ids = new Set(S.csel.ids.size === these.length ? [] : these); render(true); };
     app.querySelectorAll('[data-cs]').forEach(b => b.onclick = async () => {
       const ids = [...S.csel.ids]; if (!ids.length) return toast('Selecciona al menos un chat.');
-      const a = b.dataset.cs, upd = a === 'block' ? { blocked: true } : a === 'unblock' ? { blocked: false } : { calls: a === 'call' };
+      const a = b.dataset.cs, nn = `${ids.length} chat${ids.length > 1 ? 's' : ''}`;
+      if (a === 'fav' || a === 'unfav') {
+        const on = a === 'fav', todo = ids.filter(id => S.favs.has(id) !== on);
+        const { error } = todo.length ? (on ? await sb.from('chat_favorites').insert(todo.map(chat_id => ({ chat_id, user_id: S.user.id }))) : await sb.from('chat_favorites').delete().in('chat_id', todo).eq('user_id', S.user.id)) : {};
+        if (error) return toast('No se ha podido cambiar.');
+        todo.forEach(id => on ? S.favs.add(id) : S.favs.delete(id)); toast((on ? 'Añadidos a favoritos' : 'Quitados de favoritos') + ` (${ids.length})`); return render(true);
+      }
+      if (a === 'del') {
+        if (!confirm(`¿Borrar ${nn}? Se borran para ti y la otra persona ya no podrá escribirte por ellos.`)) return;
+        const { error } = await sb.from('chats').delete().in('id', ids); if (error) return toast('No se ha podido borrar.');
+        S.chats = S.chats.filter(x => !S.csel.ids.has(x.id)); S.csel = null; toast(`Borrados (${ids.length})`); return render();
+      }
+      const upd = a === 'block' ? { blocked: true } : a === 'unblock' ? { blocked: false } : { calls: a === 'call' };
       if (a === 'block' && !confirm(`¿Bloquear ${ids.length} chat${ids.length > 1 ? 's' : ''}? No podrán escribirte ni llamarte.`)) return;
       const { error } = await sb.from('chats').update(upd).in('id', ids);
       if (error) return toast('No se ha podido cambiar.');

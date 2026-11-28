@@ -90,6 +90,11 @@ button.or{background:var(--or)}button.light{background:#e6e8eb;color:var(--ink)}
         <div class="row"><button class="or" id="send" disabled>Enviar aviso</button></div>
         <div class="msg" id="smsg"></div>
       </div>
+      <div class="box" id="pbox" hidden><h2>🛑 Pausar envíos (solo administración, ante un hackeo)</h2>
+        <div class="hint" style="margin-top:0">Mientras haya una pausa activa nadie puede enviar avisos que la toquen. No sirve para aprobar avisos: los servicios siguen enviando solos.</div>
+        <div class="row"><button id="pzall" style="background:#b3261e">🛑 Pausar en toda la app</button><button class="light" id="pzarea">🗺️ Pausar en la zona del mapa</button></div>
+        <div class="hint">Para la zona: marca primero en el mapa el círculo o los puntos (como para enviar un aviso). Para un servicio concreto, usa «Pausar» en su grupo, más abajo.</div>
+        <div id="plist" style="margin-top:8px"></div><div class="msg" id="pmsg"></div></div>
       <div class="box" id="gbox" hidden><h2>Grupos que pueden enviar avisos</h2>
         <div class="hint" style="margin-top:0">Cada grupo (Policía de Logroño, Ayuntamiento, Bomberos…) envía y ve solo sus avisos. Añade a sus miembros por el email de su cuenta de Scan2Com.</div>
         <div id="glist"></div>
@@ -220,7 +225,7 @@ $('#send').onclick = async () => {
   if (!confirm(`Se enviará «${$('#ti').value.trim()}» a ${n} persona${n === 1 ? '' : 's'} ${poly() ? 'en la zona dibujada (' + S.pts.length + ' puntos)' : 'en un radio de ' + fmtM(radM())}. Esta acción no se puede deshacer. ¿Enviar?`)) return;
   $('#send').disabled = true; $('#smsg').className = 'msg'; $('#smsg').textContent = 'Enviando…';
   const { data, error } = await sb.rpc('zone_send', { p_title: $('#ti').value.trim(), p_body: $('#bo').value.trim(), p_kind: S.kind, p_group: $('#grp').value ? +$('#grp').value : null, ...args() });
-  if (error || !data?.ok) { $('#smsg').className = 'msg err'; $('#smsg').textContent = error?.message || data?.error || 'No se ha podido enviar.'; checkSend(); return; }
+  if (error || !data?.ok) { $('#smsg').className = 'msg err'; $('#smsg').textContent = { paused_all: '🛑 Los envíos están pausados en toda la app por seguridad. Contacta con Scan2Com.', paused_group: '🛑 Los envíos de tu servicio están pausados por seguridad. Contacta con Scan2Com.', paused_area: '🛑 Los envíos están pausados en esta zona por seguridad. Contacta con Scan2Com.' }[data?.error] || error?.message || data?.error || 'No se ha podido enviar.'; checkSend(); return; }
   $('#smsg').className = 'msg ok'; $('#smsg').textContent = `✓ Aviso enviado a ${data.users} persona${data.users === 1 ? '' : 's'}.`;
   $('#ti').value = $('#bo').value = ''; S.kind = ''; $('#kinds').querySelectorAll('.on').forEach(x => x.classList.remove('on')); checkSend(); hist();
 };
@@ -251,8 +256,8 @@ async function groups() {
   let all = S.role.groups;
   if (S.role.admin) {
     const { data } = await sb.rpc('admin_zone_groups'); all = data?.items || [];
-    $('#gbox').hidden = false;
-    $('#glist').innerHTML = all.length ? all.map(g => `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>${esc(g.name)}</b> <span class="hint">· ${g.sent} aviso${g.sent === 1 ? '' : 's'}</span> <button class="light" data-gdel="${g.id}" style="min-height:30px;padding:2px 10px;font-size:12px;float:right">Borrar grupo</button>
+    $('#gbox').hidden = false; $('#pbox').hidden = false; pauses();
+    $('#glist').innerHTML = all.length ? all.map(g => `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>${esc(g.name)}</b> <span class="hint">· ${g.sent} aviso${g.sent === 1 ? '' : 's'}</span> <button class="light" data-gpause="${g.id}" style="min-height:26px;padding:0 8px;font-size:12px">🛑 Pausar</button> <button class="light" data-gdel="${g.id}" style="min-height:30px;padding:2px 10px;font-size:12px;float:right">Borrar grupo</button>
       ${g.members.map(m => `<div style="font-size:13px;display:flex;align-items:center;gap:6px;margin-top:4px">${esc(m.email)} <button class="light" data-mdel="${g.id}:${m.user_id}" style="min-height:26px;padding:0 8px;font-size:12px">quitar</button></div>`).join('') || '<div class="hint">Sin miembros todavía.</div>'}
       <div class="row" style="margin-top:6px"><input data-mem="${g.id}" type="email" placeholder="email del miembro" style="flex:3;margin:0;font-size:14px;padding:7px"><button class="light" data-madd="${g.id}" style="flex:1;min-height:36px;font-size:13px">Añadir</button></div></div>`).join('') : '<div class="hint">Todavía no hay grupos.</div>';
     $('#glist').querySelectorAll('[data-madd]').forEach(b => b.onclick = async () => {
@@ -261,6 +266,7 @@ async function groups() {
       $('#gmsg').className = 'msg ' + (data?.ok ? 'ok' : 'err'); $('#gmsg').textContent = data?.ok ? `✓ ${em} añadido` : data?.error === 'user_not_found' ? `No hay ninguna cuenta de Scan2Com con el email ${em}. Tiene que registrarse primero en la app.` : 'No se ha podido añadir.';
       groups();
     });
+    $('#glist').querySelectorAll('[data-gpause]').forEach(b => b.onclick = () => pauseDo('group', { p_group: +b.dataset.gpause }, 'este servicio'));
     $('#glist').querySelectorAll('[data-mdel]').forEach(b => b.onclick = async () => { const [g, u] = b.dataset.mdel.split(':'); await sb.rpc('admin_zone_member_del', { p_group: +g, p_user: u }); groups(); });
     $('#glist').querySelectorAll('[data-gdel]').forEach(b => b.onclick = async () => { if (!confirm('¿Borrar este grupo? Sus miembros ya no podrán enviar avisos. Los avisos enviados se conservan.')) return; await sb.rpc('admin_zone_group_del', { p_group: +b.dataset.gdel }); groups(); hist(); });
   }
@@ -277,6 +283,24 @@ $('#gadd').onclick = async () => {
   $('#gmsg').className = 'msg ' + (data?.ok ? 'ok' : 'err'); $('#gmsg').textContent = data?.ok ? `✓ Grupo «${n}» creado` : 'No se ha podido crear.';
   $('#gnew').value = ''; groups();
 };
+
+/* ---------- pausas (administración) ---------- */
+async function pauseDo(scope, extra, what) {
+  const note = prompt(`¿Pausar los envíos en ${what}? Nadie podrá enviar avisos ahí hasta que lo reanudes.\n\nMotivo (opcional):`, ''); if (note === null) return;
+  const { data, error } = await sb.rpc('zone_pause', { p_scope: scope, p_note: note.trim() || null, ...extra });
+  $('#pmsg').className = 'msg ' + (data?.ok ? 'ok' : 'err'); $('#pmsg').textContent = data?.ok ? '🛑 Pausa activada' : error ? 'Falta aplicar la actualización 048 en el servidor.' : 'No se ha podido pausar.';
+  pauses();
+}
+$('#pzall').onclick = () => pauseDo('all', {}, 'TODA la app');
+$('#pzarea').onclick = () => { if (!S.c) return alert('Marca primero la zona en el mapa.'); const P = poly(); pauseDo('area', { p_lat: S.c.lat, p_lng: S.c.lng, p_radius: P ? S.r : radM(), p_poly: P }, 'la zona marcada en el mapa'); };
+let pzLayers = [];
+async function pauses() {
+  const { data } = await sb.rpc('zone_pauses_list'); const it = data?.items || [];
+  pzLayers.forEach(l => l.remove()); pzLayers = [];
+  $('#plist').innerHTML = it.length ? it.map(p => `<div style="padding:8px 10px;border-radius:10px;background:#fdecea;margin-bottom:6px;font-size:14px">🛑 <b>${p.scope === 'all' ? 'Toda la app' : p.scope === 'group' ? esc(p.group || 'Servicio') : 'Zona del mapa (' + fmtM(p.radius) + ')'}</b>${p.note ? ' · ' + esc(p.note) : ''} <span class="hint">desde ${new Date(p.at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</span> <button class="light" data-resume="${p.id}" style="min-height:28px;padding:0 10px;font-size:13px">Reanudar</button></div>`).join('') : '<div class="hint">No hay ninguna pausa activa.</div>';
+  it.filter(p => p.scope === 'area').forEach(p => pzLayers.push((Array.isArray(p.poly) ? L.polygon(p.poly, { color: '#b3261e', dashArray: '4 6', weight: 2, fillOpacity: .08 }) : L.circle([p.lat, p.lng], { radius: p.radius, color: '#b3261e', dashArray: '4 6', weight: 2, fillOpacity: .08 })).addTo(map).bindTooltip('🛑 Pausa')));
+  $('#plist').querySelectorAll('[data-resume]').forEach(b => b.onclick = async () => { if (!confirm('¿Reanudar los envíos aquí?')) return; await sb.rpc('zone_resume', { p_id: +b.dataset.resume }); pauses(); });
+}
 
 /* ---------- acceso: administradores y miembros de grupos ---------- */
 async function start(session) {

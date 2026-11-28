@@ -1474,7 +1474,7 @@ function playReport(id, pct) {
   const go = () => { playT = 0; const v = S.ppct[id]; if (v <= (playSent[id] || 0)) return; playSent[id] = v; saveHist();
     if (v >= 100) { const vw = S.view, gc = vw?.t === 'chat' ? S.chats.find(x => x.id === vw.id) : null, gv = vw?.t === 'vchat' ? (S.vchats || []).find(x => x.id === vw.id) : null;
       if (gc?.is_group) sb.rpc('group_played_full', { p_chat: gc.id, p_msg: id }).then(() => {}, () => {}); else if (gv?.group) sb.rpc('group_played_full', { p_chat: gv.id, p_msg: id, p_token: gv.token }).then(() => {}, () => {}); }
-    if (S.view?.t === 'chat') sb.rpc('mark_played', { p_msg: id, p_pct: v, p_chat: S.view.id }).then(r => { if (r.error) playSent[id] = 0; }, () => { playSent[id] = 0; });
+    if (S.view?.t === 'chat') sb.rpc('mark_played', { p_msg: id, p_pct: v, p_chat: S.view.id }).then(r => { if (r.error) playSent[id] = 0; else v2Ping(); }, () => { playSent[id] = 0; });
     else if (S.view?.t === 'vchat') { const ch = (S.vchats || []).find(x => x.id === S.view.id); if (ch) sb.rpc('visitor_played', { p_chat: ch.id, p_token: ch.token, p_msg: id, p_pct: v }).then(r => { if (r.error) playSent[id] = 0; }, () => { playSent[id] = 0; }); } };
   // se avisa cada 5 % o, como mucho, cada segundo mientras se reproduce (el boomerang del otro avanza casi a la vez); al terminar, al momento
   if (pct >= 100 || pct - (playSent[id] || 0) >= 5) { clearTimeout(playT); go(); } else if (!playT) playT = setTimeout(go, 1000);
@@ -1557,7 +1557,7 @@ const dlvSet = (cid, n) => { if (!cid || !(n > (S.dlv[cid] || 0))) return false;
 // «entregado»: aviso al servidor de hasta qué mensaje del otro tengo en este aparato (para su boomerang), una vez por mensaje nuevo
 let delT = 0;
 function deliveredAll() { clearTimeout(delT); delT = setTimeout(() => { if (!S.user) return; const done = ls.get('sa_delack', {}); let ch = false;
-  const go = (cid, n) => { if (n > (done[cid] || 0)) { done[cid] = n; ch = true; sb.rpc('msg_delivered_ack', { p_msg: n }).then(() => {}, () => {}); } };
+  const go = (cid, n) => { if (n > (done[cid] || 0)) { done[cid] = n; ch = true; sb.rpc('msg_delivered_ack', { p_msg: n }).then(() => v2Ping(cid), () => {}); } };
   Object.entries(S.msgs || {}).forEach(([cid, l]) => go(cid, lastOther(l, x => x.from_visitor)));
   Object.entries(S.vmsgs || {}).forEach(([cid, l]) => go(cid, lastOther(l, x => !x.mine)));
   if (ch) ls.set('sa_delack', done); }, 400); }
@@ -1691,7 +1691,7 @@ function bmSync() {
       requestAnimationFrame(() => { el.classList.remove('left', 'mid', 'home'); el.classList.add('part'); if ((was ?? -1) !== pct && (was != null || cur)) { el.classList.add('fly'); setTimeout(() => el.classList.remove('fly'), 1150); } el.style.setProperty('--p', pct / 100); });   // al moverse, gira
       return;
     }
-    if (el !== lastEl) { S.bmPos[id] = want; return bmPlace(el, want); }   // solo se mueve el del último mensaje
+    if (el !== lastEl && !((S.bmBusy[id] || 0) > Date.now() - 6000)) { S.bmPos[id] = want; return bmPlace(el, want); }   // solo se mueve el del último mensaje (o uno que aún está haciendo su viaje: lo termina antes del tic)
     if (!cur && !(Date.now() - (S.bmJustSent || 0) < 15000)) { S.bmPos[id] = want; return bmPlace(el, want); }
     const wait = (S.bmBusy[id] || 0) - Date.now();
     if (wait > 0) { bmPlace(el, cur); return setTimeout(bmSync, wait + 40); }   // a medio vuelo: termina el viaje y luego sigue
@@ -2960,8 +2960,12 @@ function v2TypSub() {
   V2.typKey = c.k; V2.typing[c.k] = 0;
   V2.typCh = sb.channel('typing:' + c.k, { config: { broadcast: { self: false } } }).on('broadcast', { event: 't' }, ({ payload }) => {
     if (!payload || payload.s === c.me) return; V2.typing[c.k] = Date.now(); v2TypDraw(); setTimeout(v2TypDraw, 4200);
-  }).subscribe();
+  }).on('broadcast', { event: 'p' }, ({ payload }) => {   // el otro ha cambiado algo (mensaje nuevo, leído, reproducido): quien escaneó lo pide al momento
+    if (!payload || payload.s === c.me || S.view?.t !== 'vchat' || S.view.id !== c.k) return; const v = (S.vchats || []).find(x => x.id === c.k); if (v) vFetch(v);
+  }).subscribe(st => { V2.typOk = st === 'SUBSCRIBED'; });
 }
+// aviso sin datos al otro lado del chat abierto para que actualice ya (sustituye a preguntar cada 3 s)
+let pingT = 0; function v2Ping(k) { clearTimeout(pingT); pingT = setTimeout(() => { const c = v2Ctx(); if (!c || !V2.typCh || (k && k !== c.k)) return; try { V2.typCh.send({ type: 'broadcast', event: 'p', payload: { s: c.me } }); } catch (e) {} }, 150); }
 function v2TypPing() { const c = v2Ctx(); if (!c || !V2.typCh || Date.now() - V2.lastTyp < 2500) return; V2.lastTyp = Date.now(); V2.typCh.send({ type: 'broadcast', event: 't', payload: { s: c.me } }); }
 function v2TypDraw() {
   const c = v2Ctx(), ms = $('#ms'); if (!c || !ms) return; const on = Date.now() - (V2.typing[c.k] || 0) < 4000;
@@ -3167,7 +3171,7 @@ function renderChat() {
   const code = codeOf(ch.code_id), list = S.msgs[ch.id] || [], fav = S.favs.has(ch.id), off = chatOff(ch);
   const unreadN = app.dataset.cv?.startsWith('c|' + ch.id + '|') ? 0 : (S.unread[ch.id] || list.filter(m => m.from_visitor && !m.read_at).length);
   if (S.unread[ch.id]) { delete S.unread[ch.id]; ls.set('sa_unread', S.unread); }
-  const markRead = () => { if (!document.hidden && list.some(m => m.from_visitor && !m.read_at)) { const now = new Date().toISOString(); list.forEach(m => { if (m.from_visitor && !m.read_at) m.read_at = now; }); sb.rpc('mark_chat_read', { p_chat: ch.id }).then(() => {}, () => {}); } };
+  const markRead = () => { if (!document.hidden && list.some(m => m.from_visitor && !m.read_at)) { const now = new Date().toISOString(); list.forEach(m => { if (m.from_visitor && !m.read_at) m.read_at = now; }); sb.rpc('mark_chat_read', { p_chat: ch.id }).then(() => v2Ping(ch.id), () => {}); } };
   const key = ['c', ch.id, ch.name, ch.note, ch.avatar, ch.blocked, off, fav, code?.name, ch.code_name, ls.get('sa_tour_chat', 0)].join('|');
   if (ch.is_group && !document.hidden) { gSeen(ch.id, list.at(-1)?.id); gProgress(ch.id); }
   if (patchMsgs(key, ownerMsgs(ch, list))) return markRead();
@@ -3210,9 +3214,9 @@ function renderChat() {
     if ($('#bl')) $('#bl').onclick = async () => { const v = !ch.blocked; $('#overlay').innerHTML = ''; ch.blocked = v; render(); const { error } = await sb.from('chats').update({ blocked: v }).eq('id', ch.id); if (error) { ch.blocked = !v; render(); toast('No se ha podido cambiar.'); } else toast(v ? 'Contacto bloqueado: ya no puede escribirte' : 'Contacto desbloqueado'); };
     $('#dc').onclick = async () => { if ($('#dc').dataset.sure) { $('#overlay').innerHTML = ''; await sb.from('chats').delete().eq('id', ch.id); S.chats = S.chats.filter(x => x.id !== ch.id); S.view = null; S.tab = 'chats'; toast('Chat borrado'); render(); } else { $('#dc').dataset.sure = 1; $('#dc').textContent = 'Pulsa otra vez para borrar el chat'; } };
   };
-  const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; v2SendFly(); i.value = ''; S.bmJustSent = Date.now(); const { data, error } = await sb.from('messages').insert({ chat_id: ch.id, from_visitor: false, sender_id: S.user.id, body: v2Wrap(ch.id, t) }).select().single(); if (error) return toast(/muted/.test(error.message || '') ? mutedMsg(S.ground?.[ch.id]?.owner_muted_until) : 'No se ha podido enviar.'); const l = (S.msgs[ch.id] ||= []); if (!l.find(x => x.id === data.id)) l.push(data); render(); $('#oi')?.focus(); };
+  const send = async () => { const i = $('#oi'), t = i.value.trim(); if (!t) return; v2SendFly(); i.value = ''; S.bmJustSent = Date.now(); const { data, error } = await sb.from('messages').insert({ chat_id: ch.id, from_visitor: false, sender_id: S.user.id, body: v2Wrap(ch.id, t) }).select().single(); if (error) return toast(/muted/.test(error.message || '') ? mutedMsg(S.ground?.[ch.id]?.owner_muted_until) : 'No se ha podido enviar.'); const l = (S.msgs[ch.id] ||= []); if (!l.find(x => x.id === data.id)) l.push(data); v2Ping(ch.id); render(); $('#oi')?.focus(); };
   $('#os').onclick = send; $('#oi').onkeydown = e => { if (e.key === 'Enter') send(); };
-  bindCompose(ch.id, async b => { S.bmJustSent = Date.now(); const { data, error } = await sb.from('messages').insert({ chat_id: ch.id, from_visitor: false, sender_id: S.user.id, body: b }).select().single(); if (error) throw error; const l = (S.msgs[ch.id] ||= []); if (!l.find(x => x.id === data.id)) l.push(data); render(); });
+  bindCompose(ch.id, async b => { S.bmJustSent = Date.now(); const { data, error } = await sb.from('messages').insert({ chat_id: ch.id, from_visitor: false, sender_id: S.user.id, body: b }).select().single(); if (error) throw error; const l = (S.msgs[ch.id] ||= []); if (!l.find(x => x.id === data.id)) l.push(data); v2Ping(ch.id); render(); });
 }
 
 /* ---------- chat con un código de otra persona (yo escaneé) ---------- */
@@ -3308,7 +3312,7 @@ async function renderVChat() {
   if ($('#os')) { $('#os').onclick = send; $('#oi').onkeydown = e => { if (e.key === 'Enter') send(); }; }
   if ($('#os')) bindCompose(v.id, async b => { S.bmJustSent = Date.now(); const { data } = await sb.rpc('visitor_send', { p_chat: v.id, p_token: v.token, p_body: b }); if (!data?.ok) { if (data?.error === 'muted') toast(mutedMsg(data.until)); throw new Error('send'); } await vFetch(v); });
   if (!S.vmsgs?.[v.id] || S.vread[v.id] === undefined) vFetch(v);
-  clearInterval(vPoll); vPoll = setInterval(() => { if (S.view?.t === 'vchat' && S.view.id === v.id && !document.hidden) vFetch(v); }, 3000);
+  clearInterval(vPoll); let vTick = 0; vPoll = setInterval(() => { if (S.view?.t !== 'vchat' || S.view.id !== v.id || document.hidden) return; vTick++; if (!V2.typOk || vTick % 5 === 0) vFetch(v); }, 3000);   // con el aviso en tiempo real conectado: de reserva cada 15 s
 }
 async function vFetch(v, bg) {
   S.vmsgs ||= {}; const l = S.vmsgs[v.id] ||= [];

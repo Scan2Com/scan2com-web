@@ -466,7 +466,7 @@ const vidBody = b => { const u = b.slice(4).replace(/#.*$/, ''), s = +(b.match(/
 // audios y vídeos: el tic verde sale cuando la otra persona los reproduce (no basta con abrir el chat)
 const isPlayable = b => isAudio(b) || isVideo(b);
 const isLoc = b => typeof b === 'string' && /^loc:-?\d{1,2}(\.\d+)?,-?\d{1,3}(\.\d+)?$/.test(b);
-const prevBody = b => /^dl(:\d+)?$/.test(b || '') ? '🚫 Mensaje borrado' : /^rx:\d+:/.test(b || '') ? (b.replace(/^rx:\d+:/, '') ? 'Ha reaccionado ' + b.replace(/^rx:\d+:/, '') : 'Ha quitado su reacción') : (b || '').startsWith('rp:{') ? '↩️ ' + prevBody((() => { try { return JSON.parse(b.slice(3)).b; } catch (e) { return ''; } })()) : /^cal:(missed|\d+)$/.test(b || '') ? (b === 'cal:missed' ? '📞 Llamada perdida' : '📞 Llamada') : isVideo(b) ? '🎥 Vídeo' : isFile(b) ? '📎 ' + fileMeta(b).name : isPhoto(b) ? '📷 Foto' : isAudio(b) ? '🎤 Audio' : isLoc(b) ? '📍 Ubicación' : (b || '');
+const prevBody = b => /^dl(:\d+)?$/.test(b || '') ? '🚫 Mensaje borrado' : /^rx:\d+:/.test(b || '') ? (b.replace(/^rx:\d+:/, '') ? 'Ha reaccionado ' + b.replace(/^rx:\d+:/, '') : 'Ha quitado su reacción') : (b || '').startsWith('rp:{') ? '↩️ ' + prevBody((() => { try { return JSON.parse(b.slice(3)).b; } catch (e) { return ''; } })()) : /^cal:(missed|\d+)$/.test(b || '') ? (b === 'cal:missed' ? '📞 Llamada perdida' : '📞 Llamada') : isVideo(b) ? '🎥 Vídeo' : isFile(b) ? '📎 ' + fileMeta(b).name : isPhoto(b) ? '📷 Foto' : isAudio(b) ? '🎤 Audio' : isLoc(b) ? '📍 Ubicación' : (emoParse(b)?.t ?? b ?? '');
 // vista previa de una ubicación: 4 teselas de OpenStreetMap centradas en el punto, con un marcador encima
 function locBody(b) {
   const [lat, lng] = b.slice(4).split(',').map(Number), z = 15, n = 2 ** z, W = 230, H = 130;

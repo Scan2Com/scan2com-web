@@ -1529,6 +1529,13 @@ const pcHint = () => IS_PHONE ? '' : `<div class="pchint">📱 ${Date.now() - ph
 /* ---------------- datos ---------------- */
 // entregado: hasta qué mensaje tiene copia el móvil de la otra persona (msg_sync); el boomerang va de «medio camino» (servidor) a «izquierda» (en su teléfono)
 const dlvSet = (cid, n) => { if (!cid || !(n > (S.dlv[cid] || 0))) return false; S.dlv[cid] = n; return true; };
+// «entregado»: aviso al servidor de hasta qué mensaje del otro tengo en este aparato (para su boomerang), una vez por mensaje nuevo
+let delT = 0;
+function deliveredAll() { clearTimeout(delT); delT = setTimeout(() => { if (!S.user) return; const done = ls.get('sa_delack', {}); let ch = false;
+  const go = (cid, n) => { if (n > (done[cid] || 0)) { done[cid] = n; ch = true; sb.rpc('msg_delivered_ack', { p_msg: n }).then(() => {}, () => {}); } };
+  Object.entries(S.msgs || {}).forEach(([cid, l]) => go(cid, lastOther(l, x => x.from_visitor)));
+  Object.entries(S.vmsgs || {}).forEach(([cid, l]) => go(cid, lastOther(l, x => !x.mine)));
+  if (ch) ls.set('sa_delack', done); }, 400); }
 async function loadDlv(saved) {
   const mem = S.dlv || {}; S.dlv = { ...(saved || {}) }; Object.entries(mem).forEach(([k, n]) => { if (n > (S.dlv[k] || 0)) S.dlv[k] = n; });   // nunca hacia atrás
   try { const { data } = await sb.from('msg_sync').select('chat_id,who,upto'); (data || []).forEach(r => { if (r.who !== S.user?.id) dlvSet(r.chat_id, +r.upto); }); } catch (e) {}
@@ -1564,7 +1571,7 @@ async function loadAll() {
   S.vmsgs ||= {}; S.vread ||= {};
   Object.entries(local.v || {}).forEach(([k, l]) => { S.vmsgs[k] = mergeById(l, S.vmsgs[k]); });
   Object.entries(local.vr || {}).forEach(([k, n]) => { S.vread[k] = Math.max(n || 0, S.vread[k] || 0); });
-  loadDlv(local.dl); loadMutes(); setTimeout(offerLock, 8000);
+  loadDlv(local.dl); loadMutes(); setTimeout(offerLock, 8000); deliveredAll();
   (S.vchats || []).forEach(v => { const l = S.vmsgs[v.id]; if (l?.length && (!v.last || v.last.id < l.at(-1).id)) v.last = { ...l.at(-1) }; });
   saveHist(); histChannel();
   if (IS_PHONE) Promise.all((S.vchats || []).map(v => vFetch(v, true))).then(() => cacheAllMedia()); else cacheAllMedia();
@@ -1683,7 +1690,7 @@ function subscribe() {
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async ({ new: m }) => {
       if (!S.chats.find(c => c.id === m.chat_id)) { const { data } = await sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note,avatar,calls,is_group').eq('id', m.chat_id).single(); if (data) S.chats.unshift(data); }
       const list = (S.msgs[m.chat_id] ||= []); if (!list.find(x => x.id === m.id)) list.push(m); saveHist(); if (mediaUrl(m.body)) cacheAllMedia();
-      if (m.from_visitor) sb.rpc('msg_delivered_ack', { p_msg: m.id }).then(() => {}, () => {});
+      if (m.from_visitor) deliveredAll();
       if (m.from_visitor) {
         const viewing = S.view?.t === 'chat' && S.view.id === m.chat_id && !document.hidden;
         if (viewing && V2.typing[m.chat_id]) V2.typing[m.chat_id] = 0;
@@ -3257,7 +3264,7 @@ async function vFetch(v, bg) {
     if (old) Object.entries(v.gm).forEach(([pid, x]) => { if (x.name && old[pid]?.name !== x.name && pid !== String(v.me?.id)) toast(`🪪 ${x.alias} dice llamarse «${x.name}». Ojo: no sabemos si es su nombre real.`); }); v.rf = +data.round_from || 0; v.rounds = +data.rounds || 0; v.oa = data.owner_alias || null; v.oc = data.owner_color || null; if (v.rf) render(true); if (!data.messages.length) render(true); } }
   const ru = Math.max(data.read_upto || 0, S.vread[v.id] || 0); S.ppct ||= {};
   const np = Object.entries(data.played_pct || {}).filter(([id, p]) => p > pctOf(+id)); np.forEach(([id, p]) => { S.ppct[+id] = p; }); if (np.length) saveHist();
-  { const theirs = (data.messages || []).filter(x => !x.mine).map(x => x.id); if (theirs.length && S.user) sb.rpc('msg_delivered_ack', { p_msg: Math.max(...theirs) }).then(() => {}, () => {}); }
+  setTimeout(deliveredAll, 50);
   const dch = dlvSet(v.id, +data.deliv_upto || 0); const changed = dch || np.length || data.messages.length || v.alive !== data.alive || ru !== S.vread[v.id]; v.alive = data.alive; S.vread[v.id] = ru;
   data.messages.forEach(m => { if (!l.find(x => x.id === m.id)) l.push(m); });
   if (data.messages.length) { saveHist(); if (data.messages.some(m => mediaUrl(m.body))) setTimeout(cacheAllMedia, 50); }

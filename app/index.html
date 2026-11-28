@@ -2696,7 +2696,8 @@ function qrMini(c) { const url = SITE + '/s/' + c.id; if (QRMINI[url]) return QR
 // color de cada medio (etiquetas y boomerangs): rojo Alert, verde Chat y llamadas, amarillo Info, azul Mail; web en gris
 const MCOL = { alert: '#e8352b|', chat: '#2fc23a|', call: '#2fc23a|', mail: '#1f86e0|', info: '#e8b923|', web: '#e0249a|' };
 function codeCols(c) { const g = '#8d979b'; if (!c.is_on) return [g, g, g, g]; if (c.ch_redirect && c.redirect_url) return ['#e0249a', '#e0249a', '#e0249a', '#e0249a'];
-  return [c.ch_alert || c.auto_alert ? '#e8352b' : g, c.ch_chat || c.ch_call ? '#2fc23a' : g, c.ch_info ? '#e8b923' : g, c.ch_mail ? '#1f86e0' : g]; }
+  // mismas posiciones que el icono: arriba azul (Mail) y verde (Chat), abajo rojo (Alert) y amarillo (Info)
+  return [c.ch_mail ? '#1f86e0' : g, c.ch_chat || c.ch_call ? '#2fc23a' : g, c.ch_alert || c.auto_alert ? '#e8352b' : g, c.ch_info ? '#e8b923' : g]; }
 
 /* ---------- chat ---------- */
 // chat de grupo: participantes con alias al azar (Zorro azul…); color según el alias

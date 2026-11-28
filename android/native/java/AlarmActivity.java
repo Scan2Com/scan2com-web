@@ -30,6 +30,9 @@ import android.widget.TextView;
 /** Pantalla de sirena: se muestra sobre la pantalla de bloqueo y suena a volumen máximo hasta pulsar Recibido. */
 public class AlarmActivity extends Activity {
     public static final int NOTIF_ID = 4242;
+    static volatile AlarmActivity current;   // la sirena que está en pantalla (para pararla desde un aviso de «terminado»)
+    static volatile String lastEv;
+    String ev() { return getIntent().getStringExtra("ev"); }
     private MediaPlayer player;
     private Vibrator vib;
     private int oldVol = -1;
@@ -48,8 +51,30 @@ public class AlarmActivity extends Activity {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
         }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        current = this;
         build(getIntent());
         start();
+    }
+
+    /** Quien envió la alerta la ha dado por resuelta o terminada: se calla y lo explica. */
+    void ended(String title, String body) {
+        stopAll();
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL); root.setGravity(Gravity.CENTER);
+        root.setBackgroundColor(Color.WHITE); root.setPadding(dp(28), dp(28), dp(28), dp(28));
+        TextView ic = new TextView(this); ic.setText("✅"); ic.setTextSize(72); ic.setGravity(Gravity.CENTER);
+        root.addView(ic);
+        TextView t = new TextView(this); t.setText(title == null ? "Alerta terminada" : title);
+        t.setTextSize(24); t.setTextColor(Color.parseColor("#1A9C16")); t.setGravity(Gravity.CENTER); t.setTypeface(Typeface.DEFAULT_BOLD); t.setPadding(0, dp(12), 0, 0);
+        root.addView(t);
+        TextView m = new TextView(this); m.setText(body == null ? "" : body);
+        m.setTextSize(18); m.setTextColor(Color.parseColor("#444444")); m.setGravity(Gravity.CENTER); m.setPadding(0, dp(10), 0, dp(24));
+        root.addView(m);
+        Button ok = new Button(this); ok.setText("Ver"); ok.setAllCaps(false); ok.setTextSize(20); ok.setTextColor(Color.WHITE);
+        GradientDrawable bg = new GradientDrawable(); bg.setColor(Color.parseColor("#1A9C16")); bg.setCornerRadius(dp(14)); ok.setBackground(bg);
+        ok.setOnClickListener(v -> received());
+        root.addView(ok, new LinearLayout.LayoutParams(dp(280), dp(60)));
+        setContentView(root);
     }
 
     @Override
@@ -132,5 +157,5 @@ public class AlarmActivity extends Activity {
     public void onBackPressed() { /* hay que pulsar Recibido */ }
 
     @Override
-    protected void onDestroy() { stopAll(); super.onDestroy(); }
+    protected void onDestroy() { if (current == this) current = null; stopAll(); super.onDestroy(); }
 }

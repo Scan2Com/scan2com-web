@@ -229,7 +229,16 @@ $('#send').onclick = async () => {
 async function hist() {
   const { data } = await sb.rpc('zone_history');
   const it = data?.items || [];
-  $('#hist').innerHTML = it.length ? it.map((h, i) => `<div class="h" data-i="${i}">${(KINDS.find(k => k[0] === h.kind) || KINDS[4])[1]} <b>${esc(h.title)}</b>${h.group && (S.role.admin || S.role.groups.length > 1) ? ` <span style="color:var(--mut)">· ${esc(h.group)}</span>` : ''} · ${h.users} avisad${h.users === 1 ? 'a' : 'as'}, ${h.read} lo ${h.read === 1 ? 'ha' : 'han'} leído<small>${new Date(h.at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })} · ${Array.isArray(h.poly) ? 'zona dibujada' : fmtM(h.radius)} · ${{ both: 'coches y personas', cars: 'coches', people: 'personas' }[h.targets]}</small><small>${esc(h.body)}</small></div>`).join('') : '<div class="empty">Todavía no has enviado ningún aviso.</div>';
+  $('#hist').innerHTML = it.length ? it.map((h, i) => `<div class="h" data-i="${i}">${(KINDS.find(k => k[0] === h.kind) || KINDS[4])[1]} <b>${esc(h.title)}</b>${h.group && (S.role.admin || S.role.groups.length > 1) ? ` <span style="color:var(--mut)">· ${esc(h.group)}</span>` : ''} · ${h.users} avisad${h.users === 1 ? 'a' : 'as'}, ${h.read} lo ${h.read === 1 ? 'ha' : 'han'} leído<small>${new Date(h.at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })} · ${Array.isArray(h.poly) ? 'zona dibujada' : fmtM(h.radius)} · ${{ both: 'coches y personas', cars: 'coches', people: 'personas' }[h.targets]} · ${h.ended_at ? `<b style="color:#1a9c16">${h.end_kind === 'error' ? '↩️ Anulado' : '✅ Terminado'}</b>${h.end_note ? ' (' + esc(h.end_note) + ')' : ''}` : '<b style="color:#e8352b">Activo</b>'}</small><small>${esc(h.body)}</small>${h.ended_at ? '' : `<div class="row" style="margin-top:6px"><button type="button" data-end="${h.id}" data-k="ended" style="background:#1a9c16;min-height:36px;padding:6px 10px">✅ Dar por terminado</button><button type="button" class="light" data-end="${h.id}" data-k="error" style="min-height:36px;padding:6px 10px">↩️ Anular (error)</button></div>`}</div>`).join('') : '<div class="empty">Todavía no has enviado ningún aviso.</div>';
+  $('#hist').querySelectorAll('[data-end]').forEach(b => b.onclick = async ev => {
+    ev.stopPropagation(); const k = b.dataset.k;
+    const note = prompt(k === 'error' ? '¿Anular este aviso? Quien lo recibió verá que se envió por error y dejará de sonar.\n\nNota opcional:' : '¿Dar por terminado este aviso? Quien lo recibió verá que ya no hay peligro y dejará de sonar.\n\nNota opcional (p. ej. «Ya se puede circular»):', '');
+    if (note === null) return;
+    b.disabled = true;
+    const { data, error } = await sb.rpc('zone_end', { p_alert: +b.dataset.end, p_kind: k, p_note: note.trim() || null });
+    if (error || !data?.ok) { b.disabled = false; return alert('No se ha podido' + (error ? ' (falta aplicar la actualización 045 en el servidor).' : '.')); }
+    hist();
+  });
   $('#hist').querySelectorAll('[data-i]').forEach(d => d.onclick = () => {
     const h = it[+d.dataset.i]; if (past) past.remove();
     past = (Array.isArray(h.poly) && h.poly.length >= 3 ? L.polygon(h.poly, { color: '#888', dashArray: '6 6', weight: 2, fillOpacity: .06 }) : L.circle([h.lat, h.lng], { radius: h.radius, color: '#888', dashArray: '6 6', weight: 2, fillOpacity: .06 })).addTo(map).bindTooltip(h.title).openTooltip();

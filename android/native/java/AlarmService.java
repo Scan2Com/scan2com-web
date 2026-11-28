@@ -32,6 +32,14 @@ public class AlarmService extends MessagingService {
         String body = d.containsKey("body") ? d.get("body") : "";
         String url = d.containsKey("url") ? d.get("url") : "/app/";
         if (d.containsKey("call_end")) { stopCall(this); return; }
+        if ("1".equals(d.get("alarm_stop"))) {   // quien avisó lo da por resuelto o terminado: para la sirena y deja un aviso normal
+            String ev = d.get("ev");
+            AlarmActivity a = AlarmActivity.current;
+            if (a != null && (ev == null || ev.equals(a.ev()))) a.runOnUiThread(() -> a.ended(title, body));
+            else if (ev != null && ev.equals(AlarmActivity.lastEv)) ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(AlarmActivity.NOTIF_ID);
+            showMessage(this, title, body, url, d.get("tag"));
+            return;
+        }
         if ("1".equals(d.get("call"))) { if (!MainActivity.visible) showCall(this, title, d.get("call_id")); return; }   // con la app en pantalla la llamada llega por tiempo real
         if ("1".equals(d.get("alarm"))) showAlarm(this, title, body, d.get("ev"), url);
         else if (!MainActivity.visible) showMessage(this, title, body, url, d.get("tag"));   // con la app en pantalla no hace falta la notificación
@@ -65,6 +73,7 @@ public class AlarmService extends MessagingService {
 
     static void showAlarm(Context c, String title, String body, String ev, String url) {
         channels(c);
+        AlarmActivity.lastEv = ev;
         Intent full = new Intent(c, AlarmActivity.class)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
             .putExtra("title", title).putExtra("body", body).putExtra("ev", ev).putExtra("url", url);

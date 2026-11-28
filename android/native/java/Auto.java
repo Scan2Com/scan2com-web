@@ -80,6 +80,21 @@ public class Auto {
         return null;
     }
 
+    /** Mensaje de chat recibido por notificación: «entregado» (con la llave del móvil, aunque la app esté cerrada). */
+    static void delivered(Context c, String msgId) {
+        JSONObject k = cfg(c);
+        try {
+            if (!k.has("token") || k.isNull("token")) return;
+            URL u = new URL(k.getString("url") + "/rest/v1/rpc/device_delivered");
+            HttpURLConnection h = (HttpURLConnection) u.openConnection();
+            h.setRequestMethod("POST"); h.setConnectTimeout(15000); h.setReadTimeout(15000); h.setDoOutput(true);
+            h.setRequestProperty("Content-Type", "application/json"); h.setRequestProperty("apikey", k.getString("key"));
+            JSONObject b = new JSONObject().put("p_token", k.getString("token")).put("p_msg", Long.parseLong(msgId));
+            try (OutputStream o = h.getOutputStream()) { o.write(b.toString().getBytes(StandardCharsets.UTF_8)); }
+            h.getResponseCode(); h.disconnect();
+        } catch (Exception ignored) {}
+    }
+
     /** Enciende/apaga un código en el servidor con la llave del móvil. */
     static boolean setOn(Context c, String code, boolean on) {
         JSONObject k = cfg(c);

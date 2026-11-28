@@ -1202,7 +1202,7 @@ async function syncAuto() {
   const A = AUTO(); if (!A || !S.user) return;
   let tok = ls.get('sa_dev_' + S.user.id, null);
   const mine = S.codes.filter(c => c.owner_id === S.user.id && c.bt_auto && c.bt_addr && c.ch_alert);
-  if (!tok && mine.length) { const { data } = await sb.rpc('register_device'); if (data) { tok = data; ls.set('sa_dev_' + S.user.id, tok); } }
+  if (!tok) { const { data } = await sb.rpc('register_device'); if (data) { tok = data; ls.set('sa_dev_' + S.user.id, tok); } }
   const cfg = { url: 'https://kbkyosyenotqjcgujbmn.supabase.co', key: 'sb_publishable_Ac2fFMZTIWXMGfEURbVc8Q_Z2gcpujt', token: tok,
     codes: mine.map(c => ({ id: c.id, name: c.name || c.public_name, bt: c.bt_addr, drive: !!c.bt_drive_off })),
     places: (S.places || []).map(p => ({ name: p.name, lat: p.lat, lng: p.lng, radius: p.radius })), zone: !!S.zone };
@@ -1532,6 +1532,7 @@ const dlvSet = (cid, n) => { if (!cid || !(n > (S.dlv[cid] || 0))) return false;
 async function loadDlv(saved) {
   const mem = S.dlv || {}; S.dlv = { ...(saved || {}) }; Object.entries(mem).forEach(([k, n]) => { if (n > (S.dlv[k] || 0)) S.dlv[k] = n; });   // nunca hacia atrás
   try { const { data } = await sb.from('msg_sync').select('chat_id,who,upto'); (data || []).forEach(r => { if (r.who !== S.user?.id) dlvSet(r.chat_id, +r.upto); }); } catch (e) {}
+  try { const { data } = await sb.from('msg_delivered').select('chat_id,who,upto'); (data || []).forEach(r => { if (r.who !== S.user?.id) dlvSet(r.chat_id, +r.upto); }); } catch (e) {}
 }
 async function loadAll() {
   const [c, ch, f, ev, pl] = await Promise.all([
@@ -1682,6 +1683,7 @@ function subscribe() {
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async ({ new: m }) => {
       if (!S.chats.find(c => c.id === m.chat_id)) { const { data } = await sb.from('chats').select('id,code_id,name,created_at,blocked,code_name,note,avatar,calls,is_group').eq('id', m.chat_id).single(); if (data) S.chats.unshift(data); }
       const list = (S.msgs[m.chat_id] ||= []); if (!list.find(x => x.id === m.id)) list.push(m); saveHist(); if (mediaUrl(m.body)) cacheAllMedia();
+      if (m.from_visitor) sb.rpc('msg_delivered_ack', { p_msg: m.id }).then(() => {}, () => {});
       if (m.from_visitor) {
         const viewing = S.view?.t === 'chat' && S.view.id === m.chat_id && !document.hidden;
         if (viewing && V2.typing[m.chat_id]) V2.typing[m.chat_id] = 0;
@@ -1696,6 +1698,7 @@ function subscribe() {
       x.read_at = m.read_at; x.played_at = m.played_at; x.played_pct = m.played_pct; if (m.played_pct) (S.ppct ||= {})[m.id] = Math.max(pctOf(m.id), m.played_pct); saveHist(); if (S.view?.t === 'chat' && S.view.id === m.chat_id) render(true);
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'calls' }, ({ new: c }) => callRow(c))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'msg_delivered' }, ({ new: r }) => { if (!r?.chat_id || r.who === S.user?.id || !dlvSet(r.chat_id, +r.upto)) return; saveHist(); if ((S.view?.t === 'chat' || S.view?.t === 'vchat') && S.view.id === r.chat_id) render(true); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'msg_sync' }, ({ new: r }) => { if (!r?.chat_id || r.who === S.user?.id || !dlvSet(r.chat_id, +r.upto)) return; saveHist(); if ((S.view?.t === 'chat' || S.view?.t === 'vchat') && S.view.id === r.chat_id) render(true); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_reads' }, ({ new: r }) => {
       if (!r?.chat_id) return; const o = S.reads[r.chat_id] || {}; S.reads[r.chat_id] = { ...r, visitor_upto: Math.max(o.visitor_upto || 0, r.visitor_upto || 0) }; saveHist();
@@ -3254,6 +3257,7 @@ async function vFetch(v, bg) {
     if (old) Object.entries(v.gm).forEach(([pid, x]) => { if (x.name && old[pid]?.name !== x.name && pid !== String(v.me?.id)) toast(`🪪 ${x.alias} dice llamarse «${x.name}». Ojo: no sabemos si es su nombre real.`); }); v.rf = +data.round_from || 0; v.rounds = +data.rounds || 0; v.oa = data.owner_alias || null; v.oc = data.owner_color || null; if (v.rf) render(true); if (!data.messages.length) render(true); } }
   const ru = Math.max(data.read_upto || 0, S.vread[v.id] || 0); S.ppct ||= {};
   const np = Object.entries(data.played_pct || {}).filter(([id, p]) => p > pctOf(+id)); np.forEach(([id, p]) => { S.ppct[+id] = p; }); if (np.length) saveHist();
+  { const theirs = (data.messages || []).filter(x => !x.mine).map(x => x.id); if (theirs.length && S.user) sb.rpc('msg_delivered_ack', { p_msg: Math.max(...theirs) }).then(() => {}, () => {}); }
   const dch = dlvSet(v.id, +data.deliv_upto || 0); const changed = dch || np.length || data.messages.length || v.alive !== data.alive || ru !== S.vread[v.id]; v.alive = data.alive; S.vread[v.id] = ru;
   data.messages.forEach(m => { if (!l.find(x => x.id === m.id)) l.push(m); });
   if (data.messages.length) { saveHist(); if (data.messages.some(m => mediaUrl(m.body))) setTimeout(cacheAllMedia, 50); }

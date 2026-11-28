@@ -41,6 +41,9 @@ public class AlarmService extends MessagingService {
             return;
         }
         if ("1".equals(d.get("call"))) { if (!MainActivity.visible) showCall(this, title, d.get("call_id")); return; }   // con la app en pantalla la llamada llega por tiempo real
+        // mensaje de chat: avisar al servidor de que ha llegado al móvil (el boomerang del otro llega a este lado), aunque no se abra
+        String tg = d.get("tag");
+        if (tg != null && (tg.startsWith("chat-") || tg.startsWith("vchat-")) && d.get("ev") != null) { final String ev = d.get("ev"); new Thread(() -> Auto.delivered(getApplicationContext(), ev)).start(); }
         if ("1".equals(d.get("alarm"))) showAlarm(this, title, body, d.get("ev"), url);
         else if (!MainActivity.visible) showMessage(this, title, body, url, d.get("tag"));   // con la app en pantalla no hace falta la notificación
     }

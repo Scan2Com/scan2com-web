@@ -1095,6 +1095,8 @@ function fbkPlace() {
   const typing = /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || '') && !document.activeElement.closest('#fbs');
   b.style.display = typing ? 'none' : 'grid';
   b.style.bottom = cmp ? `${Math.max(22, innerHeight - cmp.getBoundingClientRect().top + 12)}px` : tabs ? 'calc(72px + env(safe-area-inset-bottom))' : 'calc(22px + env(safe-area-inset-bottom))';
+  // en los chats, hueco al final de la conversación para que el botón BETA no tape el último mensaje
+  const ms = $('#ms'); if (ms) { const want = cmp && !typing ? '74px' : ''; if (ms.style.paddingBottom !== want) { const cb = $('#cb'), atEnd = cb && cb.scrollHeight - cb.scrollTop - cb.clientHeight < 140; ms.style.paddingBottom = want; if (atEnd) cb.scrollTop = cb.scrollHeight; } }
 }
 document.addEventListener('focusin', () => setTimeout(fbkPlace, 50)); document.addEventListener('focusout', () => setTimeout(fbkPlace, 120));
 addEventListener('resize', () => fbkPlace());

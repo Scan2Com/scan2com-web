@@ -1673,7 +1673,7 @@ function bmSync() {
     if (!cur) {   // recién enviado: siempre sale volando a la izquierda; si ya está leído, vuelve después
       const first = want === 'mid' ? 'mid' : 'left'; S.bmJustSent = 0; S.bmPos[id] = first;
       const start = (e = el) => { S.bmBusy[id] = Date.now() + 1300; bmFly(e, 'home', first); if (want === 'home') setTimeout(bmSync, 1350); };
-      if (V2.fly && !V2.fly.bm && V2.fly.end > Date.now()) { const fl = V2.fly, land = fl.grp ? 'left' : 'mid'; fl.bm = el; S.bmPos[id] = land; bmPlace(el, land); el.style.visibility = 'hidden'; S.bmBusy[id] = fl.end + 50; if (want !== land) setTimeout(bmSync, fl.end - Date.now() + 100); } else start();
+      if (V2.fly && !V2.fly.bm && V2.fly.end > Date.now()) { const fl = V2.fly, land = fl.grp ? 'left' : 'mid'; fl.bm = el; S.bmPos[id] = land; el.style.visibility = 'hidden'; fl.aim?.(el, land); bmPlace(el, land); S.bmBusy[id] = fl.end + 50; if (want !== land) setTimeout(bmSync, fl.end - Date.now() + 100); } else start();
       return;
     }
     if (cur === want) return bmPlace(el, want);
@@ -2908,13 +2908,16 @@ function v2SendFly() {
   const hx = mr.right - 14 - 6 - 16, hy = Math.min(cr.bottom, innerHeight) - 10 - 6 - 17, lx = grp ? mr.left + 8 : (hx + mr.left + 8) / 2;   // chat de dos: llega al servidor (medio camino); grupo: al otro lado
   const T = (x, y, a, sc) => 'translate(' + (x - r.left) + 'px,' + (y - r.top) + 'px) rotate(' + a + 'deg) scale(' + sc + ')';
   // salto en arco, sin crecer, directo a la esquina de abajo a la derecha del mensaje; de ahí, por la misma franja, a la izquierda
-  const mx = (r.left + hx) / 2, my = Math.min(r.top, hy) - 46;
-  const D = 1400, a = f.animate([
+  const K = (hx, hy, lx) => { const mx = (r.left + hx) / 2, my = Math.min(r.top, hy) - 46; return [
     { transform: T(r.left, r.top, 225, 1), backgroundColor: '#2fc23a', easing: 'cubic-bezier(.3,.5,.6,1)' },
     { transform: T(mx, my, 225 + 360, (1 + bs) / 2), backgroundColor: '#9aa0a6', offset: .18, easing: 'cubic-bezier(.4,0,.7,.6)' },
     { transform: T(hx, hy, 225 + 720, bs), backgroundColor: '#9aa0a6', offset: .36, easing: 'linear' },
-    { transform: T(lx, hy, 225 + 720 + 1800 * (grp ? 1 : .5), bs), backgroundColor: '#9aa0a6', easing: 'cubic-bezier(.3,0,.25,1)' }], { duration: D, fill: 'forwards' });
+    { transform: T(lx, hy, 225 + 720 + 1800 * (grp ? 1 : .5), bs), backgroundColor: '#9aa0a6', easing: 'cubic-bezier(.3,0,.25,1)' }]; };
+  const D = 1400, a = f.animate(K(hx, hy, lx), { duration: D, fill: 'forwards' });
   const fl = V2.fly = { el: f, end: Date.now() + D, bm: null, grp: !!grp }; trKick(D + 1800);
+  // en cuanto existe el acuse real del mensaje, el vuelo se reajusta a su franja exacta (misma línea que el tic, sin subir al pararse)
+  fl.aim = (el, land) => { try { const c = q => { bmPlace(el, q); const b = el.getBoundingClientRect(); return [b.left + b.width / 2 - r.width / 2, b.top + b.height / 2 - r.height / 2]; };
+    const [h0, h1] = c('home'), [l0] = c(land); a.effect.setKeyframes(K(h0, h1, l0)); } catch (e) {} };
   a.onfinish = () => { if (fl.bm) fl.bm.style.visibility = ''; f.remove(); if (V2.fly === fl) V2.fly = null; };
   // el botón pasa ya a micrófono, que aparece creciendo desde un punto
   btn.classList.remove('txt', 'regrow'); void btn.offsetWidth; btn.classList.add('regrow'); setTimeout(() => btn.classList.remove('regrow'), 900);

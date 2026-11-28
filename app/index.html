@@ -142,7 +142,7 @@ label{font-size:13px;color:var(--mut)}
 .bm b{display:none}
 .bm.home:not(.fly) i{display:none}
 .bm.home:not(.fly) b{display:block;line-height:0}
-.bm.now,.bm.now i{transition:none!important}
+.bm.now,.bm.now i,html.nobm .bm,html.nobm .bm i{transition:none!important}html.nobm .bm.arr b{animation:none}
 @keyframes bmspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 /* volviendo a medias (grupos, audios y vídeos): gira mientras vuelve y se queda en el giro que le toca (4 vueltas en el camino completo) */
 
@@ -1613,7 +1613,11 @@ function bmFly(el, from, to) { bmPlace(el, from); el.classList.add('fly'); el.cl
 // estelas del boomerang: cada punta deja un trazo que sigue su giro y se desvanece detrás (sin cambiar su tamaño)
 const TR = { cv: null, x: null, tr: {}, last: {}, raf: 0, until: 0 };
 const TIPS = [[-.469, -.484], [.469, .453]];   // puntas del boomerang (en su caja, desde el centro)
-function trKick(ms = 1600) { TR.until = Math.max(TR.until, performance.now() + ms); if (!TR.raf) TR.raf = requestAnimationFrame(trTick); }
+// ajuste «Efecto del boomerang» (activado por defecto; se guarda en este móvil)
+const bmFx = () => { try { return localStorage.getItem('sa_bmfx') !== 'off'; } catch (e) { return true; } };
+const applyBmFx = () => document.documentElement.classList.toggle('nobm', !bmFx());
+applyBmFx();
+function trKick(ms = 1600) { if (!bmFx()) return; TR.until = Math.max(TR.until, performance.now() + ms); if (!TR.raf) TR.raf = requestAnimationFrame(trTick); }
 function trTick() {
   TR.raf = 0; const now = performance.now(), dpr = devicePixelRatio || 1;
   if (!TR.cv || !document.body.contains(TR.cv)) { const c = document.createElement('canvas'); c.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:69'; document.body.appendChild(c); TR.cv = c; TR.x = c.getContext('2d'); }
@@ -2181,6 +2185,7 @@ function accountMenu() {
     ${mrow('nt', IC.bell(20), 'Notificaciones', NATIVE && S.av ? (avMissing() ? 'Falta configurar: toca para completarlo' : 'Configuradas ✓') : notifOn() ? 'Activadas ✓' : 'Desactivadas: toca para activarlas')}
     ${mrow('zn', IC.alert(20), 'Avisos de emergencia en tu zona', 'Te avisa de incendios, inundaciones, calles cortadas o retirada de coches cerca de ti o de donde dejaste el coche. Los envían la policía y los servicios de emergencia. ¿Eres un servicio público? Contáctanos para ofrecerlos · <b style="color:' + (S.zone ? '#1a9c16' : '#999') + '">' + (S.zone ? (S.av && (S.av.loc === false || S.av.locOn === false) ? 'Falta la ubicación' : 'Activados') : 'Desactivados') + '</b>')}
     ${mrow('cbg', IC.chat(20), 'Fondo de los chats', chatBgName())}
+    ${mrow('bmfx', BMA(225, 20), 'Efecto del boomerang', bmFx() ? 'Activado: vuela y gira al enviar y al leerse · toca para quitarlo' : 'Desactivado: el boomerang cambia de sitio sin moverse · toca para activarlo')}
     ${mrow('bkp', '💾', 'Copia de seguridad de los chats', 'Guárdalos en un archivo protegido con PIN y recupéralos en otro móvil')}
     ${mrow('lck', '🔒', 'Bloqueo de la app', appPin() ? (useBio() ? 'Activado: huella o PIN al abrir' : 'Activado: pide tu PIN al abrir') : 'Pide un PIN o tu huella al abrir la app')}
     ${mrow('sp', BTCAR, 'Coche: Bluetooth y lugares seguros', `La pegatina del coche se activa sola al apagarse el Bluetooth del coche (al bajarte), salvo en tus lugares seguros (${(S.places || []).length})`)}
@@ -2207,6 +2212,7 @@ function accountMenu() {
   $('#nt').onclick = async () => { $('#overlay').innerHTML = ''; if (NATIVE && S.av) return avOpen(true); if (notifOn()) return toast('Las notificaciones ya están activadas en este móvil.'); await enablePush(true); };
   $('#wb').onclick = webInfo;
   $('#cbg').onclick = chatBgPicker;
+  $('#bmfx').onclick = () => { const on = !bmFx(); try { localStorage.setItem('sa_bmfx', on ? 'on' : 'off'); } catch (e) {} applyBmFx(); toast(on ? 'Efecto del boomerang activado' : 'Efecto del boomerang desactivado'); accountMenu(); };
   $('#bkp').onclick = backupSheet; $('#lck').onclick = lockSheet; $('#shr').onclick = shareApp; $('#dacc').onclick = deleteAccount;
   if ($('#ins')) $('#ins').onclick = () => { $('#overlay').innerHTML = ''; toast('En Chrome (Android): menú ⋮ → “Añadir a pantalla de inicio”. En iPhone (Safari): Compartir → “Añadir a pantalla de inicio”.'); };
 }
@@ -2898,6 +2904,7 @@ function v2After() {
 // enviar: el propio boomerang verde salta girando, baja a la línea del acuse del mensaje nuevo y sigue por ella hacia
 // la izquierda, todo en un solo movimiento fluido; en el botón reaparece el micrófono creciendo desde un punto
 function v2SendFly() {
+  if (!bmFx()) return;
   const btn = $('#os'), ic = btn?.querySelector('.bmsend'), cb = $('#cb'), ms = $('#ms'); if (!ic || !btn.classList.contains('txt') || !cb || !ms) return;
   const r = ic.getBoundingClientRect(); if (!r.width) return;
   V2.fly?.el.remove(); V2.sentAt = Date.now();

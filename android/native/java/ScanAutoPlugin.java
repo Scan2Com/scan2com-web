@@ -109,10 +109,9 @@ public class ScanAutoPlugin extends Plugin {
         JSObject r = new JSObject();
         if (!need.isEmpty()) { getActivity().requestPermissions(need.toArray(new String[0]), 77); r.put("step", "basic"); call.resolve(r); return; }
         if (Build.VERSION.SDK_INT >= 29 && !granted(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
-            if (Build.VERSION.SDK_INT >= 30) {
-                Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName()));
-                getActivity().startActivity(i);
-            } else getActivity().requestPermissions(new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 78);
+            // Android 11+: pedir ACCESS_BACKGROUND_LOCATION abre directamente la pantalla «Ubicación» de la app (con «Permitir todo el tiempo»)
+            try { getActivity().requestPermissions(new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 78); }
+            catch (Exception e) { getActivity().startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName()))); }
             r.put("step", "background"); call.resolve(r); return;
         }
         PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);

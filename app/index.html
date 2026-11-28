@@ -1591,7 +1591,40 @@ S.bmPos = {}; S.vread = {}; S.bmBusy = {};
 function keepKb() { const b = $('#os'); if (b) { b.onpointerdown = e => e.preventDefault(); b.onmousedown = e => e.preventDefault(); } }
 function bmPlace(el, p) { el.classList.remove('home', 'left', 'mid', 'fly', 'part'); el.classList.add('now', p); void el.offsetWidth; el.classList.remove('now'); }
 function bmFly(el, from, to) { bmPlace(el, from); el.classList.add('fly'); el.classList.remove(from); el.classList.add(to); setTimeout(() => { el.classList.remove('fly'); if (to === 'home') { el.classList.add('arr'); setTimeout(() => el.classList.remove('arr'), 600); } }, 1150); }
+// estelas del boomerang: cada punta deja un trazo que sigue su giro y se desvanece detrás (sin cambiar su tamaño)
+const TR = { cv: null, x: null, tr: {}, last: {}, raf: 0, until: 0 };
+const TIPS = [[-.469, -.484], [.469, .453]];   // puntas del boomerang (en su caja, desde el centro)
+function trKick(ms = 1600) { TR.until = Math.max(TR.until, performance.now() + ms); if (!TR.raf) TR.raf = requestAnimationFrame(trTick); }
+function trTick() {
+  TR.raf = 0; const now = performance.now(), dpr = devicePixelRatio || 1;
+  if (!TR.cv || !document.body.contains(TR.cv)) { const c = document.createElement('canvas'); c.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:69'; document.body.appendChild(c); TR.cv = c; TR.x = c.getContext('2d'); }
+  const cv = TR.cv, W = innerWidth, H = innerHeight; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const box = $('#ms'), br = box ? box.getBoundingClientRect() : { left: 0, top: 0 }, seen = new Set();
+  [...document.querySelectorAll('#ms .bm i, .bmfly')].forEach(i => {
+    const bmEl = i.closest('.bm'), key = bmEl ? bmEl.dataset.bm : 'send'; if (bmEl && (bmEl.style.visibility === 'hidden' || bmEl.classList.contains('home') && !bmEl.classList.contains('fly'))) return;
+    const r = i.getBoundingClientRect(); if (!r.width || r.bottom < 0 || r.top > H) return;
+    const m = new DOMMatrix(getComputedStyle(i).transform === 'none' ? undefined : getComputedStyle(i).transform), ang = Math.atan2(m.b, m.a), sc = Math.hypot(m.a, m.b) || 1, half = i.offsetWidth * sc;
+    const cx = r.left + r.width / 2 - br.left, cy = r.top + r.height / 2 - br.top, col = getComputedStyle(i).backgroundColor;
+    const tips = TIPS.map(([tx, ty]) => ({ x: cx + (tx * Math.cos(ang) - ty * Math.sin(ang)) * half, y: cy + (tx * Math.sin(ang) + ty * Math.cos(ang)) * half, t: now, c: col }));
+    const L = TR.last[key]; seen.add(key); TR.last[key] = { cx, cy, ang };
+    if (!L) return; const d = Math.hypot(cx - L.cx, cy - L.cy), da = Math.abs(Math.atan2(Math.sin(ang - L.ang), Math.cos(ang - L.ang)));
+    if (d > 60) { delete TR.tr[key]; return; }   // salto sin animación (redibujado): no se dibuja estela
+    if (d < .25 && da < .02) return;
+    const t = TR.tr[key] ||= [[], []]; tips.forEach((p, k) => t[k].push(p));
+  });
+  Object.keys(TR.last).forEach(k => { if (!seen.has(k)) delete TR.last[k]; });
+  const x = TR.x, LIFE = 520; x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H); let alive = false;
+  Object.keys(TR.tr).forEach(k => { TR.tr[k].forEach(pts => {
+    while (pts.length && now - pts[0].t > LIFE) pts.shift();
+    for (let j = 1; j < pts.length; j++) { const a = pts[j - 1], b = pts[j], f = 1 - (now - b.t) / LIFE; if (f <= 0) continue; alive = true;
+      x.strokeStyle = b.c; x.globalAlpha = .55 * f ** 1.6; x.lineWidth = .3 + 1.5 * f; x.lineCap = 'round';
+      x.beginPath(); x.moveTo(a.x + br.left, a.y + br.top); x.lineTo(b.x + br.left, b.y + br.top); x.stroke(); } });
+    if (!TR.tr[k][0].length) delete TR.tr[k]; });
+  x.globalAlpha = 1;
+  if (alive || now < TR.until) TR.raf = requestAnimationFrame(trTick);
+}
 function bmSync() {
+  trKick();
   hydrateMedia(); setTimeout(v2After, 0);
   const all = [...document.querySelectorAll('.bm')], lastEl = all.at(-1);
   all.forEach(el => {
@@ -2850,7 +2883,7 @@ function v2SendFly() {
     { transform: T(mx, my, 225 + 360, (1 + bs) / 2), offset: .18, easing: 'cubic-bezier(.4,0,.7,.6)' },
     { transform: T(hx, hy, 225 + 720, bs), offset: .36, easing: 'linear' },
     { transform: T(lx, hy, 225 + 1620, bs), easing: 'cubic-bezier(.3,0,.25,1)' }], { duration: D, fill: 'forwards' });
-  const fl = V2.fly = { el: f, end: Date.now() + D, bm: null };
+  const fl = V2.fly = { el: f, end: Date.now() + D, bm: null }; trKick(D + 1800);
   a.onfinish = () => { if (fl.bm) fl.bm.style.visibility = ''; f.remove(); if (V2.fly === fl) V2.fly = null; };
   // el botón pasa ya a micrófono, que aparece creciendo desde un punto
   btn.classList.remove('txt', 'regrow'); void btn.offsetWidth; btn.classList.add('regrow'); setTimeout(() => btn.classList.remove('regrow'), 900);

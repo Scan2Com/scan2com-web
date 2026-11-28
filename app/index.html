@@ -1448,6 +1448,8 @@ const playSent = {}; let playT = 0;
 function playReport(id, pct) {
   if (pct <= (playSent[id] || 0)) return; (S.ppct ||= {})[id] = Math.max(pctOf(id), pct);
   clearTimeout(playT); const go = () => { const v = S.ppct[id]; if (v <= (playSent[id] || 0)) return; playSent[id] = v; saveHist();
+    if (v >= 100) { const vw = S.view, gc = vw?.t === 'chat' ? S.chats.find(x => x.id === vw.id) : null, gv = vw?.t === 'vchat' ? (S.vchats || []).find(x => x.id === vw.id) : null;
+      if (gc?.is_group) sb.rpc('group_played_full', { p_chat: gc.id, p_msg: id }).then(() => {}, () => {}); else if (gv?.group) sb.rpc('group_played_full', { p_chat: gv.id, p_msg: id, p_token: gv.token }).then(() => {}, () => {}); }
     if (S.view?.t === 'chat') sb.rpc('mark_played', { p_msg: id, p_pct: v }).then(() => {}, () => {});
     else if (S.view?.t === 'vchat') { const ch = (S.vchats || []).find(x => x.id === S.view.id); if (ch) sb.rpc('visitor_played', { p_chat: ch.id, p_token: ch.token, p_msg: id, p_pct: v }).then(() => {}, () => {}); } };
   if (pct >= 100 || pct - (playSent[id] || 0) >= 25) go(); else playT = setTimeout(go, 2500);
@@ -1567,7 +1569,21 @@ async function loadAll() {
 // acuse de lectura con el boomerang del icono: azul y a la izquierda = enviado sin leer; vuelve a su sitio en verde (forma de tic) = leído
 const BM_SVG = '';
 // pct (audios y vídeos): cuánto lo ha reproducido la otra persona; el boomerang vuelve en esa proporción
-const bm = (id, read, at, pct = 0, dl = true) => { const p = read ? 0 : Math.max(0, Math.min(99, pct | 0)); return `<span class="bm" data-bm="${id}" data-read="${read ? 1 : 0}" data-dl="${read || p || dl ? 1 : 0}" data-pct="${p}" data-at="${esc(at || '')}" title="${read ? 'Leído' : p ? 'Escuchado el ' + p + ' %' : read || dl ? 'En su teléfono, sin leer' : 'En el servidor, aún no ha llegado a su teléfono'}"><i></i><b>${IC.check(16)}</b><em class="bmp">${p}%</em></span>`; };
+const bm = (id, read, at, pct = 0, dl = true, lbl = null) => { const p = read ? 0 : Math.max(0, Math.min(99, pct | 0)); return `<span class="bm" data-bm="${id}" data-read="${read ? 1 : 0}" data-dl="${read || p || dl ? 1 : 0}" data-pct="${p}" data-at="${esc(at || '')}" title="${lbl ? (read ? 'Leído por todos' : 'Leído por ' + lbl) : read ? 'Leído' : p ? 'Escuchado el ' + p + ' %' : read || dl ? 'En su teléfono, sin leer' : 'En el servidor, aún no ha llegado a su teléfono'}"><i></i><b>${IC.check(16)}</b><em class="bmp">${lbl || p + '%'}</em></span>`; };
+// grupos: al llegar al servidor va hasta el otro lado y vuelve en la proporción de participantes que lo han leído
+// (texto: visto en pantalla; audio y vídeo: reproducido entero). S.gprog[chat][id] = [leídos, total]
+const groupTick = (chat, id, at) => { const pr = S.gprog?.[chat]?.[id]; if (!pr || !pr[1]) return bm(id, false, at, 0, true); const [n, t] = pr; return bm(id, n >= t, at, Math.round(n / t * 100), true, n + '/' + t); };
+const gProgT = {};
+async function gProgress(chat, token, force) {
+  if (!force && Date.now() - (gProgT[chat] || 0) < 4000) return; gProgT[chat] = Date.now();
+  const mine = token ? (S.vmsgs?.[chat] || []).filter(m => m.mine) : (S.msgs?.[chat] || []).filter(m => !m.from_visitor);
+  const ids = mine.slice(-40).map(m => m.id).filter(Boolean); if (!ids.length) return;
+  try { const { data } = await sb.rpc('group_progress', token ? { p_chat: chat, p_ids: ids, p_token: token } : { p_chat: chat, p_ids: ids }); if (!data?.ok) return;
+    const nv = JSON.stringify(data.items || {}); S.gprog ||= {}; if (JSON.stringify(S.gprog[chat] || {}) !== nv) { S.gprog[chat] = { ...(S.gprog[chat] || {}), ...(data.items || {}) }; if (S.view?.id === chat) { app.dataset.cv = ''; render(true); } } } catch (e) {}
+}
+const gSeenT = {};
+function gSeen(chat, upto, token) { if (!upto || (gSeenT[chat] || 0) >= upto) return; gSeenT[chat] = upto; sb.rpc('group_seen', token ? { p_chat: chat, p_upto: upto, p_token: token } : { p_chat: chat, p_upto: upto }).then(() => {}, () => {}); }
+setInterval(() => { if (document.hidden) return; const vw = S.view; if (vw?.t === 'chat') { const ch = S.chats.find(x => x.id === vw.id); if (ch?.is_group) { gProgress(ch.id); gSeen(ch.id, (S.msgs?.[ch.id] || []).at(-1)?.id); } } }, 5000);
 S.bmPos = {}; S.vread = {}; S.bmBusy = {};
 // tocar "enviar" no debe quitar el foco del cuadro de texto (si no, el teclado se cierra)
 function keepKb() { const b = $('#os'); if (b) { b.onpointerdown = e => e.preventDefault(); b.onmousedown = e => e.preventDefault(); } }
@@ -2996,11 +3012,11 @@ const ownerMsgs = (ch, list) => (ch.is_group ? (g => { const mem = Object.values
     return gameBar({ mod: modNow(g.owner_mod_score, g.owner_mod_at), muted: g.owner_muted_until && new Date(g.owner_muted_until) > new Date() ? g.owner_muted_until : null, fixed: g.names_fixed, alias: g.owner_alias, color: g.owner_color, rounds: g.rounds, name: g.owner_name, named: mem.filter(x => x.revealed).length + (g.owner_alias && !g.owner_name ? 0 : 1), total: mem.length + 1, votes: sh.votes || 0, needed: sh.needed || Math.floor((mem.length + 1) / 2) + 1, mine: sh.mine }); })(S.ground?.[ch.id] || {}) : '') + (v2Msgs(ch.id, list, { side: 'o', other: ch.name || 'Chat', flag: ownerFlag, id: m => m.id, at: m => m.created_at, mine: m => !m.from_visitor, who: m => m.from_visitor ? 'v' + (m.member_id || '') : 'o:' + (m.sender_id || ''),
   pm: m => m.from_visitor && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
   top: m => m.from_visitor && ch.is_group && m.id <= (S.ground?.[ch.id]?.round_from || 0) ? ANON : m.from_visitor && m.member_id ? memTop(m.member_id) : !m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : '',
-  tick: m => m.from_visitor ? '' : bm(m.id, isPlayable(unwrap(m.body)) ? !!(m.played_at || pctOf(m.id) >= 100) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at, isPlayable(unwrap(m.body)) ? Math.max(m.played_pct || 0, pctOf(m.id)) : 0, m.id <= (S.dlv?.[ch.id] || 0)) }) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
+  tick: m => m.from_visitor ? '' : ch.is_group ? groupTick(ch.id, m.id, m.created_at) : bm(m.id, isPlayable(unwrap(m.body)) ? !!(m.played_at || pctOf(m.id) >= 100) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at, isPlayable(unwrap(m.body)) ? Math.max(m.played_pct || 0, pctOf(m.id)) : 0, m.id <= (S.dlv?.[ch.id] || 0)) }) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
 const visitorMsgs = (v, list) => (v.group && v.me ? (() => { const mem = Object.values(v.gm || {}); return gameBar({ mod: v.me.mod || 0, muted: v.me.muted || null, fixed: v.fixed, alias: v.me.alias, color: v.me.color, rounds: v.rounds, name: v.me.revealed && v.me.name, named: mem.filter(x => x.name).length + (v.oa && !v.on ? 0 : 1), total: mem.length + 1, votes: v.sv || 0, needed: v.sn || Math.floor((mem.length + 1) / 2) + 1, mine: v.sm }); })() : '') + (v2Msgs(v.id, list, { side: 'v', flag: m => !!m.flag, other: v.name || v.public_name || 'Chat', id: m => m.id, at: m => m.at, mine: m => m.mine, who: m => m.mid ? 'm' + m.mid : m.mine ? 'v' : 'o',
   pm: m => !m.mine && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
   top: m => v.group && !m.mine ? (v.rf && m.id <= v.rf ? ANON : m.owner ? (v.oa ? gLabel(v.id, 'o', v.oa, v.on, v.oc, v.fixed, modBar(v.om || 0, !!v.omu)) : `<div class="who" style="font-weight:700;opacity:1">${esc(v.public_name || 'Dueño')}</div>`) : (x => x ? gLabel(v.id, 'p' + m.mid, x.alias, x.name, x.color, v.fixed, x.out ? ' · 🚫 expulsado por insultos' : modBar(x.mod || 0, !!x.muted)) : `<div class="who" style="color:#8d979b;font-weight:700;opacity:1">Participante</div>`)(v.gm?.[m.mid])) : '',
-  tick: m => !v.group && m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, isPlayable(unwrap(m.body)) ? pctOf(m.id) >= 100 : m.id <= S.vread[v.id], m.at, isPlayable(unwrap(m.body)) ? pctOf(m.id) : 0, m.id <= (S.dlv?.[v.id] || 0)) : '' }) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
+  tick: m => v.group && m.mine ? groupTick(v.id, m.id, m.at).replace('data-bm="', 'data-bm="v') : !v.group && m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, isPlayable(unwrap(m.body)) ? pctOf(m.id) >= 100 : m.id <= S.vread[v.id], m.at, isPlayable(unwrap(m.body)) ? pctOf(m.id) : 0, m.id <= (S.dlv?.[v.id] || 0)) : '' }) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
 // al abrir un chat: ir al primer mensaje sin leer (con separador) o al final, y mantener esa posición
 // mientras cargan fotos, vídeos y mapas, hasta que el usuario toque o desplace la conversación
 let chatPin = null;
@@ -3050,6 +3066,7 @@ function renderChat() {
   if (S.unread[ch.id]) { delete S.unread[ch.id]; ls.set('sa_unread', S.unread); }
   const markRead = () => { if (!document.hidden && list.some(m => m.from_visitor && !m.read_at)) { const now = new Date().toISOString(); list.forEach(m => { if (m.from_visitor && !m.read_at) m.read_at = now; }); sb.rpc('mark_chat_read', { p_chat: ch.id }).then(() => {}, () => {}); } };
   const key = ['c', ch.id, ch.name, ch.note, ch.avatar, ch.blocked, off, fav, code?.name, ch.code_name, ls.get('sa_tour_chat', 0)].join('|');
+  if (ch.is_group && !document.hidden) { gSeen(ch.id, list.at(-1)?.id); gProgress(ch.id); }
   if (patchMsgs(key, ownerMsgs(ch, list))) return markRead();
   app.innerHTML = `<div class="bar"><button class="back" id="bk" style="color:#aaa">${IC.back(18)}</button><button class="cavb" id="cav" title="Imagen del contacto">${v2AvHtml(ch.avatar, ch.name, 38, ch.id, ch.blocked)}</button><div class="grow" style="min-width:0"><div style="font-size:19px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="nm">${esc(ch.name)}</div><div style="font-size:12px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ch.note || code?.name || (ch.code_name ? ch.code_name + ' (código borrado)' : ''))}${code?.group_chat ? ' · chat de grupo' : ''}</div></div>
     ${off || ch.blocked || ch.is_group ? '' : `<button class="ib dark" id="call" title="Llamar">${IC.phone(24)}</button>`}<button class="star" id="fv" title="Favorito">${IC.star(28, fav)}</button><button class="ib dark" id="ren" title="Cambiar nombre">${IC.pencil(26)}</button><button class="ib dark" id="cm" title="Más opciones">${IC.dots(24)}</button></div>
@@ -3194,6 +3211,7 @@ async function vFetch(v, bg) {
   S.vmsgs ||= {}; const l = S.vmsgs[v.id] ||= [];
   const { data } = await sb.rpc('visitor_messages', { p_chat: v.id, p_token: v.token, p_after: l.at(-1)?.id || 0, p_seen: !bg && !document.hidden });
   if (!data?.ok) { if (data?.error === 'blocked' && v.alive) { v.alive = false; render(true); } return; }
+  if (data.group) { v.group = true; if (!bg && !document.hidden) gSeen(v.id, Math.max(l.at(-1)?.id || 0, ...(data.messages || []).map(x => x.id)), v.token); setTimeout(() => gProgress(v.id, v.token), 300); }
   if (data.group) { const k = JSON.stringify([data.members, data.me, data.round_from, data.owner_alias, data.owner_name, data.names_fixed, data.shake_votes, data.shake_mine, data.owner_mod, data.owner_muted]); if (k !== v.gk) { const old = v.gm; v.gk = k; v.gm = data.members || {}; v.me = data.me; v.on = data.owner_name || null; v.fixed = !!data.names_fixed; v.om = +data.owner_mod || 0; v.omu = data.owner_muted || null; v.sv = +data.shake_votes || 0; v.sn = +data.shake_needed || 0; v.sm = !!data.shake_mine;
     if (old) Object.entries(v.gm).forEach(([pid, x]) => { if (x.name && old[pid]?.name !== x.name && pid !== String(v.me?.id)) toast(`🪪 ${x.alias} dice llamarse «${x.name}». Ojo: no sabemos si es su nombre real.`); }); v.rf = +data.round_from || 0; v.rounds = +data.rounds || 0; v.oa = data.owner_alias || null; v.oc = data.owner_color || null; if (v.rf) render(true); if (!data.messages.length) render(true); } }
   const ru = Math.max(data.read_upto || 0, S.vread[v.id] || 0); S.ppct ||= {};

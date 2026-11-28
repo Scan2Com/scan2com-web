@@ -424,6 +424,11 @@ html:not(.dark) .pinbar{box-shadow:0 1px 3px #0000001a}
 .bm.emo.twirl .emj{transform:rotate(calc(var(--t,0) * 1800deg));transition:transform 1.1s cubic-bezier(.5,.05,.3,1)}.bm.emo.twirl.fly .emj{animation:none}.bmfly.emo.twirl span{animation:sp .35s linear infinite}@keyframes sp{to{rotate:360deg}}
 .bm.emo.ball:not(.fly):not(.home) .emj{animation:bnc .9s cubic-bezier(.3,0,.7,1) infinite}@keyframes bnc{0%,100%{translate:0 0}50%{translate:0 -6px}}
 .bm.emo.plane .emj::after,.bmfly.emo.plane span::after{display:none}
+.emoin{position:absolute;left:4px;bottom:2px;z-index:6;pointer-events:none;font-size:22px;line-height:1;text-decoration:none}.emoin span{display:block;transform:scaleX(-1);animation:hop .3s ease-in-out infinite}
+.emoin.bird span{animation:flap .25s ease-in-out infinite}.emoin.snake span{animation:sli .3s ease-in-out infinite}.emoin.twirl span{transform:none;animation:sp .35s linear infinite}
+.emoin.ufo span{transform:none;animation:wob .45s ease-in-out infinite}.emoin.heli span{animation:heli .12s linear infinite;rotate:14deg}
+.emoin.rocket span{transform:none;rotate:45deg;animation:none;position:relative}.emoin.rocket span::after{content:'🔥';position:absolute;left:-9px;top:11px;font-size:11px;rotate:225deg;animation:flk .12s linear infinite alternate}.emoin.plane span::after{display:none}
+.emoin.comet span{transform:none;rotate:-135deg;animation:none}
 .bmfly.emo{background:none!important;-webkit-mask:none!important;mask:none!important;font-size:24px;line-height:1;text-align:center}.bmfly.emo span{display:block;animation:hop .3s ease-in-out infinite}
 .bmfly{position:fixed;z-index:70;pointer-events:none;background:#2fc23a;-webkit-mask-size:100% 100%;mask-size:100% 100%;transform:rotate(225deg)}
 .sendb.regrow .micb{animation:micgrow .55s cubic-bezier(.25,1.4,.5,1) .15s both}
@@ -1718,8 +1723,20 @@ function stickInit() {
   cb.addEventListener('scroll', () => { if (Date.now() < (cb._smooth || 0)) return; cb._stick = cb.scrollHeight - cb.scrollTop - cb.clientHeight < 80; }, { passive: true });
   try { new ResizeObserver(() => { if (cb._stick) toEnd(cb); }).observe(ms); } catch (e) {}
 }
+// quien recibe un «emoji#mensaje»: el emoji cruza una vez de su mensaje hacia su lado (de izquierda a derecha) y desaparece (sin tic: no es suyo)
+function emoIncoming() {
+  if (!bmFx()) return; const done = (S.emoDone ||= new Set()), ms = $('#ms'); if (!ms) return;
+  ms.querySelectorAll('.m.them[data-emo]').forEach(m => {
+    const id = m.dataset.id; if (done.has(id)) return; done.add(id); if (Date.now() - new Date(m.dataset.ts) > 60000) return;
+    if (getComputedStyle(m).position === 'static') m.style.position = 'relative';
+    const k = m.dataset.ek || '', x = document.createElement('s'); x.className = 'emoin ' + k; x.innerHTML = '<span>' + esc(m.dataset.emo) + '</span>'; m.appendChild(x);
+    const dist = Math.max(80, ms.getBoundingClientRect().right - m.getBoundingClientRect().left - 40);
+    const a = x.animate([{ transform: 'translateX(0)', opacity: 0 }, { opacity: 1, offset: .1 }, { opacity: 1, offset: .85 }, { transform: 'translateX(' + dist + 'px)', opacity: 0 }], { duration: 2200, easing: 'cubic-bezier(.4,.1,.5,1)' });
+    a.onfinish = () => x.remove();
+  });
+}
 function bmSync() {
-  trKick(); if (Date.now() - (S.bmJustSent || 0) < 8000 && $('#cb')) $('#cb')._stick = true; setTimeout(stickInit, 0);
+  trKick(); setTimeout(emoIncoming, 60); if (Date.now() - (S.bmJustSent || 0) < 8000 && $('#cb')) $('#cb')._stick = true; setTimeout(stickInit, 0);
   hydrateMedia(); setTimeout(v2After, 0);
   const all = [...document.querySelectorAll('.bm')], lastEl = all.at(-1);
   all.forEach(el => {
@@ -2824,7 +2841,7 @@ function v2Msgs(k, list, o) {
     const tk = em ? o.tick(m).replace('class="bm"', 'class="bm emo ' + emoKind(em.e) + '"').replace('<i></i>', '<i></i><s class="emj">' + esc(em.e) + '<u>' + emoFood(emoKind(em.e)) + '</u></s>') : o.tick(m);
     const rs = Object.values(rx[id] || {}).filter(Boolean), uniq = [...new Set(rs)];
     const q = rp ? '<div class="quote" data-goto="' + (+rp.i || 0) + '"><b>' + esc(rp.s ? (rp.s === o.side ? 'Tú' : o.other) : (rp.w || '')) + '</b>' + esc(rp.t || '') + '</div>' : '';
-    return '<div class="m ' + (mine ? 'me' : 'them') + (pin ? ' pinned' : '') + '" data-id="' + id + '"' + o.pm(m) + '>' + o.top(m) + q + (o.flag && o.flag(m) ? '<div class="tap" onclick="event.stopPropagation();this.classList.add(\'show\')"><span class="tapl">🙊 Mensaje tapado por insultos · tocar para ver</span><div class="tapb">' + msgBody(body, o.at(m)) + '</div></div>' : msgBody(body, o.at(m)))
+    return '<div class="m ' + (mine ? 'me' : 'them') + (pin ? ' pinned' : '') + '" data-id="' + id + '"' + o.pm(m) + (em && !mine ? ' data-emo="' + esc(em.e) + '" data-ek="' + emoKind(em.e) + '" data-ts="' + esc(o.at(m) || '') + '"' : '') + '>' + o.top(m) + q + (o.flag && o.flag(m) ? '<div class="tap" onclick="event.stopPropagation();this.classList.add(\'show\')"><span class="tapl">🙊 Mensaje tapado por insultos · tocar para ver</span><div class="tapb">' + msgBody(body, o.at(m)) + '</div></div>' : msgBody(body, o.at(m)))
       + '<div class="tm">' + hm(o.at(m)) + tk + '</div>' + (rs.length ? '<span class="rxs">' + uniq.map(e => { const n = rs.filter(x => x === e).length; return e + (n > 1 ? '<b>' + n + '</b>' : ''); }).join(' ') + '</span>' : '') + (pin ? FRAME() : '') + '</div>';
   });
 }

@@ -1675,13 +1675,15 @@ function trTick() {
   if (alive || now < TR.until) TR.raf = requestAnimationFrame(trTick);
 }
 // la conversación se queda pegada abajo: si estabas al final (o acabas de enviar), al crecer (audio, foto, vídeo que terminan de cargar) sigue mostrando lo último
+// bajar al final: suave justo después de enviar (los mensajes suben poco a poco y cada boomerang sube con el suyo); al momento en lo demás
+function toEnd(cb) { if (!cb) return; if (Date.now() - (V2.sentAt || 0) < 4000) { cb._smooth = Date.now() + 700; cb.scrollTo({ top: cb.scrollHeight, behavior: 'smooth' }); } else cb.scrollTop = cb.scrollHeight; }
 function stickInit() {
   const cb = $('#cb'), ms = $('#ms'); if (!cb || !ms) return;
   if (Date.now() - (S.bmJustSent || 0) < 8000) cb._stick = true;
-  if (cb._stickOn) { if (cb._stick) cb.scrollTop = cb.scrollHeight; return; }
+  if (cb._stickOn) { if (cb._stick) toEnd(cb); return; }
   cb._stickOn = true; cb._stick = cb.scrollHeight - cb.scrollTop - cb.clientHeight < 120;
-  cb.addEventListener('scroll', () => { cb._stick = cb.scrollHeight - cb.scrollTop - cb.clientHeight < 80; }, { passive: true });
-  try { new ResizeObserver(() => { if (cb._stick) cb.scrollTop = cb.scrollHeight; }).observe(ms); } catch (e) {}
+  cb.addEventListener('scroll', () => { if (Date.now() < (cb._smooth || 0)) return; cb._stick = cb.scrollHeight - cb.scrollTop - cb.clientHeight < 80; }, { passive: true });
+  try { new ResizeObserver(() => { if (cb._stick) toEnd(cb); }).observe(ms); } catch (e) {}
 }
 function bmSync() {
   trKick(); if (Date.now() - (S.bmJustSent || 0) < 8000 && $('#cb')) $('#cb')._stick = true; setTimeout(stickInit, 0);
@@ -2955,7 +2957,10 @@ function v2SendFly() {
   const fl = V2.fly = { el: f, end: Date.now() + D, bm: null, grp: !!grp }; V2.flies = (V2.flies || []).filter(x => x.end > Date.now()).concat(fl); trKick(D + 1800);
   // en cuanto existe el acuse real del mensaje, el vuelo se reajusta a su franja exacta (misma línea que el tic, sin subir al pararse)
   fl.aim = (el, land) => { try { const c = q => { bmPlace(el, q); const b = el.getBoundingClientRect(); return [b.left + b.width / 2 - r.width / 2, b.top + b.height / 2 - r.height / 2]; };
-    const [h0, h1] = c('home'), [l0] = c(land); a.effect.setKeyframes(K(h0, h1, l0)); } catch (e) {} };
+    const [h0, h1] = c('home'), [l0] = c(land); a.effect.setKeyframes(K(h0, h1, l0)); fl.p0 = el.parentElement.getBoundingClientRect(); } catch (e) {} };
+  // si la conversación se mueve mientras vuela (llega o envías otro mensaje), el boomerang se mueve con su mensaje, en su misma línea
+  const follow = () => { if (!f.isConnected) return; if (fl.bm && fl.p0 && fl.bm.isConnected) { const q = fl.bm.parentElement.getBoundingClientRect(); f.style.translate = (q.left - fl.p0.left) + 'px ' + (q.top - fl.p0.top) + 'px'; } requestAnimationFrame(follow); };
+  requestAnimationFrame(follow);
   a.onfinish = () => { if (fl.bm) fl.bm.style.visibility = ''; f.remove(); if (V2.fly === fl) V2.fly = null; };
   // el botón pasa ya a micrófono, que aparece creciendo desde un punto
   btn.classList.remove('txt', 'regrow'); void btn.offsetWidth; btn.classList.add('regrow'); setTimeout(() => btn.classList.remove('regrow'), 900);
@@ -3141,7 +3146,7 @@ function openChatAt(unread) {
     const them = [...ms.querySelectorAll('.m.them')], first = them[Math.max(0, them.length - unread)];
     if (first) { target = document.createElement('div'); target.className = 'unsep'; target.textContent = unread === 1 ? '1 mensaje sin leer' : unread + ' mensajes sin leer'; first.before(target); }
   }
-  const apply = () => { if (target && target.isConnected) cb.scrollTop = Math.max(0, target.offsetTop - cb.offsetTop - 8); else cb.scrollTop = cb.scrollHeight; };
+  const apply = () => { if (target && target.isConnected) cb.scrollTop = Math.max(0, target.offsetTop - cb.offsetTop - 8); else toEnd(cb); };
   apply(); requestAnimationFrame(apply);
   const ro = window.ResizeObserver ? new ResizeObserver(apply) : null; if (ro) ro.observe(ms);
   ms.addEventListener('load', apply, true);
@@ -3156,7 +3161,7 @@ function patchMsgs(key, html) {
   if (app.dataset.cv !== key || !ms || !cb) return false;
   const bottom = cb.scrollHeight - cb.scrollTop - cb.clientHeight < 80 || Date.now() - (S.bmJustSent || 0) < 8000;
   if (bottom) cb._stick = true;
-  if (S.msHtml !== html) { const sep = ms.querySelector('.unsep'); S.msHtml = html; ms.innerHTML = html; if (chatPin) { if (sep) chatPin.stop(), cb.scrollTop = cb.scrollHeight; else chatPin.apply(); } else if (bottom) cb.scrollTop = cb.scrollHeight; }
+  if (S.msHtml !== html) { const sep = ms.querySelector('.unsep'); S.msHtml = html; ms.innerHTML = html; if (chatPin) { if (sep) chatPin.stop(), cb.scrollTop = cb.scrollHeight; else chatPin.apply(); } else if (bottom) toEnd(cb); }
   bmSync(); return true;
 }
 // nombre y descripción de un chat: los chats nacen de un código QR, no de un número de teléfono, así que cada uno los nombra a su manera

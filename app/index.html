@@ -98,6 +98,7 @@ label{font-size:13px;color:var(--mut)}
 .siren img{position:absolute;inset:0;width:100%;height:100%}
 .siren .on{animation:blink 1.2s infinite}
 .siren::before{content:'';position:absolute;inset:-25%;border-radius:50%;background:radial-gradient(circle,rgba(255,40,30,.55),rgba(255,40,30,0) 65%);animation:blink 1.2s infinite}
+@keyframes jar{0%,100%{transform:rotate(0)}15%{transform:rotate(-22deg) translateY(-6px)}35%{transform:rotate(18deg)}55%{transform:rotate(-14deg) translateY(-4px)}75%{transform:rotate(10deg)}}.jar{display:inline-block;animation:jar .5s ease-in-out infinite}
 @keyframes blink{0%,45%{opacity:1}55%,100%{opacity:0}}
 @keyframes blinkInv{0%,45%{opacity:0}55%,100%{opacity:1}}
 .siren.pol{width:min(82vw,340px)}
@@ -1335,6 +1336,7 @@ function groupGame() {
     ${li(2, 'Simplemente <b>envía o comparte este código en el chat de grupo de tus amigos</b> para jugar (con el botón Compartir del código).')}
     ${li(3, 'Cada uno entra como <b style="color:#1f86e0">Zorro azul</b>, <b style="color:#e8352b">Búho rojo</b>, <b style="color:#1a9c16">Gato verde</b>…')}
     ${li(4, 'Hablad y <b>descubrid quién se esconde detrás de cada alias</b>. Cada uno decide cuándo revelar su nombre.')}
+    ${li(5, '¿Ya sabéis quién es quién? <b>🫙 Agita el bote</b> (en ⋮ del chat): todos sacáis un alias nuevo y los mensajes anteriores quedan anónimos. ¡Nadie sabe ya quién dijo qué!')}
     <div style="font-size:14px;line-height:1.45;margin:12px 0 4px;background:rgba(31,134,224,.12);border-radius:10px;padding:10px 12px">🗣️ <b>Habla de temas tabú sin miedo.</b> Como nadie sabe quién es quién, es ideal para hablar con tu grupo de amigos de temas tabú, delicados o conflictivos (política, críticas, lo que nadie se atreve a decir…) y decir lo que piensas de verdad. Respeta a los demás: quien crea el código puede bloquear a un participante o borrar mensajes.</div>
     <div style="font-size:13px;opacity:.75;line-height:1.4;margin:10px 0 14px;text-align:center">También sirve para una clase, una fiesta, una boda o la cena de empresa. Sin teléfonos: nadie ve el número de nadie.</div>
     <button class="btn teal" id="ggok">¡A jugar!</button>`);
@@ -2886,16 +2888,30 @@ function codeCols(c) { const g = '#8d979b'; if (!c.is_on) return [g, g, g, g]; i
 /* ---------- chat ---------- */
 // chat de grupo: participantes con alias al azar (Zorro azul…); color según el alias
 const GCOL = { azul: '#1f86e0', verde: '#2fc23a', rojo: '#e8352b', morado: '#8e5cf0', naranja: '#f28c00', amarillo: '#e8b923', rosa: '#e0249a', gris: '#8d979b' };
-async function loadGMembers() { const ids = S.chats.filter(x => x.is_group).map(x => x.id); if (!ids.length) return; const { data } = await sb.from('chat_members').select('id,chat_id,alias,color,real_name,revealed,blocked').in('chat_id', ids); S.gmem = {}; (data || []).forEach(x => S.gmem[x.id] = x); if (S.view?.t === 'chat') render(true); }
+async function loadGMembers() { const ids = S.chats.filter(x => x.is_group).map(x => x.id); if (!ids.length) return; const { data } = await sb.from('chat_members').select('id,chat_id,alias,color,real_name,revealed,blocked').in('chat_id', ids); S.gmem = {}; (data || []).forEach(x => S.gmem[x.id] = x);
+  try { const r = await sb.from('chats').select('id,round_from,rounds,owner_alias,owner_color').in('id', ids); if (!r.error) { S.ground = {}; (r.data || []).forEach(x => S.ground[x.id] = x); } } catch (e) {}
+  if (S.view?.t === 'chat') render(true); }
+const ANON = '<div class="who" style="color:#8d979b;font-weight:700;opacity:1">🎭 Anónimo · ronda anterior</div>';
+const roundBar = (alias, color, rounds) => alias ? `<div class="unsep">🫙 Bote agitado${rounds > 1 ? ' ' + rounds + ' veces' : ''} · ahora eres <b style="color:${GCOL[color] || '#888'}">${esc(alias)}</b>. Los mensajes anteriores son anónimos.</div>` : '';
+// «Agitar el bote»: alias nuevos para todos y los mensajes anteriores quedan anónimos (como sacar tarjetas de un bote, a ciegas)
+async function shakeJar(ch) {
+  if (!confirm('¿Agitar el bote?\n\nTodos (tú también) sacaréis un alias nuevo al azar, los nombres revelados se vuelven a ocultar y los mensajes anteriores quedarán como «Anónimo». No se puede deshacer.')) return;
+  $('#overlay').innerHTML = `<div class="sheet keep"><div style="margin:auto;text-align:center;color:#fff"><div class="jar" style="font-size:96px;line-height:1">🫙</div><div style="font-weight:800;font-size:20px;margin-top:12px">Agitando el bote…</div></div></div>`;
+  const [r] = await Promise.all([sb.rpc('group_shuffle', { p_chat: ch.id }), new Promise(ok => setTimeout(ok, 1600))]);
+  $('#overlay').innerHTML = '';
+  if (r.error || !r.data?.ok) return toast('No se ha podido agitar el bote.');
+  await loadGMembers(); const g = S.ground?.[ch.id];
+  toast(`🫙 ¡Bote agitado! ${r.data.members} participante${r.data.members === 1 ? '' : 's'} con alias nuevo${g?.owner_alias ? '. Tú eres ' + g.owner_alias : ''}.`); render(true);
+}
 const memName = x => x ? (x.revealed && x.real_name ? x.real_name + ' (' + x.alias + ')' : x.alias) : 'Participante';
 const memTop = mid => { const x = S.gmem?.[mid]; if (mid && !x && !S.gmemAsk) { S.gmemAsk = 1; setTimeout(() => { S.gmemAsk = 0; loadGMembers(); }, 800); } return `<div class="who" style="color:${GCOL[x?.color] || '#8d979b'};font-weight:700;opacity:1">${esc(memName(x))}${x?.blocked ? ' · bloqueado' : ''}</div>`; };
-const ownerMsgs = (ch, list) => (v2Msgs(ch.id, list, { side: 'o', other: ch.name || 'Chat', id: m => m.id, at: m => m.created_at, mine: m => !m.from_visitor, who: m => m.from_visitor ? 'v' + (m.member_id || '') : 'o:' + (m.sender_id || ''),
+const ownerMsgs = (ch, list) => (ch.is_group ? roundBar(S.ground?.[ch.id]?.owner_alias, S.ground?.[ch.id]?.owner_color, S.ground?.[ch.id]?.rounds) : '') + (v2Msgs(ch.id, list, { side: 'o', other: ch.name || 'Chat', id: m => m.id, at: m => m.created_at, mine: m => !m.from_visitor, who: m => m.from_visitor ? 'v' + (m.member_id || '') : 'o:' + (m.sender_id || ''),
   pm: m => m.from_visitor && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
-  top: m => m.from_visitor && m.member_id ? memTop(m.member_id) : !m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : '',
+  top: m => m.from_visitor && ch.is_group && m.id <= (S.ground?.[ch.id]?.round_from || 0) ? ANON : m.from_visitor && m.member_id ? memTop(m.member_id) : !m.from_visitor && m.sender_id !== S.user.id ? '<div class="who">otro vinculado</div>' : '',
   tick: m => m.from_visitor ? '' : bm(m.id, isPlayable(unwrap(m.body)) ? !!(m.played_at || pctOf(m.id) >= 100) : (m.read_at || m.id <= (S.reads?.[ch.id]?.visitor_upto || 0)), m.created_at, isPlayable(unwrap(m.body)) ? Math.max(m.played_pct || 0, pctOf(m.id)) : 0, m.id <= (S.dlv?.[ch.id] || 0)) }) + pendHtml(ch.id)) || '<div class="empty">Sin mensajes todavía.</div>';
-const visitorMsgs = (v, list) => (v.group && v.me ? `<div class="unsep">👥 Eres <b style="color:${GCOL[v.me.color] || '#888'}">${esc(v.me.alias)}</b>${v.me.revealed ? ' (' + esc(v.me.name || '') + ')' : ''}</div>` : '') + (v2Msgs(v.id, list, { side: 'v', other: v.name || v.public_name || 'Chat', id: m => m.id, at: m => m.at, mine: m => m.mine, who: m => m.mid ? 'm' + m.mid : m.mine ? 'v' : 'o',
+const visitorMsgs = (v, list) => (v.group && v.rf ? roundBar(v.me?.alias, v.me?.color, v.rounds) : v.group && v.me ? `<div class="unsep">👥 Eres <b style="color:${GCOL[v.me.color] || '#888'}">${esc(v.me.alias)}</b>${v.me.revealed ? ' (' + esc(v.me.name || '') + ')' : ''}</div>` : '') + (v2Msgs(v.id, list, { side: 'v', other: v.name || v.public_name || 'Chat', id: m => m.id, at: m => m.at, mine: m => m.mine, who: m => m.mid ? 'm' + m.mid : m.mine ? 'v' : 'o',
   pm: m => !m.mine && isPlayable(unwrap(m.body)) ? ` data-pm="${m.id}" data-secs="${+(unwrap(m.body).match(/#(\d+)$/) || [])[1] || 0}"` : '',
-  top: m => v.group && !m.mine ? (m.owner ? `<div class="who" style="font-weight:700;opacity:1">${esc(v.public_name || 'Dueño')}</div>` : (x => `<div class="who" style="color:${GCOL[x?.color] || '#8d979b'};font-weight:700;opacity:1">${esc(x ? (x.name ? x.name + ' (' + x.alias + ')' : x.alias) : 'Participante')}</div>`)(v.gm?.[m.mid])) : '',
+  top: m => v.group && !m.mine ? (v.rf && m.id <= v.rf ? ANON : m.owner ? (v.oa ? `<div class="who" style="color:${GCOL[v.oc] || '#8d979b'};font-weight:700;opacity:1">${esc(v.oa)}</div>` : `<div class="who" style="font-weight:700;opacity:1">${esc(v.public_name || 'Dueño')}</div>`) : (x => `<div class="who" style="color:${GCOL[x?.color] || '#8d979b'};font-weight:700;opacity:1">${esc(x ? (x.name ? x.name + ' (' + x.alias + ')' : x.alias) : 'Participante')}</div>`)(v.gm?.[m.mid])) : '',
   tick: m => !v.group && m.mine && S.vread[v.id] !== undefined ? bm('v' + m.id, isPlayable(unwrap(m.body)) ? pctOf(m.id) >= 100 : m.id <= S.vread[v.id], m.at, isPlayable(unwrap(m.body)) ? pctOf(m.id) : 0, m.id <= (S.dlv?.[v.id] || 0)) : '' }) + pendHtml(v.id)) || '<div class="empty">Sin mensajes todavía.</div>';
 // al abrir un chat: ir al primer mensaje sin leer (con separador) o al final, y mantener esa posición
 // mientras cargan fotos, vídeos y mapas, hasta que el usuario toque o desplace la conversación
@@ -2970,7 +2986,7 @@ function renderChat() {
   $('#cm').onclick = () => {
     $('#overlay').innerHTML = `<div class="sheet keep" id="cms"><div style="background:#fff;color:#222;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))" onclick="event.stopPropagation()">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">${v2AvHtml(ch.avatar, ch.name, 44, ch.id, ch.blocked)}<div><b>${esc(ch.name)}</b><div style="font-size:13px;color:#777">${ch.blocked ? 'Contacto bloqueado: no puede escribirte' : 'Contacto activo'}</div></div></div>
-      ${ch.is_group ? `<div style="font-size:13px;font-weight:700;color:#777;margin:0 0 6px">PARTICIPANTES (${Object.values(S.gmem || {}).filter(x => x.chat_id === ch.id).length})</div><div style="max-height:220px;overflow:auto;margin-bottom:10px">${Object.values(S.gmem || {}).filter(x => x.chat_id === ch.id).map(x => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0"><span style="width:10px;height:10px;border-radius:50%;background:${GCOL[x.color] || '#999'}"></span><span style="flex:1">${esc(memName(x))}</span><button class="btn sm light" data-gb="${x.id}" style="width:auto;padding:4px 10px">${x.blocked ? 'Desbloquear' : 'Bloquear'}</button></div>`).join('') || '<div style="font-size:13px;color:#999">Aún no ha entrado nadie.</div>'}</div>` : ''}
+      ${ch.is_group ? `<div style="font-size:13px;font-weight:700;color:#777;margin:0 0 6px">PARTICIPANTES (${Object.values(S.gmem || {}).filter(x => x.chat_id === ch.id).length})</div><div style="max-height:220px;overflow:auto;margin-bottom:10px">${Object.values(S.gmem || {}).filter(x => x.chat_id === ch.id).sort((a, b) => memName(a).localeCompare(memName(b), 'es')).map(x => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0"><span style="width:10px;height:10px;border-radius:50%;background:${GCOL[x.color] || '#999'}"></span><span style="flex:1">${esc(memName(x))}</span><button class="btn sm light" data-gb="${x.id}" style="width:auto;padding:4px 10px">${x.blocked ? 'Desbloquear' : 'Bloquear'}</button></div>`).join('') || '<div style="font-size:13px;color:#999">Aún no ha entrado nadie.</div>'}</div><button class="btn" id="shake" style="background:#8e5cf0;margin:0 0 6px">🫙 Agitar el bote</button><div style="font-size:12.5px;color:#888;margin:0 0 12px;line-height:1.4">Todos (tú también) sacáis un alias nuevo al azar, se vuelven a ocultar los nombres y los mensajes anteriores quedan como anónimos.</div>` : ''}
       ${ch.blocked || ch.is_group ? '' : `<label class="chk" style="margin:0 0 10px"><input type="checkbox" id="pc" ${ch.calls ? 'checked' : ''}> ${IC.phone(18)} <span>Permitir que me llame por la app, sin ver tu número</span></label>`}
       <button class="btn light" id="bl" style="margin-bottom:8px">${ch.blocked ? 'Desbloquear contacto' : 'Bloquear contacto'}</button>
       <button class="btn light" id="dc" style="color:var(--red);margin-bottom:8px">${IC.trash(18)} Borrar chat</button>
@@ -2981,6 +2997,7 @@ function renderChat() {
     $('#hw').onclick = () => chatHelp();
     $('#srch').onclick = () => { $('#overlay').innerHTML = ''; chatSearch(); };
     $('#mute').onclick = () => { $('#overlay').innerHTML = ''; muteMenu(S.view.id); };
+    if ($('#shake')) $('#shake').onclick = () => shakeJar(ch);
     document.querySelectorAll('[data-gb]').forEach(b => b.onclick = async () => { const x = S.gmem[b.dataset.gb]; const v = !x.blocked; const { error } = await sb.from('chat_members').update({ blocked: v }).eq('id', x.id); if (error) return toast('No se ha podido cambiar.'); x.blocked = v; b.textContent = v ? 'Desbloquear' : 'Bloquear'; toast(v ? memName(x) + ' ya no puede escribir' : memName(x) + ' puede volver a escribir'); render(true); });
     if ($('#pc')) $('#pc').onchange = async () => { const v = $('#pc').checked; ch.calls = v; const { error } = await sb.from('chats').update({ calls: v }).eq('id', ch.id); if (error) { ch.calls = !v; $('#pc').checked = !v; toast('No se ha podido cambiar.'); } else toast(v ? 'Te puede llamar desde este chat' : 'Ya no te puede llamar desde este chat'); };
     $('#bl').onclick = async () => { const v = !ch.blocked; $('#overlay').innerHTML = ''; ch.blocked = v; render(); const { error } = await sb.from('chats').update({ blocked: v }).eq('id', ch.id); if (error) { ch.blocked = !v; render(); toast('No se ha podido cambiar.'); } else toast(v ? 'Contacto bloqueado: ya no puede escribirte' : 'Contacto desbloqueado'); };
@@ -3090,7 +3107,7 @@ async function vFetch(v, bg) {
   S.vmsgs ||= {}; const l = S.vmsgs[v.id] ||= [];
   const { data } = await sb.rpc('visitor_messages', { p_chat: v.id, p_token: v.token, p_after: l.at(-1)?.id || 0, p_seen: !bg && !document.hidden });
   if (!data?.ok) { if (data?.error === 'blocked' && v.alive) { v.alive = false; render(true); } return; }
-  if (data.group) { const k = JSON.stringify([data.members, data.me]); if (k !== v.gk) { v.gk = k; v.gm = data.members || {}; v.me = data.me; if (!data.messages.length) render(true); } }
+  if (data.group) { const k = JSON.stringify([data.members, data.me, data.round_from, data.owner_alias]); if (k !== v.gk) { v.gk = k; v.gm = data.members || {}; v.me = data.me; v.rf = +data.round_from || 0; v.rounds = +data.rounds || 0; v.oa = data.owner_alias || null; v.oc = data.owner_color || null; if (v.rf) render(true); if (!data.messages.length) render(true); } }
   const ru = Math.max(data.read_upto || 0, S.vread[v.id] || 0); S.ppct ||= {};
   const np = Object.entries(data.played_pct || {}).filter(([id, p]) => p > pctOf(+id)); np.forEach(([id, p]) => { S.ppct[+id] = p; }); if (np.length) saveHist();
   const dch = dlvSet(v.id, +data.deliv_upto || 0); const changed = dch || np.length || data.messages.length || v.alive !== data.alive || ru !== S.vread[v.id]; v.alive = data.alive; S.vread[v.id] = ru;

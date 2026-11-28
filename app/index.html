@@ -2107,15 +2107,18 @@ async function loadMembers(id) {
 }
 
 /* ---------- ver código (QR) ---------- */
+// QR más pequeño: la dirección de un código va en MAYÚSCULAS y en modo alfanumérico (HTTPS://SCAN2COM.COM/S/ABCD1234 → 25×25 en vez de 29×29, misma corrección M)
+const qrText = t => { const m = String(t).match(/^https?:\/\/(?:www\.)?scan2com\.com\/s\/([A-Z0-9]+)$/i); return m && m[1] === m[1].toUpperCase() ? 'HTTPS://SCAN2COM.COM/S/' + m[1] : String(t); };
+const qrAdd = (q, t) => { t = qrText(t); q.addData(t, /^[0-9A-Z $%*+\-./:]+$/.test(t) ? 'Alphanumeric' : 'Byte'); };
 function drawQR(canvas, text, scale = 8) {
-  const q = qrcode(0, 'M'); q.addData(text); q.make(); const n = q.getModuleCount(), m = 2, sz = (n + m * 2) * scale;
+  const q = qrcode(0, 'M'); qrAdd(q, text); q.make(); const n = q.getModuleCount(), m = 2, sz = (n + m * 2) * scale;
   canvas.width = canvas.height = sz; const x = canvas.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, sz, sz); x.fillStyle = '#000';
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) x.fillRect((c + m) * scale, (r + m) * scale, scale, scale);
 }
 /* QR redondeado (estilo del generador de 2014) y pegatina alta del coche */
 const loadImg = src => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = src; });
 async function prettyQR(text, side) {
-  const q = qrcode(0, 'M'); q.addData(text); q.make(); const n = q.getModuleCount(), p = Math.max(4, Math.floor(side / n));
+  const q = qrcode(0, 'M'); qrAdd(q, text); q.make(); const n = q.getModuleCount(), p = Math.max(4, Math.floor(side / n));
   const cv = document.createElement('canvas'); cv.width = cv.height = n * p; const x = cv.getContext('2d');
   const on = (c, r) => c >= 0 && r >= 0 && c < n && r < n && q.isDark(r, c);
   const quad = (c, r, dx, dy) => x.fillRect(c * p + (dx > 0 ? p / 2 : 0), r * p + (dy > 0 ? p / 2 : 0), p / 2 + .5, p / 2 + .5);
@@ -2685,7 +2688,7 @@ function v2AvPick(k) {
 // miniatura del QR de un código (para las tarjetas de la lista)
 const QRMINI = {};
 function qrMini(c) { const url = SITE + '/s/' + c.id; if (QRMINI[url]) return QRMINI[url];
-  try { const q = qrcode(0, 'M'); q.addData(url); q.make(); const n = q.getModuleCount(); let r = ''; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (q.isDark(y, x)) r += 'M' + x + ' ' + y + 'h1v1h-1z';
+  try { const q = qrcode(0, 'M'); qrAdd(q, url); q.make(); const n = q.getModuleCount(); let r = ''; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (q.isDark(y, x)) r += 'M' + x + ' ' + y + 'h1v1h-1z';
     return QRMINI[url] = '<svg viewBox="-1 -1 ' + (n + 2) + ' ' + (n + 2) + '" width="100%" height="100%" shape-rendering="crispEdges"><rect x="-1" y="-1" width="' + (n + 2) + '" height="' + (n + 2) + '" fill="#fff"/><path d="' + r + '" fill="#111"/></svg>'; } catch (e) { return ''; } }
 // colores de los boomerangs de un código según sus medios (decisión de Luis): rojo Alert, verde Chat (con o sin llamadas), amarillo Info, azul Mail; gris si está apagado
 // color de cada medio (etiquetas y boomerangs): rojo Alert, verde Chat y llamadas, amarillo Info, azul Mail; web en gris
@@ -2814,6 +2817,7 @@ async function openScanned(id) {
   const v = (S.vchats || []).find(x => x.code_id === id);
   if (v) { S.view = { t: 'vchat', id: v.id }; return render(); }
   const web = `${SITE}/s/${id}?web=1`;
+  if (c?.status === 'retired') return toast('Este código ya no existe: su dueño lo ha borrado.');
   if (!c || c.status === 'not_found') return toast('Ese código no existe.');
   if (c.status === 'redirect' && /^https?:\/\//i.test(c.url || '')) { location.href = c.url; return; }
   if (c.status !== 'on') { location.href = web; return; }   // sin dueño, apagado… lo explica la página del código

@@ -321,7 +321,7 @@ const app = $('#app');
 // Cuando la app esté en Google Play, poner su enlace en PLAY_URL y se usará en lugar del APK.
 const PLAY_URL = '';
 const INSTALL = /Android/i.test(navigator.userAgent) && !window.Capacitor?.isNativePlatform?.() ? (PLAY_URL || '/app/scan2com.apk') : '';
-const id = (location.pathname.match(/\/s\/([A-Za-z0-9]+)/) || [])[1] || new URLSearchParams(location.search).get('c') || location.hash.slice(1);
+const id = (location.pathname.match(/\/s\/([A-Za-z0-9]+)/i) || [])[1] || new URLSearchParams(location.search).get('c') || location.hash.slice(1);
 let code = null, status = '', statusErr = false, busy = false, view = 'home';
 const chatKey = () => 'scan2com_chat_' + id;
 let chat = null; try { chat = JSON.parse(localStorage.getItem(chatKey())); } catch (e) {}
@@ -342,6 +342,7 @@ async function load() {
   if (window.Capacitor?.isNativePlatform?.() && !new URLSearchParams(location.search).has('web') && Object.keys(localStorage).some(k => /^sb-.*-auth-token$/.test(k))) { location.replace('/app/?open=' + encodeURIComponent(id)); return; }
   [code] = await Promise.all([rpc('public_code', { p_id: id }), loadAuthority()]);
   if (chat) { linkChat(); ringWatch(); }
+  if (code?.status === 'retired') { app.innerHTML = `<div class="center">${LOGO}<h2>Este código ya no existe</h2><p>Su dueño lo ha borrado. Ya no llega a nadie.</p></div>`; return; }
   if (!code || code.status === 'not_found' || code.ok === false) { app.innerHTML = `<div class="center">${LOGO}<h2>Código no encontrado</h2><p>Revisa que el QR se haya leído bien.</p></div>`; return; }
   if (code.status === 'unclaimed') { app.innerHTML = `<div class="center">${LOGO}<h2>Pegatina sin activar</h2><p>Esta pegatina Scan2Com aún no tiene dueño. Si es tuya, vincúlala desde la app escaneando el QR maestro de tu pack.</p></div>`; return; }
   if (code.status === 'redirect' && /^https?:\/\//i.test(code.url)) { app.innerHTML = `<div class="center">${LOGO}<p>Abriendo <a href="${esc(code.url)}" rel="noopener">${esc(code.url.replace(/^https?:\/\//, ''))}</a>…</p></div>`; location.replace(code.url); return; }

@@ -114,8 +114,10 @@ const imgs = {};
 const img = src => imgs[src] ||= new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ko(new Error('No se encuentra ' + src)); i.src = src; });
 
 /* ---------- QR ---------- */
+// QR más pequeño: direcciones de Scan2Com en MAYÚSCULAS y modo alfanumérico (HTTPS://SCAN2COM.COM/S/ABCD1234 → 25×25 en vez de 29×29)
+const qrText = t => { const m = String(t).match(/^https?:\/\/(?:www\.)?scan2com\.com\/([sp])\/([A-Z0-9]+)$/i); return m && m[2] === m[2].toUpperCase() ? `HTTPS://SCAN2COM.COM/${m[1].toUpperCase()}/${m[2]}` : String(t); };
 function qrCanvas(text, size, style, ec, eye) {
-  const q = qrcode(0, ec); q.addData(text); q.make(); const n = q.getModuleCount();
+  text = qrText(text); const q = qrcode(0, ec); q.addData(text, /^[0-9A-Z $%*+\-./:]+$/.test(text) ? 'Alphanumeric' : 'Byte'); q.make(); const n = q.getModuleCount();
   const u = Math.max(8, Math.ceil(size * 4 / n)), c = document.createElement('canvas'); c.width = c.height = n * u;
   const g = c.getContext('2d'); g.fillStyle = '#000';
   const dark = (r, k) => r >= 0 && k >= 0 && r < n && k < n && q.isDark(r, k);

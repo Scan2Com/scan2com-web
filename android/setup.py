@@ -361,6 +361,8 @@ if 'scan2com.com' not in m:
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="scan2com.com" android:pathPrefix="/s/" />
                 <data android:scheme="https" android:host="www.scan2com.com" android:pathPrefix="/s/" />
+                <data android:scheme="https" android:host="scan2com.com" android:pathPrefix="/S/" />
+                <data android:scheme="https" android:host="www.scan2com.com" android:pathPrefix="/S/" />
             </intent-filter>
 """
     i = m.find('.MainActivity'); j = m.find('</activity>', i)

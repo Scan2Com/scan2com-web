@@ -1257,6 +1257,7 @@ async function zoneGeo(force) {
   ls.set(k, Date.now()); sb.rpc('set_my_geo', { p_lat: pos.lat, p_lng: pos.lng, p_acc: pos.acc || null }).then(() => {}, () => {});
 }
 const ZONE_INFO = `<ul style="font-size:13px;color:#555;line-height:1.45;padding-left:18px;margin:10px 0">
+      <li>Son avisos <b>locales o de tu comarca</b>, enviados directamente por la policía local, el ayuntamiento o los servicios de emergencia de la zona (calles cortadas, retirada de coches, una inundación en tu barrio…). Las emergencias de toda España o de tu comunidad llegan por <b>ES-Alert</b>, el sistema oficial de Protección Civil.</li>
       <li>Guardamos solo tu <b>última ubicación</b>, cuando abres la app, y dónde quedó tu coche al bajarte (si tienes su pegatina vinculada al Bluetooth).</li>
       <li>Nadie ve tu ubicación: solo se usa para saber si estás dentro de la zona de un aviso.</li>
       <li>Puedes desactivarlo cuando quieras en ⋮ y <b>se borran tus ubicaciones</b> al momento.</li></ul>

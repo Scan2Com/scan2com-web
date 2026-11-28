@@ -3147,6 +3147,12 @@ function openChatAt(unread) {
 function patchMsgs(key, html) {
   const ms = $('#ms'), cb = $('#cb');
   if (app.dataset.cv !== key || !ms || !cb) return false;
+  // mientras un boomerang está a medio viaje no se redibuja la conversación (si no, el boomerang nuevo aparece ya en su destino: «teletransporte»);
+  // se redibuja justo al aterrizar. Como mucho se espera 2,5 s seguidos, para no retrasar un mensaje nuevo
+  const busy = Math.max(0, ...Object.values(S.bmBusy || {})) - Date.now();
+  if (S.msHtml !== html && busy > 0 && document.querySelector('#ms .bm.fly') && Date.now() - (S.msHold ||= Date.now()) < 2500) {
+    clearTimeout(S.msHoldT); S.msHoldT = setTimeout(() => render(true), busy + 30); return true; }
+  S.msHold = 0;
   const bottom = cb.scrollHeight - cb.scrollTop - cb.clientHeight < 80 || Date.now() - (S.bmJustSent || 0) < 8000;
   if (bottom) cb._stick = true;
   if (S.msHtml !== html) { const sep = ms.querySelector('.unsep'); S.msHtml = html; ms.innerHTML = html; if (chatPin) { if (sep) chatPin.stop(), cb.scrollTop = cb.scrollHeight; else chatPin.apply(); } else if (bottom) cb.scrollTop = cb.scrollHeight; }

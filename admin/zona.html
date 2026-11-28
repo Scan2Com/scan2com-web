@@ -195,7 +195,7 @@ $('#me').onclick = () => {
 /* ---------- destinatarios ---------- */
 let pt = null;
 const poly = () => S.mode === 'poly' && S.pts.length >= 3 ? S.pts.map(p => [+p.lat.toFixed(6), +p.lng.toFixed(6)]) : null;
-function args() { const P = poly(); return { p_lat: S.c.lat, p_lng: S.c.lng, p_radius: P ? S.r : radM(), p_targets: $('#tg').value, p_poly: P }; }
+function args() { const P = poly(); const a = { p_lat: S.c.lat, p_lng: S.c.lng, p_radius: P ? S.r : radM(), p_targets: $('#tg').value }; if (P) a.p_poly = P; return a; }   // sin polígono no se envía p_poly (funciona también con el servidor anterior)
 function preview() {
   clearTimeout(pt); if (!S.c) return;
   $('#sT').textContent = 'Calculando…';

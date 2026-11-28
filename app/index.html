@@ -1630,7 +1630,14 @@ S.bmPos = {}; S.vread = {}; S.bmBusy = {};
 // tocar "enviar" no debe quitar el foco del cuadro de texto (si no, el teclado se cierra)
 function keepKb() { const b = $('#os'); if (b) { b.onpointerdown = e => e.preventDefault(); b.onmousedown = e => e.preventDefault(); } }
 function bmPlace(el, p) { el.classList.remove('home', 'left', 'mid', 'fly', 'part'); el.classList.add('now', p); void el.offsetWidth; el.classList.remove('now'); }
-function bmFly(el, from, to) { bmPlace(el, from); el.classList.add('fly'); el.classList.remove(from); el.classList.add(to); setTimeout(() => { el.classList.remove('fly'); if (to === 'home') { el.classList.add('arr'); setTimeout(() => el.classList.remove('arr'), 600); } }, 1150); }
+// cada boomerang hace su viaje por su cuenta; si la conversación se redibuja a medio viaje, el nuevo sigue desde el mismo punto (retraso negativo), sin saltos
+function bmFly(el, from, to, id, off = 0) {
+  if (id) { (S.bmTrip ||= {})[id] = { from, to, t0: Date.now() - off }; el._trip = S.bmTrip[id]; }
+  const i = el.querySelector('i'); bmPlace(el, from); el.classList.add('fly');
+  if (off > 0) { el.style.transitionDelay = i.style.transitionDelay = -off + 'ms'; }
+  el.classList.remove(from); el.classList.add(to);
+  setTimeout(() => { el.classList.remove('fly'); el.style.transitionDelay = i.style.transitionDelay = ''; if (to === 'home' && off < 1000) { el.classList.add('arr'); setTimeout(() => el.classList.remove('arr'), 600); } }, Math.max(0, 1150 - off));
+}
 // estelas del boomerang: cada punta deja un trazo que sigue su giro y se desvanece detrás (sin cambiar su tamaño)
 const TR = { cv: null, x: null, tr: {}, last: {}, raf: 0, until: 0 };
 const TIPS = [[-.469, -.484], [.469, .453]];   // puntas del boomerang (en su caja, desde el centro)
@@ -1645,7 +1652,7 @@ function trTick() {
   const cv = TR.cv, W = innerWidth, H = innerHeight; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
   const box = $('#ms'), br = box ? box.getBoundingClientRect() : { left: 0, top: 0 }, seen = new Set();
   [...document.querySelectorAll('#ms .bm i, .bmfly')].forEach(i => {
-    const bmEl = i.closest('.bm'), key = bmEl ? bmEl.dataset.bm : 'send'; if (bmEl && (bmEl.style.visibility === 'hidden' || bmEl.classList.contains('home') && !bmEl.classList.contains('fly'))) return;
+    const bmEl = i.closest('.bm'), key = bmEl ? bmEl.dataset.bm : i.dataset.k || 'send'; if (bmEl && (bmEl.style.visibility === 'hidden' || bmEl.classList.contains('home') && !bmEl.classList.contains('fly'))) return;
     const r = i.getBoundingClientRect(); if (!r.width || r.bottom < 0 || r.top > H) return;
     const m = new DOMMatrix(getComputedStyle(i).transform === 'none' ? undefined : getComputedStyle(i).transform), ang = Math.atan2(m.b, m.a), sc = Math.hypot(m.a, m.b) || 1, half = i.offsetWidth * sc;
     const cx = r.left + r.width / 2 - br.left, cy = r.top + r.height / 2 - br.top, col = getComputedStyle(i).backgroundColor;
@@ -1684,27 +1691,27 @@ function bmSync() {
     const box = el.closest('.msgs'); if (!box) return;
     const id = el.dataset.bm, pct = +el.dataset.pct || 0, want = el.dataset.read === '1' ? 'home' : pct ? 'part' : el.dataset.dl === '0' ? 'mid' : 'left', cur = S.bmPos[id];
     el.style.setProperty('--fly', -Math.max(0, el.parentElement.getBoundingClientRect().right - 18 - box.getBoundingClientRect().left - 6) + 'px');
-    if (V2.fly?.bm && V2.fly.bm !== el && V2.fly.bm.dataset.bm === id) { V2.fly.bm = el; el.style.visibility = 'hidden'; }   // redibujado a medio vuelo del boomerang de enviar   // se mide desde el sitio fijo (la hora), no desde el boomerang ya movido
+    (V2.flies || []).forEach(fl => { if (fl.bm && fl.bm !== el && fl.bm.dataset.bm === id && fl.end > Date.now()) { fl.bm = el; el.style.visibility = 'hidden'; } });   // redibujado a medio vuelo del boomerang de enviar   // se mide desde el sitio fijo (la hora), no desde el boomerang ya movido
     if (want === 'part') {   // reproducido en parte: se queda a ese porcentaje del camino de vuelta, con el % al lado
       const was = (S.bmPct ||= {})[id]; el.style.setProperty('--p', (was ?? (cur === 'home' ? 100 : 0)) / 100);
       bmPlace(el, cur === 'part' ? 'part' : cur || 'left'); S.bmPos[id] = 'part'; S.bmPct[id] = pct;
       requestAnimationFrame(() => { el.classList.remove('left', 'mid', 'home'); el.classList.add('part'); if ((was ?? -1) !== pct && (was != null || cur)) { el.classList.add('fly'); setTimeout(() => el.classList.remove('fly'), 1150); } el.style.setProperty('--p', pct / 100); });   // al moverse, gira
       return;
     }
-    if (el !== lastEl && !((S.bmBusy[id] || 0) > Date.now() - 6000)) { S.bmPos[id] = want; return bmPlace(el, want); }   // solo se mueve el del último mensaje (o uno que aún está haciendo su viaje: lo termina antes del tic)
+    if (el !== lastEl && !cur) { S.bmPos[id] = want; return bmPlace(el, want); }   // al abrir el chat, los de antes ya están en su sitio; los que cambian mientras lo ves, hacen su viaje (cada uno el suyo)
     if (!cur && !(Date.now() - (S.bmJustSent || 0) < 15000)) { S.bmPos[id] = want; return bmPlace(el, want); }
     const wait = (S.bmBusy[id] || 0) - Date.now();
-    if (wait > 0) { bmPlace(el, cur); return setTimeout(bmSync, wait + 40); }   // a medio vuelo: termina el viaje y luego sigue
+    if (wait > 0) { const t = S.bmTrip?.[id]; if (t && el._trip !== t && Date.now() - t.t0 < 1150) bmFly(el, t.from, t.to, id, Date.now() - t.t0); else if (el._trip !== t || !t) bmPlace(el, cur); clearTimeout(el._sync); el._sync = setTimeout(bmSync, wait + 40); return; }   // a medio vuelo: sigue su viaje desde donde iba y luego continúa
     if (!cur) {   // recién enviado: siempre sale volando a la izquierda; si ya está leído, vuelve después
       const first = want === 'mid' ? 'mid' : 'left'; S.bmJustSent = 0; S.bmPos[id] = first;
-      const start = (e = el) => { S.bmBusy[id] = Date.now() + 1300; bmFly(e, 'home', first); if (want === 'home') setTimeout(bmSync, 1350); };
+      const start = (e = el) => { S.bmBusy[id] = Date.now() + 1300; bmFly(e, 'home', first, id); if (want === 'home') setTimeout(bmSync, 1350); };
       if (V2.fly && !V2.fly.bm && V2.fly.end > Date.now()) { const fl = V2.fly, land = fl.grp ? 'left' : 'mid'; fl.bm = el; S.bmPos[id] = land; el.style.visibility = 'hidden'; fl.aim?.(el, land); bmPlace(el, land); S.bmBusy[id] = fl.end + 50; if (want !== land) setTimeout(bmSync, fl.end - Date.now() + 100); } else start();
       return;
     }
     if (cur === want) return bmPlace(el, want);
     // del servidor no vuelve directo: primero llega a su teléfono (el otro lado) y desde ahí vuelve, aunque lo lea al momento
-    if (cur === 'mid' && want !== 'left') { S.bmPos[id] = 'left'; S.bmBusy[id] = Date.now() + 1300; bmFly(el, 'mid', 'left'); return setTimeout(bmSync, 1350); }
-    S.bmPos[id] = want; S.bmBusy[id] = Date.now() + 1300; bmFly(el, cur, want);
+    if (cur === 'mid' && want !== 'left') { S.bmPos[id] = 'left'; S.bmBusy[id] = Date.now() + 1300; bmFly(el, 'mid', 'left', id); return setTimeout(bmSync, 1350); }
+    S.bmPos[id] = want; S.bmBusy[id] = Date.now() + 1300; bmFly(el, cur, want, id);
   });
 }
 // iconos de Avisos y Envíos: dibujo del color del aviso dentro de un aro de ese color, del tamaño de las caritas y del botón on/off
@@ -2929,8 +2936,8 @@ function v2SendFly() {
   if (!bmFx()) return;
   const btn = $('#os'), ic = btn?.querySelector('.bmsend'), cb = $('#cb'), ms = $('#ms'); if (!ic || !btn.classList.contains('txt') || !cb || !ms) return;
   const r = ic.getBoundingClientRect(); if (!r.width) return;
-  V2.fly?.el.remove(); V2.sentAt = Date.now();
-  const f = document.createElement('i'), cs = getComputedStyle(ic); f.className = 'bmfly';
+  V2.sentAt = Date.now();
+  const f = document.createElement('i'), cs = getComputedStyle(ic); f.className = 'bmfly'; f.dataset.k = 's' + Date.now();
   f.style.cssText = 'left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;-webkit-mask-image:' + cs.webkitMaskImage + ';mask-image:' + (cs.maskImage || cs.webkitMaskImage);
   document.body.appendChild(f);
   // dónde quedará el acuse del mensaje nuevo: al final de la conversación, junto a la hora, y su sitio de espera a la izquierda
@@ -2945,7 +2952,7 @@ function v2SendFly() {
     { transform: T(hx, hy, 225 + 720, bs), backgroundColor: '#9aa0a6', offset: .36, easing: 'linear' },
     { transform: T(lx, hy, 225 + 720 + 1800 * (grp ? 1 : .5), bs), backgroundColor: '#9aa0a6', easing: 'cubic-bezier(.3,0,.25,1)' }]; };
   const D = 1400, a = f.animate(K(hx, hy, lx), { duration: D, fill: 'forwards' });
-  const fl = V2.fly = { el: f, end: Date.now() + D, bm: null, grp: !!grp }; trKick(D + 1800);
+  const fl = V2.fly = { el: f, end: Date.now() + D, bm: null, grp: !!grp }; V2.flies = (V2.flies || []).filter(x => x.end > Date.now()).concat(fl); trKick(D + 1800);
   // en cuanto existe el acuse real del mensaje, el vuelo se reajusta a su franja exacta (misma línea que el tic, sin subir al pararse)
   fl.aim = (el, land) => { try { const c = q => { bmPlace(el, q); const b = el.getBoundingClientRect(); return [b.left + b.width / 2 - r.width / 2, b.top + b.height / 2 - r.height / 2]; };
     const [h0, h1] = c('home'), [l0] = c(land); a.effect.setKeyframes(K(h0, h1, l0)); } catch (e) {} };
@@ -3147,12 +3154,6 @@ function openChatAt(unread) {
 function patchMsgs(key, html) {
   const ms = $('#ms'), cb = $('#cb');
   if (app.dataset.cv !== key || !ms || !cb) return false;
-  // mientras un boomerang está a medio viaje no se redibuja la conversación (si no, el boomerang nuevo aparece ya en su destino: «teletransporte»);
-  // se redibuja justo al aterrizar. Como mucho se espera 2,5 s seguidos, para no retrasar un mensaje nuevo
-  const busy = Math.max(0, ...Object.values(S.bmBusy || {})) - Date.now();
-  if (S.msHtml !== html && busy > 0 && document.querySelector('#ms .bm.fly') && Date.now() - (S.msHold ||= Date.now()) < 2500) {
-    clearTimeout(S.msHoldT); S.msHoldT = setTimeout(() => render(true), busy + 30); return true; }
-  S.msHold = 0;
   const bottom = cb.scrollHeight - cb.scrollTop - cb.clientHeight < 80 || Date.now() - (S.bmJustSent || 0) < 8000;
   if (bottom) cb._stick = true;
   if (S.msHtml !== html) { const sep = ms.querySelector('.unsep'); S.msHtml = html; ms.innerHTML = html; if (chatPin) { if (sep) chatPin.stop(), cb.scrollTop = cb.scrollHeight; else chatPin.apply(); } else if (bottom) cb.scrollTop = cb.scrollHeight; }
